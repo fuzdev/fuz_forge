@@ -18,8 +18,8 @@
  *   `size_bytes`, `content_type`, `uploaded_at`, no more,
  *   with the canonical second-precision `uploaded_at`.
  * - **delete** — `200 {deleted: true, filename}`, after which a read is the
- *   shared `404 {error: 'File not found'}`; a delete of an absent key is that
- *   same 404.
+ *   shared `404 {error: 'file_not_found', message: 'File not found'}`; a
+ *   delete of an absent key is that same 404.
  * - **the content-type table** — `infer_content_type` is hand-written twice
  *   (`routes/files.ts` ↔ `files/content_type.rs`), so the whole extension map
  *   is pinned literally, including the unlisted extensions that must fall to
@@ -281,11 +281,17 @@ describe('file store CRUD (cross-process, both backends)', () => {
 
 		const gone = await get_file(bearer, 'delete_me.bin');
 		assert.strictEqual(gone.status, 404);
-		assert.deepStrictEqual(await gone.json(), { error: 'File not found' });
+		assert.deepStrictEqual(await gone.json(), {
+			error: 'file_not_found',
+			message: 'File not found'
+		});
 
 		const gone_meta = await get_file(bearer, 'delete_me.bin?meta');
 		assert.strictEqual(gone_meta.status, 404);
-		assert.deepStrictEqual(await gone_meta.json(), { error: 'File not found' });
+		assert.deepStrictEqual(await gone_meta.json(), {
+			error: 'file_not_found',
+			message: 'File not found'
+		});
 
 		// a delete is a soft delete of the cell, and the list reads only live ones
 		const listed = await list_files(bearer);
@@ -297,7 +303,10 @@ describe('file store CRUD (cross-process, both backends)', () => {
 
 		const delete_absent = await delete_file(bearer, 'never_existed.bin');
 		assert.strictEqual(delete_absent.status, 404);
-		assert.deepStrictEqual(await delete_absent.json(), { error: 'File not found' });
+		assert.deepStrictEqual(await delete_absent.json(), {
+			error: 'file_not_found',
+			message: 'File not found'
+		});
 	});
 
 	test('content-type inference maps the same extensions to the same types', async () => {
@@ -380,7 +389,11 @@ describe('file cell fact address (cross-process, both backends)', () => {
 			for (const path of [`${filename}?meta`, filename]) {
 				const res = await get_file(bearer, path);
 				assert.strictEqual(res.status, 404, `${label} ${path}`);
-				assert.deepStrictEqual(await res.json(), { error: 'File not found' }, `${label} ${path}`);
+				assert.deepStrictEqual(
+					await res.json(),
+					{ error: 'file_not_found', message: 'File not found' },
+					`${label} ${path}`
+				);
 			}
 		}
 
@@ -458,7 +471,10 @@ describe('file cell fact address (cross-process, both backends)', () => {
 
 		const res = await get_file(bearer, 'external_foreign.bin');
 		assert.strictEqual(res.status, 404, 'a foreign file: URL is a missing file');
-		assert.deepStrictEqual(await res.json(), { error: 'File not found' });
+		assert.deepStrictEqual(await res.json(), {
+			error: 'file_not_found',
+			message: 'File not found'
+		});
 	});
 });
 

@@ -23,14 +23,32 @@ import type { AuditLogRouteOptions } from '@fuzdev/fuz_app/auth/audit_log_routes
 import { create_stub_audit_sse, stub } from '@fuzdev/fuz_app/testing/stubs.ts';
 import { Logger } from '@fuzdev/fuz_util/log.ts';
 import { AsyncSemaphore } from '@fuzdev/fuz_util/async.ts';
+import type { RouteParamValues } from '@fuzdev/fuz_app/testing/schema_generators.ts';
 
 import { fuz_forge_session_config } from '#lib/server/routes/account.ts';
 import { FUZ_FORGE_ORIGIN_CARVE_OUTS } from '#lib/server/app_assembly.ts';
 import type { FileRoutesDeps } from '#lib/server/routes/files.ts';
 import {
+	GIT_INFO_REFS_PATH,
+	GIT_RECEIVE_PACK_PATH,
+	GIT_UPLOAD_PACK_PATH
+} from '#lib/server/routes/repo_git.ts';
+import {
 	build_rpc_endpoint_specs,
 	create_fuz_forge_app_route_specs
 } from '#lib/server/routes/fuz_forge_route_specs.ts';
+
+/**
+ * Path param values for the routes the generic suites can't fill: the git
+ * smart-HTTP routes, whose `{.+\.git}` refuses the generated `test_<name>`.
+ * `org/repo.git` arrives percent-encoded, one segment: TS reaches the handler,
+ * which refuses the encoded `/` with its 401; Rust routes it to the fallback.
+ */
+export const fuz_forge_param_values: RouteParamValues = {
+	[`GET ${GIT_INFO_REFS_PATH}`]: { slug_with_git: 'org/repo.git' },
+	[`POST ${GIT_UPLOAD_PACK_PATH}`]: { slug_with_git: 'org/repo.git' },
+	[`POST ${GIT_RECEIVE_PACK_PATH}`]: { slug_with_git: 'org/repo.git' }
+};
 
 /**
  * Build `FileRoutesDeps` for tests, filling the disk-budget / concurrency

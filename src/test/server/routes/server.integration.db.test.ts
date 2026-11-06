@@ -50,7 +50,8 @@ import {
 	create_fuz_forge_test_app,
 	test_file_route_deps,
 	test_audit_sse_deps,
-	test_facts_dir
+	test_facts_dir,
+	fuz_forge_param_values
 } from './fuz_forge_test_helpers.ts';
 
 /**
@@ -211,9 +212,10 @@ describe_round_trip_validation({
 		'GET /api/rpc',
 		'POST /api/rpc',
 		// File store routes take raw bytes, not JSON — round-trip can't generate a body
-		'POST /api/fuz_forge/files/:filename',
-		'DELETE /api/fuz_forge/files/:filename'
-	]
+		'POST /api/fuz_forge/files/:filename{.+}',
+		'DELETE /api/fuz_forge/files/:filename{.+}'
+	],
+	param_values: fuz_forge_param_values
 });
 
 // --- RPC round-trip validation ---
@@ -277,7 +279,8 @@ describe_data_exposure_tests({
 	// that succeeded (`if (!res.ok) continue`) — so on the auth-only default
 	// fixture the two fact routes contribute nothing at all rather than failing
 	// loudly. See `fuz_forge_in_process_setup`.
-	setup_test: fuz_forge_in_process_setup
+	setup_test: fuz_forge_in_process_setup,
+	param_values: fuz_forge_param_values
 });
 
 // No SSE or WS suites here. Realtime rides the WebSocket endpoint, and both it

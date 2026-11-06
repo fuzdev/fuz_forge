@@ -10,9 +10,10 @@
  * upload semaphore, and an orphan-temp sweep). Both backends now speak one wire
  * contract for the three cases here:
  *
- *   (a) a declared `Content-Length` over the cap → `413 {error: "File too
- *       large: <N> bytes exceeds <M> byte limit"}`;
- *   (b) an empty body → `400 {error: "Empty body"}`;
+ *   (a) a declared `Content-Length` over the cap → `413 {error:
+ *       "payload_too_large", message: "File too large: <N> bytes exceeds <M>
+ *       byte limit"}`;
+ *   (b) an empty body → `400 {error: "empty_body", message: "Empty body"}`;
  *   (c) a normal multi-KB upload round-trips — `put` → `get` returns identical
  *       bytes, and the reported `blake3_hash` and the download's
  *       `x-blake3-hash` header match a local recompute.
@@ -97,7 +98,7 @@ const download = async (bearer: string, filename: string): Promise<Response> =>
 	});
 
 describe('file-store streaming + disk budget (cross-process, both backends)', () => {
-	test('declared Content-Length over the cap → 413 File too large', async () => {
+	test('declared Content-Length over the cap → 413 payload_too_large', async () => {
 		const fixture = await setup_test();
 		const bearer = keeper_bearer(fixture);
 		// ~3 MiB, over the 2 MiB test cap — declared, and not sent. The route's
@@ -115,22 +116,58 @@ describe('file-store streaming + disk budget (cross-process, both backends)', ()
 			content_length: declared_bytes
 		});
 		assert.strictEqual(res.status, 413, 'over-cap upload must 413');
-		const body = JSON.parse(res.body) as { error: string };
-		assert.strictEqual(
-			body.error,
-			`File too large: ${declared_bytes} bytes exceeds ${FILE_STORE_MAX_BYTES_TEST} byte limit`,
-			'413 body must carry the canonical File-too-large message'
+		assert.deepStrictEqual(
+			JSON.parse(res.body),
+			{
+				error: 'payload_too_large',
+				message: `File too large: ${declared_bytes} bytes exceeds ${FILE_STORE_MAX_BYTES_TEST} byte limit`
+			},
+			'413 body must carry the code and the cap in its message'
 		);
 	});
 
-	test('empty body → 400 Empty body', async () => {
+	test('chunked upload over the cap → 413 mid-stream', async () => {
+		const fixture = await setup_test();
+		const bearer = keeper_bearer(fixture);
+		// ~3 MiB in 64 KiB chunks with no `Content-Length`, so the declared-length
+		// pre-check can't see it and the fact store's byte counter refuses it
+		const chunk = new Uint8Array(64 * 1024);
+		const chunk_count = Math.ceil((3 * 1024 * 1024) / chunk.length);
+		let sent = 0;
+		const body = new ReadableStream<Uint8Array>({
+			pull(controller) {
+				if (sent === chunk_count) {
+					controller.close();
+					return;
+				}
+				sent++;
+				controller.enqueue(chunk);
+			}
+		});
+
+		const res = await fetch(`${base_url}/api/fuz_forge/files/too_big_chunked.bin`, {
+			method: 'POST',
+			headers: {
+				Authorization: `Bearer ${bearer}`,
+				'Content-Type': 'application/octet-stream'
+			},
+			body,
+			duplex: 'half'
+		} as RequestInit);
+		assert.strictEqual(res.status, 413, 'over-cap chunked upload must 413');
+		assert.deepStrictEqual(await res.json(), {
+			error: 'payload_too_large',
+			message: `File too large: exceeds ${FILE_STORE_MAX_BYTES_TEST} byte limit`
+		});
+	});
+
+	test('empty body → 400 empty_body', async () => {
 		const fixture = await setup_test();
 		const bearer = keeper_bearer(fixture);
 
 		const res = await upload(bearer, 'empty.bin', new Uint8Array(0));
 		assert.strictEqual(res.status, 400, 'empty upload must 400');
-		const body = (await res.json()) as { error: string };
-		assert.strictEqual(body.error, 'Empty body');
+		assert.deepStrictEqual(await res.json(), { error: 'empty_body', message: 'Empty body' });
 	});
 
 	test('multi-KB upload round-trips with a matching blake3', async () => {

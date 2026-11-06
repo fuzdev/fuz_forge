@@ -17,7 +17,10 @@ import { Logger } from '@fuzdev/fuz_util/log.ts';
 import { AsyncSemaphore } from '@fuzdev/fuz_util/async.ts';
 
 import { fuz_forge_session_config } from '#lib/server/routes/account.ts';
-import { FUZ_FORGE_ORIGIN_CARVE_OUTS } from '#lib/server/app_assembly.ts';
+import {
+	FUZ_FORGE_ORIGIN_CARVE_OUTS,
+	generic_body_cap_middleware
+} from '#lib/server/app_assembly.ts';
 import { extend_middleware_for_fuz_forge } from '#lib/server/fuz_forge_token_policy_middleware.ts';
 import {
 	build_rpc_endpoint_specs,
@@ -136,10 +139,16 @@ export const create_fuz_forge_app_surface_spec = (): AppSurfaceSpec =>
 		// Production mounts none on either backend.
 		// `GET /api/surface` stays at its default, off: neither backend serves it.
 		daemon_token: true,
-		transform_middleware: (api_middleware) =>
-			extend_middleware_for_fuz_forge(api_middleware, {
+		// the forge mounts no global body limit, as `create_app` passes
+		// `max_body_size: null`: its generic cap is a middleware of its own,
+		// first in the chain, carved out of the file store and git smart-HTTP
+		max_body_size: null,
+		transform_middleware: (api_middleware) => [
+			generic_body_cap_middleware(),
+			...extend_middleware_for_fuz_forge(api_middleware, {
 				fuz_forge_token_policy_middleware: passthrough_middleware as never
 			})
+		]
 	});
 
 /** Resolve an absolute path relative to this file's directory. */

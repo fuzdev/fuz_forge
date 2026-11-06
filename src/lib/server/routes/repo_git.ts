@@ -151,6 +151,25 @@ export const first_service_param = (raw_query: string | undefined): string | und
 /** Compose the route path for a smart-HTTP endpoint. */
 const git_path = (suffix: string): string => `/:slug_with_git{${SLUG_WITH_GIT_PATTERN}}${suffix}`;
 
+/** The info/refs advertisement route template. */
+export const GIT_INFO_REFS_PATH = git_path('/info/refs');
+
+/** The fetch/clone pack route template. */
+export const GIT_UPLOAD_PACK_PATH = git_path('/git-upload-pack');
+
+/** The push pack route template. */
+export const GIT_RECEIVE_PACK_PATH = git_path('/git-receive-pack');
+
+/**
+ * The smart-HTTP route templates, exactly as mounted — what a middleware
+ * carve-out names to leave these routes out of a layer on the surface.
+ */
+export const GIT_SMART_HTTP_ROUTE_PATHS: ReadonlyArray<string> = [
+	GIT_INFO_REFS_PATH,
+	GIT_UPLOAD_PACK_PATH,
+	GIT_RECEIVE_PACK_PATH
+];
+
 /** Extract the slug from the captured `<slug>.git` param. */
 const extract_slug = (slug_with_git: string): string =>
 	slug_with_git.endsWith(GIT_SUFFIX) ? slug_with_git.slice(0, -GIT_SUFFIX.length) : slug_with_git;
@@ -230,7 +249,7 @@ export const create_repo_git_route_specs = (deps: RepoGitRoutesDeps): Array<Rout
 	return [
 		{
 			method: 'GET',
-			path: git_path('/info/refs'),
+			path: GIT_INFO_REFS_PATH,
 			auth: { account: 'none', actor: 'none' },
 			description:
 				'Git smart-HTTP capability advertisement (in-handler HTTP Basic auth; admin role required)',
@@ -241,7 +260,7 @@ export const create_repo_git_route_specs = (deps: RepoGitRoutesDeps): Array<Rout
 		},
 		{
 			method: 'POST',
-			path: git_path('/git-upload-pack'),
+			path: GIT_UPLOAD_PACK_PATH,
 			auth: { account: 'none', actor: 'none' },
 			description: 'Git fetch/clone body (in-handler HTTP Basic auth; admin role required)',
 			input: z.null(),
@@ -252,7 +271,7 @@ export const create_repo_git_route_specs = (deps: RepoGitRoutesDeps): Array<Rout
 		},
 		{
 			method: 'POST',
-			path: git_path('/git-receive-pack'),
+			path: GIT_RECEIVE_PACK_PATH,
 			auth: { account: 'none', actor: 'none' },
 			description:
 				'Git push body (in-handler HTTP Basic auth; admin role required; default-branch force-push protected by pre-receive hook)',

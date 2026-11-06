@@ -154,9 +154,11 @@ semantics a client relies on:
   byte order, filtered to what the token may read.
 - `DELETE <filename>` soft-deletes the metadata cell; the bytes stay in the
   fact store; nothing reclaims them yet.
-- An absent key is `404 {error: "File not found"}`; an empty body `400`; an
-  upload over `FUZ_FORGE_FILE_STORE_MAX_BYTES` `413`; one the free-space margin
-  can't hold `507 storage_full` (both in ./deploy.md § Server env).
+- An absent key is `404 file_not_found`; an empty body `400 empty_body`; an
+  upload over `FUZ_FORGE_FILE_STORE_MAX_BYTES` `413 payload_too_large`, the cap
+  in its `message`; one the free-space margin can't hold `507 storage_full`
+  (both in ./deploy.md § Server env). Each body is `{error: <code>}`, with
+  prose in `message` where there is any.
 - **Digests.** BLAKE3 is a file's address and its only digest: bare lowercase
   hex on the wire (`blake3_hash` in the upload and metadata bodies, the
   `x-blake3-hash` header on every download), `blake3:<hex>` in the file's cell

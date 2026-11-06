@@ -344,9 +344,9 @@ pub(super) fn compose_full_router(
     //
     // - The file-store upload streams the raw `axum::body::Body` and enforces
     //   `env.file_store_max_bytes` itself — a `Content-Length` pre-check plus a
-    //   per-byte counter in `FactStore::put_stream` — answering the
-    //   informative `{error: "File too large: …"}` the TS twin emits, which a
-    //   stack cap would mask with its generic `payload_too_large`.
+    //   per-byte counter in `FactStore::put_stream` — answering
+    //   `payload_too_large` with the file-store cap in its `message`, as the TS
+    //   twin does, where a stack cap would answer the bare 1 MiB one.
     // - `git http-backend` is the size authority for a push: the pack handlers
     //   stream the body straight into the subprocess stdin, and a pack
     //   routinely exceeds 1 MiB.
@@ -406,7 +406,7 @@ pub(super) fn compose_full_router(
         "files",
         Router::new().nest("/api/fuz_forge/files", files),
         BodyCap::HandlerOwned {
-            reason: "streamed upload answers its own File too large 413",
+            reason: "streamed upload answers its own payload_too_large 413",
         },
     );
     let git_group = RouteGroup::new(

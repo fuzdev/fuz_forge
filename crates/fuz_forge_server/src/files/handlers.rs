@@ -35,7 +35,8 @@ use crate::token_policy::{FuzForgeCapability, FuzForgeTokenPolicy, policy_check}
 use crate::token_surfaces::{SURFACE_FILE_STORE, token_scope_admits_forge_surface};
 use fuz_auth::parse_acting_query;
 use fuz_http::{
-    db_unavailable_response_with_source, internal_error_response_with_source, rest_error_response,
+    PAYLOAD_TOO_LARGE_REASON, db_unavailable_response_with_source,
+    internal_error_response_with_source, invalid_route_params_response, rest_error_response,
 };
 
 use fuz_forge_wire::output::{
@@ -165,9 +166,26 @@ fn enforce_capability(
     }
 }
 
-/// `{ "error": "File not found" }` 404 — the shared file-miss response.
+/// A coded REST error with its prose in `message` — `{error: <code>,
+/// message: <prose>}`, the TS twin's `c.json({error, message}, status)`.
+fn rest_error_with_message(status: StatusCode, code: &str, message: &str) -> Response {
+    (status, Json(json!({"error": code, "message": message}))).into_response()
+}
+
+/// `{ "error": "file_not_found", "message": "File not found" }` 404 — the
+/// shared file-miss response, the TS twin's `REST_FILE_NOT_FOUND`.
 fn file_not_found() -> Response {
-    rest_error_response(StatusCode::NOT_FOUND, "File not found")
+    rest_error_with_message(StatusCode::NOT_FOUND, "file_not_found", "File not found")
+}
+
+/// `{ "error": "payload_too_large", "message": <the cap> }` 413 — an upload
+/// over the file-store cap, the TS twin's `REST_FILE_TOO_LARGE`.
+fn file_too_large(message: &str) -> Response {
+    rest_error_with_message(
+        StatusCode::PAYLOAD_TOO_LARGE,
+        PAYLOAD_TOO_LARGE_REASON,
+        message,
+    )
 }
 
 /// Traversal-safe filename validation, delegating to
@@ -189,8 +207,7 @@ fn file_not_found() -> Response {
     reason = "Err is the ready-to-return axum Response — the crate-wide REST handler idiom"
 )]
 fn validate_file_key(filename: &str) -> Result<(), Response> {
-    fuz_storage::validate_forge_key(filename)
-        .map_err(|_| rest_error_response(StatusCode::BAD_REQUEST, "invalid_route_params"))
+    fuz_storage::validate_forge_key(filename).map_err(|_| invalid_route_params_response())
 }
 
 #[allow(
@@ -253,13 +270,10 @@ pub(super) async fn handle_upload(
     if let Some(content_length) = declared_content_length
         && content_length > state.max_upload_bytes as u64
     {
-        return Err(rest_error_response(
-            StatusCode::PAYLOAD_TOO_LARGE,
-            &format!(
-                "File too large: {content_length} bytes exceeds {} byte limit",
-                state.max_upload_bytes
-            ),
-        ));
+        return Err(file_too_large(&format!(
+            "File too large: {content_length} bytes exceeds {} byte limit",
+            state.max_upload_bytes
+        )));
     }
 
     // Bound concurrent streaming uploads: hold a permit for the rest of the
@@ -328,13 +342,10 @@ pub(super) async fn handle_upload(
         )
         .await
         .map_err(|e| match e {
-            FactError::PayloadTooLarge => rest_error_response(
-                StatusCode::PAYLOAD_TOO_LARGE,
-                &format!(
-                    "File too large: exceeds {} byte limit",
-                    state.max_upload_bytes
-                ),
-            ),
+            FactError::PayloadTooLarge => file_too_large(&format!(
+                "File too large: exceeds {} byte limit",
+                state.max_upload_bytes
+            )),
             // Mid-stream disk-full (ENOSPC) — the backstop for what the
             // free-space preflight can't catch (chunked uploads, TOCTOU races).
             FactError::StorageFull => storage_full_response(),
@@ -342,7 +353,11 @@ pub(super) async fn handle_upload(
         })?;
 
     if outcome.size == 0 {
-        return Err(rest_error_response(StatusCode::BAD_REQUEST, "Empty body"));
+        return Err(rest_error_with_message(
+            StatusCode::BAD_REQUEST,
+            "empty_body",
+            "Empty body",
+        ));
     }
 
     // Idempotent: identical bytes → no cell write (the fact already deduped).

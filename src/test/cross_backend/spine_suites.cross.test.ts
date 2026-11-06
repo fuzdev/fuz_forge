@@ -25,6 +25,7 @@ import {
 import { fuz_forge_session_config } from '#lib/server/routes/account.ts';
 import { fuz_forge_roles } from '#lib/server/fuz_forge_roles.ts';
 import { create_fuz_forge_app_surface_spec } from '../server/routes/auth_attack_surface_helpers.ts';
+import { fuz_forge_param_values } from '../server/routes/fuz_forge_test_helpers.ts';
 import { fuz_forge_rpc_endpoints } from './fuz_forge_rpc_mount.ts';
 
 const handle = inject_backend_handle();
@@ -43,8 +44,8 @@ const round_trip_skip_routes = [
 	// z.null()`) admin routes — no acting-actor input path for the generic
 	// validator to supply, so authorization yields `actor_required` rather
 	// than a declared response. Driven by fuz_forge's own file route tests.
-	'POST /api/fuz_forge/files/:filename',
-	'DELETE /api/fuz_forge/files/:filename'
+	'POST /api/fuz_forge/files/:filename{.+}',
+	'DELETE /api/fuz_forge/files/:filename{.+}'
 ];
 
 const exclude: SpineCrossSuitesOptions['exclude'] = {
@@ -52,7 +53,7 @@ const exclude: SpineCrossSuitesOptions['exclude'] = {
 };
 
 const overrides: SuiteOverrides = {
-	standard: { round_trip_skip_routes }
+	standard: { round_trip_skip_routes, param_values: fuz_forge_param_values }
 };
 
 describe_spine_cross_suites(handle, {

@@ -46,6 +46,10 @@ import { PgFactStore } from '@fuzdev/fuz_app/db/fact_store.ts';
 import { sweep_orphan_temps } from '@fuzdev/fuz_app/db/fact_disk_storage.ts';
 import { start_periodic } from '@fuzdev/fuz_app/periodic.ts';
 import { create_body_limit_middleware } from '@fuzdev/fuz_app/http/body_limit.ts';
+import {
+	REST_INVALID_CONTENT_LENGTH,
+	REST_PAYLOAD_TOO_LARGE
+} from '@fuzdev/fuz_app/http/error_schemas.ts';
 import type { MiddlewareCarveOut, MiddlewareSpec } from '@fuzdev/fuz_app/http/middleware_spec.ts';
 
 import { fuz_forge_home, resolve_tilde } from '../runtime/path.ts';
@@ -53,6 +57,7 @@ import type { ServerEnv } from './env/schema.ts';
 import { load_env } from './env/load.ts';
 import { fuz_forge_session_config } from './routes/account.ts';
 import { create_backend_actions_api } from './backend_actions_api.ts';
+import { GIT_SMART_HTTP_ROUTE_PATHS } from './routes/repo_git.ts';
 // Type-only — `server.ts` imports the values back, so this edge is erased at
 // runtime (no module cycle).
 import type { ServerTestingOptions } from './server.ts';
@@ -142,6 +147,21 @@ export const generic_body_cap_middleware = (): MiddlewareSpec => {
 	return {
 		name: 'generic_body_cap',
 		path: '*',
+		errors: [REST_PAYLOAD_TOO_LARGE, REST_INVALID_CONTENT_LENGTH],
+		// the surface's half of `is_generic_body_cap_path`: the file store and the
+		// git routes answer neither error of the cap. The git templates also match
+		// one- and three-segment slugs, which the runtime caps; those are refused
+		// 401 (TS) or 404 (Rust) and never reach git.
+		carve_outs: [
+			{
+				path: `${FILE_STORE_PATH_PREFIX}/*`,
+				reason: 'the file store streams and caps its own uploads'
+			},
+			...GIT_SMART_HTTP_ROUTE_PATHS.map((path) => ({
+				path,
+				reason: 'git http-backend owns pack limits'
+			}))
+		],
 		// the handler-owned groups (file store, git smart-HTTP) pass straight
 		// through — they stream + cap in-handler
 		handler: (c, next) => (is_generic_body_cap_path(c.req.path) ? body_limit(c, next) : next())

@@ -28,7 +28,14 @@
 import type { Context } from 'hono';
 import { z } from 'zod';
 import type { RouteSpec } from '@fuzdev/fuz_app/http/route_spec.ts';
-import { ERROR_INVALID_ROUTE_PARAMS, ValidationError } from '@fuzdev/fuz_app/http/error_schemas.ts';
+import { string } from '@fuzdev/fuz_schema/schema.ts';
+import {
+	ERROR_INVALID_ROUTE_PARAMS,
+	ERROR_PAYLOAD_TOO_LARGE,
+	REST_INVALID_ROUTE_PARAMS,
+	REST_TOKEN_SCOPE_REQUIRED,
+	rest_error
+} from '@fuzdev/fuz_app/http/error_schemas.ts';
 import { ActingActor } from '@fuzdev/fuz_app/http/auth_shape.ts';
 import { require_request_context } from '@fuzdev/fuz_app/auth/request_context.ts';
 import type { Uuid } from '@fuzdev/fuz_app/primitive_schemas.ts';
@@ -47,7 +54,8 @@ import { free_space_bytes, has_sufficient_free_space } from '../free_space.ts';
 import {
 	enforce_capability,
 	enforce_surface,
-	get_request_policy
+	get_request_policy,
+	REST_FORBIDDEN
 } from '../fuz_forge_token_policy_middleware.ts';
 import { policy_check } from '../fuz_forge_token_policy.ts';
 import { SURFACE_FILE_STORE } from '../fuz_forge_token_surfaces.ts';
@@ -60,6 +68,43 @@ import {
 import { query_addressed_cells_by_kind } from '../db/fuz_forge_cell_queries.ts';
 import { first_query_param, raw_query_of } from '../query_params.ts';
 import type { FileMetaOutput } from '../../fuz_forge/file_meta.ts';
+
+/** The code of a file-store miss: no file at the key, or its bytes are gone. */
+export const ERROR_FILE_NOT_FOUND = 'file_not_found';
+
+/** The code of an upload whose body is empty. */
+export const ERROR_EMPTY_BODY = 'empty_body';
+
+/** The code of an upload refused for disk space, before or while streaming. */
+export const ERROR_STORAGE_FULL = 'storage_full';
+
+/** A file-store miss, at 404. */
+export const REST_FILE_NOT_FOUND = rest_error(404, ERROR_FILE_NOT_FOUND, { message: string });
+
+/** An upload with an empty body, at 400. */
+export const REST_EMPTY_BODY = rest_error(400, ERROR_EMPTY_BODY, { message: string });
+
+/**
+ * An upload over `max_upload_bytes`, at 413 — fuz_app's `payload_too_large`
+ * code, with the cap in `message`. The upload route is outside the generic
+ * body cap, so this is the only 413 it answers.
+ */
+export const REST_FILE_TOO_LARGE = rest_error(413, ERROR_PAYLOAD_TOO_LARGE, { message: string });
+
+/** An upload the fact-store volume can't hold, at 507. */
+export const REST_STORAGE_FULL = rest_error(507, ERROR_STORAGE_FULL);
+
+/** The answer to a file-store miss, the body every per-file route shares. */
+const file_not_found = (c: Context): Response =>
+	c.json({ error: ERROR_FILE_NOT_FOUND, message: 'File not found' }, 404);
+
+/** The answer to an upload with an empty body. */
+const empty_body = (c: Context): Response =>
+	c.json({ error: ERROR_EMPTY_BODY, message: 'Empty body' }, 400);
+
+/** The answer to an upload over `max_upload_bytes`. */
+const file_too_large = (c: Context, message: string): Response =>
+	c.json({ error: ERROR_PAYLOAD_TOO_LARGE, message }, 413);
 
 /** Dependencies for file store routes. */
 export interface FileRoutesDeps {
@@ -201,6 +246,15 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 			raw_body: true,
 			query: z.strictObject({ acting: ActingActor }),
 			output: z.looseObject({ filename: z.string() }),
+			// the handler reads the filename param itself (no `params` schema)
+			errors: [
+				REST_INVALID_ROUTE_PARAMS,
+				REST_EMPTY_BODY,
+				REST_TOKEN_SCOPE_REQUIRED,
+				REST_FORBIDDEN,
+				REST_FILE_TOO_LARGE,
+				REST_STORAGE_FULL
+			],
 			// The fact-store and cell writes can't share a single PG transaction
 			// (the fact bytes may land on a different substrate), so skip the
 			// framework's auto-transaction wrap and run the mutations directly.
@@ -221,11 +275,9 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 				// here and rely on the mid-stream counter.
 				const declared_content_length = parse_content_length(c.req.header('Content-Length'));
 				if (declared_content_length !== null && declared_content_length > max_upload_bytes) {
-					return c.json(
-						{
-							error: `File too large: ${declared_content_length} bytes exceeds ${max_upload_bytes} byte limit`
-						},
-						413
+					return file_too_large(
+						c,
+						`File too large: ${declared_content_length} bytes exceeds ${max_upload_bytes} byte limit`
 					);
 				}
 
@@ -252,7 +304,7 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 						log
 					);
 					if (!budget) {
-						return c.json({ error: 'storage_full' }, 507);
+						return c.json({ error: ERROR_STORAGE_FULL }, 507);
 					}
 
 					const content_type = infer_content_type(filename);
@@ -280,21 +332,18 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 						});
 					} catch (err) {
 						if (err instanceof FactPayloadTooLargeError) {
-							return c.json(
-								{ error: `File too large: exceeds ${max_upload_bytes} byte limit` },
-								413
-							);
+							return file_too_large(c, `File too large: exceeds ${max_upload_bytes} byte limit`);
 						}
 						// Mid-stream disk-full (ENOSPC) — the backstop for what the
 						// free-space preflight can't catch (chunked uploads, TOCTOU races).
 						if (err instanceof FactStorageFullError) {
-							return c.json({ error: 'storage_full' }, 507);
+							return c.json({ error: ERROR_STORAGE_FULL }, 507);
 						}
 						throw err;
 					}
 
 					if (outcome.size === 0) {
-						return c.json({ error: 'Empty body' }, 400);
+						return empty_body(c);
 					}
 
 					const blake3_hash = outcome.hash.slice(FACT_HASH_PREFIX.length);
@@ -357,6 +406,7 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 			description: 'List all files in the file store',
 			input: z.null(),
 			output: z.looseObject({ files: z.array(z.any()) }),
+			errors: [REST_TOKEN_SCOPE_REQUIRED],
 			handler: async (c) => {
 				// Ahead of the listing query, matching every other route's
 				// refuse-before-work placement: a token with no policy row has
@@ -427,10 +477,13 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 			// The `?meta` branch returns JSON (validated in DEV); the download branch
 			// returns raw bytes (non-JSON → output validation skips it).
 			output: z.looseObject({ filename: z.string() }),
-			// An invalid filename key → 400 `invalid_route_params`. POST/DELETE derive
-			// this from their `query`/`actor`; GET has neither, so declare it so the
-			// surface is honest (and round-trip validation sees a schema for 400).
-			errors: { 400: ValidationError },
+			// the handler reads the filename param itself (no `params` schema)
+			errors: [
+				REST_INVALID_ROUTE_PARAMS,
+				REST_TOKEN_SCOPE_REQUIRED,
+				REST_FORBIDDEN,
+				REST_FILE_NOT_FOUND
+			],
 			handler: async (c) => {
 				const filename = c.req.param('filename')!;
 				if (!is_valid_file_key(filename)) {
@@ -443,7 +496,7 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 				const cell = await query_cell_get_by_path(query_deps, file_cell_path(filename));
 				const file_data = cell ? narrow_file_cell_data(cell.data) : null;
 				if (!cell || !file_data) {
-					return c.json({ error: 'File not found' }, 404);
+					return file_not_found(c);
 				}
 
 				// `?meta`: metadata only — no fact-store byte fetch. Presence
@@ -460,7 +513,7 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 
 				const bytes = await fact_store.get(file_data.blake3);
 				if (!bytes) {
-					return c.json({ error: 'File not found' }, 404);
+					return file_not_found(c);
 				}
 
 				// `Content-Length` is intentionally NOT set here: the body is a
@@ -491,6 +544,13 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 			input: z.null(),
 			query: z.strictObject({ acting: ActingActor }),
 			output: z.looseObject({ deleted: z.boolean() }),
+			// the handler reads the filename param itself (no `params` schema)
+			errors: [
+				REST_INVALID_ROUTE_PARAMS,
+				REST_TOKEN_SCOPE_REQUIRED,
+				REST_FORBIDDEN,
+				REST_FILE_NOT_FOUND
+			],
 			// Matches POST — fact-store + cell mutations are not wrapped in one
 			// transaction. See POST's `transaction: false` comment.
 			transaction: false,
@@ -509,7 +569,7 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 
 				const cell = await query_cell_get_by_path(query_deps, file_cell_path(filename));
 				if (!cell) {
-					return c.json({ error: 'File not found' }, 404);
+					return file_not_found(c);
 				}
 
 				// Soft-delete the cell; the fact is intentionally left in the

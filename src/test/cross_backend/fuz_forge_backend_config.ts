@@ -268,7 +268,7 @@ export const bun_backend_config = (options: TsBackendConfigOptions = {}): Backen
 
 /**
  * File-store upload cap (2 MiB) injected into both backends so the disk-budget
- * suite can drive the `413 File too large` path with a ~3 MiB body instead of a
+ * suite can drive the upload `413` path with a ~3 MiB body instead of a
  * GiB payload. Small enough to test cheaply, large enough that every other file
  * cross-test (a handful of bytes each) sails under it.
  *

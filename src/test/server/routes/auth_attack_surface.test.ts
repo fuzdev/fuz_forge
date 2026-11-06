@@ -57,6 +57,9 @@ describe_standard_attack_surface_tests({
 		'POST /internal/repo-receive-callback'
 	],
 	expected_api_middleware: [
+		// the forge's own 1 MiB cap, first in the chain, in place of the global
+		// body limit it turns off (`max_body_size: null`)
+		'generic_body_cap',
 		'trusted_proxy',
 		'origin',
 		// listed because both test binaries mount it (production mounts none) —
