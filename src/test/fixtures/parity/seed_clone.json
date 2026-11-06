@@ -1,0 +1,45 @@
+{
+	"function": "seed_clone_args",
+	"source_ts": "src/lib/fuz_forge/repo/storage.ts",
+	"source_rust": "crates/fuz_forge_server/src/repo_storage.rs",
+	"counts": {
+		"config": 4,
+		"argv": 1
+	},
+	"tables": {
+		"config": [
+			{
+				"value": "http.followRedirects=false"
+			},
+			{
+				"value": "protocol.allow=never"
+			},
+			{
+				"value": "protocol.http.allow=always"
+			},
+			{
+				"value": "protocol.https.allow=always"
+			}
+		],
+		"argv": [
+			{
+				"url": "https://example.com/x.git",
+				"dest": "/store/x.git.tmp",
+				"expected": [
+					"-c",
+					"http.followRedirects=false",
+					"-c",
+					"protocol.allow=never",
+					"-c",
+					"protocol.http.allow=always",
+					"-c",
+					"protocol.https.allow=always",
+					"clone",
+					"--bare",
+					"https://example.com/x.git",
+					"/store/x.git.tmp"
+				]
+			}
+		]
+	}
+}

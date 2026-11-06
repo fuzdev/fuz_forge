@@ -1,0 +1,5 @@
+# Pinned because a floating toolchain brings new clippy lints, and the
+# workspace gates on a clean clippy.
+[toolchain]
+channel = "1.99.1"
+components = ["rustfmt", "clippy"]

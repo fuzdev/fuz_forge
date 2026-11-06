@@ -1,0 +1,276 @@
+{
+	"function": "FuzForgeTokenPolicy",
+	"source_ts": "src/lib/server/fuz_forge_token_policy_schema.ts",
+	"source_rust": "crates/fuz_forge_server/src/token_policy/types.rs",
+	"counts": {
+		"version": 8,
+		"grant_values": 10,
+		"optional_null": 12
+	},
+	"tables": {
+		"version": [
+			{
+				"document": {
+					"version": 1
+				},
+				"accepted": true
+			},
+			{
+				"document": {
+					"version": 1.0
+				},
+				"accepted": true,
+				"note": "the integral-float spelling: the TS driver hands the schema a pre-parsed jsonb value so a stored `1.0` is already the number 1, while Rust parses `policy::text` itself and gets a float - Rust widens so the row reads the same on both"
+			},
+			{
+				"document": {
+					"version": 2
+				},
+				"accepted": false
+			},
+			{
+				"document": {
+					"version": 0
+				},
+				"accepted": false
+			},
+			{
+				"document": {},
+				"accepted": false
+			},
+			{
+				"document": {
+					"version": "1"
+				},
+				"accepted": false
+			},
+			{
+				"document": {
+					"version": 1.5
+				},
+				"accepted": false
+			},
+			{
+				"document": {
+					"version": null
+				},
+				"accepted": false
+			}
+		],
+		"grant_values": [
+			{
+				"document": {
+					"version": 1,
+					"files": {
+						"read": {
+							"f": true
+						}
+					}
+				},
+				"accepted": true
+			},
+			{
+				"document": {
+					"version": 1,
+					"files": {
+						"read": {
+							"f": {}
+						}
+					}
+				},
+				"accepted": true,
+				"note": "the empty qualifier object is semantically `true`"
+			},
+			{
+				"document": {
+					"version": 1,
+					"files": {
+						"read": {
+							"f": false
+						}
+					}
+				},
+				"accepted": false
+			},
+			{
+				"document": {
+					"version": 1,
+					"files": {
+						"read": {
+							"f": 1
+						}
+					}
+				},
+				"accepted": false
+			},
+			{
+				"document": {
+					"version": 1,
+					"files": {
+						"read": {
+							"f": "yes"
+						}
+					}
+				},
+				"accepted": false
+			},
+			{
+				"document": {
+					"version": 1,
+					"files": {
+						"read": {
+							"f": "*"
+						}
+					}
+				},
+				"accepted": false
+			},
+			{
+				"document": {
+					"version": 1,
+					"files": {
+						"read": {
+							"f": {
+								"x": 1
+							}
+						}
+					}
+				},
+				"accepted": false
+			},
+			{
+				"document": {
+					"version": 1,
+					"files": {
+						"read": {
+							"f": []
+						}
+					}
+				},
+				"accepted": false
+			},
+			{
+				"document": {
+					"version": 1,
+					"files": {
+						"read": {
+							"f": null
+						}
+					}
+				},
+				"accepted": false
+			},
+			{
+				"document": {
+					"version": 1,
+					"files": {
+						"read": ["f"]
+					}
+				},
+				"accepted": false,
+				"note": "the map itself is `\"*\"` or an object - not a list of ids"
+			}
+		],
+		"optional_null": [
+			{
+				"document": {
+					"version": 1
+				},
+				"accepted": true
+			},
+			{
+				"document": {
+					"version": 1,
+					"files": {}
+				},
+				"accepted": true,
+				"note": "an empty section is still a section"
+			},
+			{
+				"document": {
+					"version": 1,
+					"forge": {}
+				},
+				"accepted": true,
+				"note": "an empty section is still a section"
+			},
+			{
+				"document": {
+					"version": 1,
+					"forge": null
+				},
+				"accepted": false
+			},
+			{
+				"document": {
+					"version": 1,
+					"files": null
+				},
+				"accepted": false
+			},
+			{
+				"document": {
+					"version": 1,
+					"rpc": null
+				},
+				"accepted": false
+			},
+			{
+				"document": {
+					"version": 1,
+					"forge": {
+						"push": null
+					}
+				},
+				"accepted": false
+			},
+			{
+				"document": {
+					"version": 1,
+					"forge": {
+						"pull": null
+					}
+				},
+				"accepted": false
+			},
+			{
+				"document": {
+					"version": 1,
+					"files": {
+						"read": null
+					}
+				},
+				"accepted": false
+			},
+			{
+				"document": {
+					"version": 1,
+					"files": {
+						"write": null
+					}
+				},
+				"accepted": false
+			},
+			{
+				"document": {
+					"version": 1,
+					"files": {
+						"delete": null
+					}
+				},
+				"accepted": false
+			},
+			{
+				"document": {
+					"version": 1,
+					"files": null,
+					"forge": {
+						"push": "*"
+					}
+				},
+				"accepted": false,
+				"note": "a null section next to a live grant: `#[serde(default)] Option<T>` alone reads it as absence and grants push, where `.optional()` refuses it"
+			}
+		]
+	}
+}

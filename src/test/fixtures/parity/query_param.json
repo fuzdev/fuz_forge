@@ -1,0 +1,66 @@
+{
+	"function": "first_query_param",
+	"source_ts": "src/lib/server/query_params.ts",
+	"source_rust": "crates/fuz_forge_server/src/query_params.rs",
+	"counts": {
+		"queries": 9
+	},
+	"tables": {
+		"queries": [
+			{
+				"input": null,
+				"expected": null,
+				"note": "absent query",
+				"key": "meta"
+			},
+			{
+				"input": "",
+				"expected": null,
+				"note": "absent key",
+				"key": "meta"
+			},
+			{
+				"input": "other=1",
+				"expected": null,
+				"note": "absent key",
+				"key": "meta"
+			},
+			{
+				"input": "meta",
+				"expected": "",
+				"note": "present with no value reads as the empty string, not absent",
+				"key": "meta"
+			},
+			{
+				"input": "meta=",
+				"expected": "",
+				"note": "an empty value reads as the empty string, not absent",
+				"key": "meta"
+			},
+			{
+				"input": "meta=1&meta=2",
+				"expected": "1",
+				"note": "the first pair wins on a duplicate key",
+				"key": "meta"
+			},
+			{
+				"input": "%6deta=first&meta=second",
+				"expected": "first",
+				"note": "keys are percent-decoded before comparison, so an encoded spelling is the same key and competes for first place",
+				"key": "meta"
+			},
+			{
+				"input": "meta=a+b%20c",
+				"expected": "a b c",
+				"note": "`+` is a space in the value; `%20` decodes too",
+				"key": "meta"
+			},
+			{
+				"input": "a=1&meta=x&b=2",
+				"expected": "x",
+				"note": "other keys are ignored, in either position",
+				"key": "meta"
+			}
+		]
+	}
+}

@@ -1,0 +1,46 @@
+{
+	"function": "git_env",
+	"source_ts": "src/lib/server/git/read.ts",
+	"source_rust": "crates/fuz_forge_server/src/forge_git/read.rs",
+	"counts": {
+		"constants": 1,
+		"env": 3,
+		"keys": 4
+	},
+	"tables": {
+		"constants": [
+			{
+				"name": "DEFAULT_GIT_PATH",
+				"value": "/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin"
+			}
+		],
+		"env": [
+			{
+				"name": "GIT_CONFIG_NOSYSTEM",
+				"value": "1"
+			},
+			{
+				"name": "GIT_TERMINAL_PROMPT",
+				"value": "0"
+			},
+			{
+				"name": "LC_ALL",
+				"value": "C.UTF-8"
+			}
+		],
+		"keys": [
+			{
+				"name": "GIT_CONFIG_NOSYSTEM"
+			},
+			{
+				"name": "GIT_TERMINAL_PROMPT"
+			},
+			{
+				"name": "LC_ALL"
+			},
+			{
+				"name": "PATH"
+			}
+		]
+	}
+}

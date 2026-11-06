@@ -1,0 +1,87 @@
+{
+	"function": "first_service_param",
+	"source_ts": "src/lib/server/routes/repo_git.ts",
+	"source_rust": "crates/fuz_forge_server/src/forge_git/mod.rs",
+	"counts": {
+		"queries": 16
+	},
+	"tables": {
+		"queries": [
+			{
+				"input": null,
+				"expected": null,
+				"note": "no query at all"
+			},
+			{
+				"input": "service=git-upload-pack",
+				"expected": "git-upload-pack"
+			},
+			{
+				"input": "service=git-receive-pack",
+				"expected": "git-receive-pack"
+			},
+			{
+				"input": "service=git-upload-pack&service=bogus",
+				"expected": "git-upload-pack",
+				"note": "duplicates: the first pair wins"
+			},
+			{
+				"input": "service=",
+				"expected": "",
+				"note": "an empty value reads as the empty string"
+			},
+			{
+				"input": "service",
+				"expected": "",
+				"note": "a bare key reads as the empty string"
+			},
+			{
+				"input": "service=git+upload+pack",
+				"expected": "git upload pack",
+				"note": "`+` is a space in the value"
+			},
+			{
+				"input": "service=git%2Dupload%2Dpack",
+				"expected": "git-upload-pack",
+				"note": "`%2D` decodes to `-`"
+			},
+			{
+				"input": "%73ervice=git-upload-pack&service=bogus",
+				"expected": "git-upload-pack",
+				"note": "keys are percent-decoded BEFORE matching, so an encoded spelling is the same key - and still first-wins. Hono's raw-substring scan reads the second pair here"
+			},
+			{
+				"input": "%73ervice=bogus&service=git-upload-pack",
+				"expected": "bogus"
+			},
+			{
+				"input": "SERVICE=git-upload-pack",
+				"expected": null,
+				"note": "key matching is case-sensitive"
+			},
+			{
+				"input": "serviceX=1&service=ok",
+				"expected": "ok",
+				"note": "a key with `service` as a prefix is a different key"
+			},
+			{
+				"input": "a=1&service=x&b=2",
+				"expected": "x",
+				"note": "other pairs are skipped"
+			},
+			{
+				"input": "nope=1",
+				"expected": null
+			},
+			{
+				"input": "",
+				"expected": null
+			},
+			{
+				"input": "service=%ZZ",
+				"expected": "%ZZ",
+				"note": "an invalid escape stays literal rather than erroring"
+			}
+		]
+	}
+}

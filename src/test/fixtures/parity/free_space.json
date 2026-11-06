@@ -1,0 +1,48 @@
+{
+	"function": "has_sufficient_free_space",
+	"source_ts": "src/lib/server/free_space.ts",
+	"source_rust": "crates/fuz_forge_server/src/files/disk_budget.rs",
+	"counts": {
+		"cases": 7
+	},
+	"tables": {
+		"cases": [
+			{
+				"args": [10000, 1000, 500],
+				"accepted": true,
+				"note": "comfortable headroom"
+			},
+			{
+				"args": [1500, 1000, 500],
+				"accepted": true,
+				"note": "exactly enough (free == declared + margin)"
+			},
+			{
+				"args": [1499, 1000, 500],
+				"accepted": false,
+				"note": "one byte short of the margin"
+			},
+			{
+				"args": [1000, 1000, 1],
+				"accepted": false,
+				"note": "declared alone fits but the margin pushes it over"
+			},
+			{
+				"args": [1000, 1000, 0],
+				"accepted": true,
+				"note": "zero margin: free must merely hold the declared bytes"
+			},
+			{
+				"args": [999, 1000, 0],
+				"accepted": false,
+				"note": "zero margin, one byte short"
+			},
+			{
+				"args": [18446744073709551614, 18446744073709551615, 10],
+				"accepted": false,
+				"rust_only": true,
+				"note": "declared + margin saturates rather than wrapping. The declared bytes come off a `u64` Content-Length on Rust; the TS twin reads a JS number, which cannot carry these values exactly, so the saturation edge is Rust's alone"
+			}
+		]
+	}
+}

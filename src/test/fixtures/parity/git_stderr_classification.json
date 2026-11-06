@@ -1,0 +1,175 @@
+{
+	"function": "is_no_such_ref_stderr / is_no_such_path_stderr / is_invalid_pattern_stderr",
+	"source_ts": "src/lib/server/git/parse.ts",
+	"source_rust": "crates/fuz_forge_server/src/forge_git/parse.rs",
+	"counts": {
+		"no_such_ref": 5,
+		"no_such_path": 5,
+		"invalid_pattern": 4,
+		"invalid_pattern_collisions": 5,
+		"neither": 3,
+		"anchor": 1
+	},
+	"tables": {
+		"no_such_ref": [
+			{
+				"stderr": "fatal: ambiguous argument 'nosuchref': unknown revision or path not in the working tree.",
+				"ref_miss": true,
+				"path_miss": false,
+				"bad_pattern": false,
+				"note": "`git rev-parse <ref>` (the tree reader's resolve): no `--verify` and no `--`, so git reports the rev-vs-pathspec ambiguity"
+			},
+			{
+				"stderr": "fatal: bad revision 'no-such-branch'",
+				"ref_miss": true,
+				"path_miss": false,
+				"bad_pattern": false,
+				"note": "what `git log -n 51 <ref> --` prints: the `--` settles the ambiguity, so git never reaches the `ambiguous argument` wording"
+			},
+			{
+				"stderr": "fatal: bad revision '28f2aa739ed4f4430d6d7cbe7392e66f1360457e^'",
+				"ref_miss": true,
+				"path_miss": false,
+				"bad_pattern": false
+			},
+			{
+				"stderr": "fatal: Needed a single revision",
+				"ref_miss": true,
+				"path_miss": false,
+				"bad_pattern": false,
+				"note": "`git rev-parse --verify refs/heads/<absent>`: `--verify` reports the arity failure and never names the rev; emitted for an empty repo, a never-pushed default branch, and a deleted branch alike"
+			},
+			{
+				"stderr": "fatal: your current branch 'main' does not have any commits yet",
+				"ref_miss": true,
+				"path_miss": false,
+				"bad_pattern": false,
+				"note": "git's unborn-HEAD wording for a bare `git log` with no rev argument"
+			}
+		],
+		"no_such_path": [
+			{
+				"stderr": "fatal: Not a valid object name 8fea42d23eaded4e78a7ffa07aead0efe970968d:nope",
+				"ref_miss": false,
+				"path_miss": true,
+				"bad_pattern": false,
+				"note": "`git ls-tree <sha>:<missing>` - the only shape reachable today"
+			},
+			{
+				"stderr": "fatal: not a tree object",
+				"ref_miss": false,
+				"path_miss": true,
+				"bad_pattern": false,
+				"note": "the same `git ls-tree <sha>:<path>` when the path names a blob: a tree listing at a file path is a 404 `path`, not a 503"
+			},
+			{
+				"stderr": "fatal: path 'nope' does not exist in '8fea42d23eaded4e78a7ffa07aead0efe970968d'",
+				"ref_miss": false,
+				"path_miss": true,
+				"bad_pattern": false,
+				"note": "the `diagnose_invalid_oid_path` family (`git show` / `cat-file`)"
+			},
+			{
+				"stderr": "fatal: path 'config' exists on disk, but not in '8fea42d23eaded4e78a7ffa07aead0efe970968d'",
+				"ref_miss": false,
+				"path_miss": true,
+				"bad_pattern": false
+			},
+			{
+				"stderr": "fatal: path 'x' does not exist (neither on disk nor in 'HEAD')",
+				"ref_miss": false,
+				"path_miss": true,
+				"bad_pattern": false
+			}
+		],
+		"invalid_pattern": [
+			{
+				"stderr": "fatal: header, '[': Invalid regular expression",
+				"ref_miss": false,
+				"path_miss": false,
+				"bad_pattern": true
+			},
+			{
+				"stderr": "fatal: header, '[a-': Unmatched [, [^, [:, [., or [=",
+				"ref_miss": false,
+				"path_miss": false,
+				"bad_pattern": true
+			},
+			{
+				"stderr": "fatal: header, '\\': Trailing backslash",
+				"ref_miss": false,
+				"path_miss": false,
+				"bad_pattern": true
+			},
+			{
+				"stderr": "warning: refname 'dup' is ambiguous.\nfatal: header, '[': Invalid regular expression",
+				"ref_miss": false,
+				"path_miss": false,
+				"bad_pattern": true,
+				"note": "the shape that makes the check per line: git prints a `warning:` ahead of the `fatal:` when the rev is an ambiguous refname, so the prefix is not always at byte 0"
+			}
+		],
+		"invalid_pattern_collisions": [
+			{
+				"stderr": "fatal: header, 'bad revision [': Invalid regular expression",
+				"ref_miss": true,
+				"path_miss": false,
+				"bad_pattern": true
+			},
+			{
+				"stderr": "fatal: header, 'unknown revision [': Invalid regular expression",
+				"ref_miss": true,
+				"path_miss": false,
+				"bad_pattern": true
+			},
+			{
+				"stderr": "fatal: header, 'ambiguous argument [': Invalid regular expression",
+				"ref_miss": true,
+				"path_miss": false,
+				"bad_pattern": true
+			},
+			{
+				"stderr": "fatal: header, 'Needed a single revision [': Invalid regular expression",
+				"ref_miss": true,
+				"path_miss": false,
+				"bad_pattern": true
+			},
+			{
+				"stderr": "fatal: header, 'Not a valid object name [': Invalid regular expression",
+				"ref_miss": false,
+				"path_miss": true,
+				"bad_pattern": true
+			}
+		],
+		"neither": [
+			{
+				"stderr": "",
+				"ref_miss": false,
+				"path_miss": false,
+				"bad_pattern": false
+			},
+			{
+				"stderr": "fatal: cannot change to '/srv/fuz_forge/repos/gone.git': No such file or directory",
+				"ref_miss": false,
+				"path_miss": false,
+				"bad_pattern": false,
+				"note": "`git -C <repo_path> ...` when the bare repo is gone from disk"
+			},
+			{
+				"stderr": "fatal: not a git repository (or any of the parent directories): .git",
+				"ref_miss": false,
+				"path_miss": false,
+				"bad_pattern": false
+			}
+		],
+		"anchor": [
+			{
+				"stderr": "fatal: bad revision 'x fatal: header, '[''",
+				"ref_miss": true,
+				"path_miss": false,
+				"bad_pattern": false,
+				"note": "SYNTHETIC: a stderr that merely contains the prefix mid-line must not read as a compile failure. git resolves the rev before it compiles a header pattern, and `is_safe_ref_name` refuses the prefix's charset, so this shape is unreachable - kept as defense-in-depth on the anchor itself"
+			}
+		]
+	}
+}

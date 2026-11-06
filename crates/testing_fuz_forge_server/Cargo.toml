@@ -1,0 +1,46 @@
+[package]
+name = "testing_fuz_forge_server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Test-mode fuz_forge_server binary — wires fuz_testing's TestingArgon2idHasher for fast cross-process integration tests. NEVER ship in a release."
+
+[[bin]]
+name = "testing_fuzfd"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+# Production fuz_forge_server library — the test binary reuses the whole
+# router composition; the swaps are `RunAppOptions`' test seams.
+fuz_forge_server = { path = "../fuz_forge_server" }
+
+# Spine — same crates the production binary uses, plus fuz_testing for
+# the swap fixture. This crate is fuz_testing's only runtime dependent
+# (`fuz_forge_server` takes it as a dev-dependency for its Postgres suites, an
+# edge the audit ignores); fuz_testing is *deliberately absent* from
+# `fuz_forge_server`'s production dep graph so the `cargo xtask check-release`
+# sanity check holds.
+fuz_actions.workspace = true
+fuz_auth.workspace = true
+# `CELL_DROP_TABLES` / `FACT_DROP_TABLES`, the reset's truncate.
+fuz_cell.workspace = true
+# `db-status`, through the shared report.
+fuz_db.workspace = true
+fuz_fact.workspace = true
+fuz_http.workspace = true
+fuz_testing.workspace = true
+
+# Handler params + output for the forge-local `_testing_await_signal` seam.
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+
+# Async runtime — same shape as `fuz_forge_server`'s production `main.rs`.
+tokio.workspace = true
+tracing.workspace = true
+
+# Shared non-blocking-stdout logging init (`fuz_sys::logging`, feature-gated).
+fuz_sys = { workspace = true, features = ["logging"] }

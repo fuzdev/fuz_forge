@@ -1,0 +1,68 @@
+{
+  "version": "5",
+  "specifiers": {
+    "jsr:@std/fs@1": "1.0.24"
+  },
+  "jsr": {
+    "@std/fs@1.0.24": {
+      "integrity": "f3061b45b81673a2bece689da041df32d174be064c89eb6397fb5718d3fb7877"
+    }
+  },
+  "workspace": {
+    "dependencies": [
+      "jsr:@std/fs@1",
+      "npm:@fuzdev/blake3-wasm@0.2",
+      "npm:@fuzdev/fuz_app@0.163",
+      "npm:@fuzdev/fuz_schema@~0.5.4",
+      "npm:@fuzdev/fuz_util@~0.79.1",
+      "npm:@fuzdev/pglet-wasm@~0.1.2",
+      "npm:@hono/deno@^1.0.3",
+      "npm:@node-rs/argon2@^2.2.1",
+      "npm:hono@^4.13.9",
+      "npm:pg@^8.23.0",
+      "npm:zod@^4.6.5"
+    ],
+    "packageJson": {
+      "dependencies": [
+        "npm:@fuzdev/blake3-wasm@0.2",
+        "npm:@fuzdev/fuz_app@0.163",
+        "npm:@fuzdev/fuz_code@0.56",
+        "npm:@fuzdev/fuz_css@0.72",
+        "npm:@fuzdev/fuz_schema@~0.5.4",
+        "npm:@fuzdev/fuz_ui@~0.222.1",
+        "npm:@fuzdev/fuz_util@~0.79.1",
+        "npm:@fuzdev/gro@0.224",
+        "npm:@fuzdev/mdz@0.7",
+        "npm:@fuzdev/pglet-wasm@~0.1.2",
+        "npm:@hono/bun@^1.0.1",
+        "npm:@hono/deno@^1.0.3",
+        "npm:@hono/node-server@^1.19.17",
+        "npm:@hono/node-ws@^1.3.1",
+        "npm:@node-rs/argon2@^2.2.1",
+        "npm:@ryanatkn/eslint-config@~0.13.1",
+        "npm:@sveltejs/adapter-static@4",
+        "npm:@sveltejs/kit@^3.1.0",
+        "npm:@sveltejs/package@3",
+        "npm:@sveltejs/vite-plugin-svelte@^7.3.1",
+        "npm:@types/deno@^2.7.0",
+        "npm:@types/estree@^1.0.8",
+        "npm:@types/pg@^8.23.1",
+        "npm:eslint-plugin-svelte@^3.23.0",
+        "npm:eslint@^9.39.5",
+        "npm:hono@^4.13.9",
+        "npm:pg@^8.23.0",
+        "npm:svelte-check@^4.7.6",
+        "npm:svelte-docinfo@0.17",
+        "npm:svelte2tsx@~0.7.61",
+        "npm:svelte@^5.57.2",
+        "npm:tslib@^2.8.1",
+        "npm:typescript-eslint@^8.71.1",
+        "npm:typescript@^6.0.3",
+        "npm:vite@^8.3.4",
+        "npm:vitest@^5.0.5",
+        "npm:ws@^8.22.0",
+        "npm:zod@^4.6.5"
+      ]
+    }
+  }
+}

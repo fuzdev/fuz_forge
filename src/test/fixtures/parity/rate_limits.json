@@ -1,0 +1,39 @@
+{
+	"function": "the action-dispatcher rate-limit bounds both backends inherit from their spine",
+	"source_ts": "src/lib/server/app_assembly.ts",
+	"source_rust": "crates/fuz_forge_server/src/router/compose.rs",
+	"counts": {
+		"action_ip": 3,
+		"action_account": 3
+	},
+	"tables": {
+		"action_ip": [
+			{
+				"name": "max_attempts",
+				"value": 600
+			},
+			{
+				"name": "window_ms",
+				"value": 900000
+			},
+			{
+				"name": "max_keys",
+				"value": 100000
+			}
+		],
+		"action_account": [
+			{
+				"name": "max_attempts",
+				"value": 1200
+			},
+			{
+				"name": "window_ms",
+				"value": 900000
+			},
+			{
+				"name": "max_keys",
+				"value": 100000
+			}
+		]
+	}
+}

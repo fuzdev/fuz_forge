@@ -1,0 +1,49 @@
+{
+	"function": "is_full_sha",
+	"source_ts": "src/lib/server/git/parse.ts",
+	"source_rust": "crates/fuz_forge_server/src/forge_git/parse.rs",
+	"counts": {
+		"shas": 8
+	},
+	"tables": {
+		"shas": [
+			{
+				"input": "0123456789abcdef0123456789abcdef01234567",
+				"accepted": true
+			},
+			{
+				"input": "",
+				"accepted": false
+			},
+			{
+				"input": "abc",
+				"accepted": false
+			},
+			{
+				"input": "0123456789abcdef0123456789abcdef0123456",
+				"accepted": false,
+				"note": "39 chars - the lower length bound"
+			},
+			{
+				"input": "0123456789abcdef0123456789abcdef012345670",
+				"accepted": false,
+				"note": "41 chars - the upper length bound"
+			},
+			{
+				"input": "0123456789abcdef0123456789abcdef0123456g",
+				"accepted": false,
+				"note": "non-hex"
+			},
+			{
+				"input": "0123456789ABCDEF0123456789ABCDEF01234567",
+				"accepted": false,
+				"note": "uppercase hex: git resolves it happily, so a backend that admitted it would page a cursor the other answers with the empty page"
+			},
+			{
+				"input": "A123456789abcdef0123456789abcdef01234567",
+				"accepted": false,
+				"note": "a single mixed-case digit"
+			}
+		]
+	}
+}

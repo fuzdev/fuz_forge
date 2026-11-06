@@ -1,0 +1,57 @@
+[package]
+name = "fuz_forge"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "fuz_forge client CLI (fuzf) — the forge client (init, file, repo) plus the Rust-native producer `tool publish`"
+
+[[bin]]
+name = "fuzf"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+# Single-sourced wire validators (repo slug + segment grammar) — shared with
+# the fuzfd server's create + git-auth paths.
+fuz_forge_wire.workspace = true
+
+argh.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+
+# HTTP client for the forge's JSON-RPC endpoint + content-addressed file store,
+# built from `fuz_storage::forge_client_builder` (which installs the rustls
+# crypto provider through `fuz_storage`'s own `fuz_sys` `tls` feature).
+reqwest.workspace = true
+url.workspace = true
+# `repo clone --with-auth` builds git's `Authorization: Basic` header.
+base64.workspace = true
+
+# Single-sourced signing + release layout (vetted path deps, same pattern as
+# the spine crates). `fuzf tool publish` signs in Rust via `fuz_sign` and
+# uploads through `fuz_storage`'s `ForgeStorage`; the forge never signs. The
+# server-URL policy and HTTP client policy are `fuz_storage`'s too (`base_url`,
+# `forge_client_builder`), shared with `forge://` rather than mirrored.
+fuz_sign.workspace = true
+fuz_release.workspace = true
+fuz_storage.workspace = true
+# `ReleaseTarget`, the `--target` flag's type (already in the graph through
+# `fuz_release` / `fuz_sign`).
+fuz_artifact.workspace = true
+fuz_sys = { workspace = true, features = ["argh"] }
+# The workspace's single hashing home — `file put`/`get` verify blake3 via
+# `fuz_crypto::Hasher` / `ContentHash` rather than a parallel digest type.
+fuz_crypto.workspace = true
+# Canonical JSON-RPC error-code taxonomy (`JsonrpcErrorCode`) — the client
+# matches server error codes against the named variants, not magic numbers.
+fuz_http.workspace = true
+
+[dev-dependencies]
+# `FuzHomeError`, to build the signing key loader's home-resolution error in a
+# unit test. The CLI itself reaches the fuz home only through `fuz_sign`.
+fuz_home.workspace = true

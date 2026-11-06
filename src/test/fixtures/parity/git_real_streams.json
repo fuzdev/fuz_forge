@@ -1,0 +1,168 @@
+{
+	"function": "parse_log_records / parse_ref_records / parse_tree_records",
+	"source_ts": "src/lib/server/git/parse.ts",
+	"source_rust": "crates/fuz_forge_server/src/forge_git/parse.rs",
+	"counts": {
+		"log": 1,
+		"refs": 1,
+		"tree": 1,
+		"tree_framing_cr": 1,
+		"ref_framing_cr": 1
+	},
+	"tables": {
+		"log": [
+			{
+				"stream": "96c476fb6ffd47cc3c4cd5180adbdcde16891a84\u000096c476f\u0000tree entries\u0000Forge Test\u0000test@fuz.dev\u00002026-01-01T00:00:00Z\u00006fb8b7e12d652aae23b018d25506e892b5514a34\u001e\n6fb8b7e12d652aae23b018d25506e892b5514a34\u00006fb8b7e\u0000merge side into main\u0000Forge Test\u0000test@fuz.dev\u00002026-01-01T00:00:00Z\u00005cdcb7b4cce8e09cab1d2b7bd40dcd89235b6e19 b7a2d83fec3a2ed387b4d92c853789da00078a70\u001e\n5cdcb7b4cce8e09cab1d2b7bd40dcd89235b6e19\u00005cdcb7b\u0000main commit\u0000Forge Test\u0000test@fuz.dev\u00002026-01-01T00:00:00Z\u00004ca37da55e96e9a83447bed1c0d1ab756d6e0fd9\u001e\n",
+				"expected": [
+					{
+						"sha": "96c476fb6ffd47cc3c4cd5180adbdcde16891a84",
+						"short_sha": "96c476f",
+						"subject": "tree entries",
+						"author_name": "Forge Test",
+						"author_email": "test@fuz.dev",
+						"author_date": "2026-01-01T00:00:00Z",
+						"parents": ["6fb8b7e12d652aae23b018d25506e892b5514a34"]
+					},
+					{
+						"sha": "6fb8b7e12d652aae23b018d25506e892b5514a34",
+						"short_sha": "6fb8b7e",
+						"subject": "merge side into main",
+						"author_name": "Forge Test",
+						"author_email": "test@fuz.dev",
+						"author_date": "2026-01-01T00:00:00Z",
+						"parents": [
+							"5cdcb7b4cce8e09cab1d2b7bd40dcd89235b6e19",
+							"b7a2d83fec3a2ed387b4d92c853789da00078a70"
+						]
+					},
+					{
+						"sha": "5cdcb7b4cce8e09cab1d2b7bd40dcd89235b6e19",
+						"short_sha": "5cdcb7b",
+						"subject": "main commit",
+						"author_name": "Forge Test",
+						"author_email": "test@fuz.dev",
+						"author_date": "2026-01-01T00:00:00Z",
+						"parents": ["4ca37da55e96e9a83447bed1c0d1ab756d6e0fd9"]
+					}
+				],
+				"note": "`git log -n 3 --format=<LOG_RECORD_FORMAT>%x1e main --`, captured verbatim from a scratch repo whose history is `base commit` -> (`side commit` | `main commit`) -> `merge side into main` -> `tree entries`, with a fixed identity and GIT_AUTHOR_DATE = GIT_COMMITTER_DATE = 2026-01-01T00:00:00+00:00. Two properties a hand-written fixture would not carry: git writes `<record> RS LF` after EVERY record (`--format=` is a tformat), so records 2 and 3 arrive with the previous record's LF attached; and the middle record is a merge, whose `%P` is two space-separated parents in git's own order."
+			}
+		],
+		"refs": [
+			{
+				"stream": "refs/heads/main\u0000commit\u000096c476fb6ffd47cc3c4cd5180adbdcde16891a84\u0000\u00002026-01-01T00:00:00Z\nrefs/heads/side\u0000commit\u0000b7a2d83fec3a2ed387b4d92c853789da00078a70\u0000\u00002026-01-01T00:00:00Z\nrefs/tags/v1\u0000tag\u0000dae91c4d4b7cc450658dc130255cc5c94e982307\u00006fb8b7e12d652aae23b018d25506e892b5514a34\u0000\nrefs/tags/v1-light\u0000commit\u00006fb8b7e12d652aae23b018d25506e892b5514a34\u0000\u00002026-01-01T00:00:00Z\n",
+				"expected": [
+					{
+						"name": "refs/heads/main",
+						"object_type": "commit",
+						"sha": "96c476fb6ffd47cc3c4cd5180adbdcde16891a84",
+						"target_sha": "",
+						"committer_date": "2026-01-01T00:00:00Z"
+					},
+					{
+						"name": "refs/heads/side",
+						"object_type": "commit",
+						"sha": "b7a2d83fec3a2ed387b4d92c853789da00078a70",
+						"target_sha": "",
+						"committer_date": "2026-01-01T00:00:00Z"
+					},
+					{
+						"name": "refs/tags/v1",
+						"object_type": "tag",
+						"sha": "dae91c4d4b7cc450658dc130255cc5c94e982307",
+						"target_sha": "6fb8b7e12d652aae23b018d25506e892b5514a34",
+						"committer_date": ""
+					},
+					{
+						"name": "refs/tags/v1-light",
+						"object_type": "commit",
+						"sha": "6fb8b7e12d652aae23b018d25506e892b5514a34",
+						"target_sha": "",
+						"committer_date": "2026-01-01T00:00:00Z"
+					}
+				],
+				"note": "`git for-each-ref --format=<REF_RECORD_FORMAT> refs/heads refs/tags` from the same scratch repo: two branches, an annotated tag (`objecttype=tag`, its own sha, `*objectname` peeling to the merge commit, and an empty `committerdate` - the date lives on the tag object), and a lightweight tag (`objecttype=commit`, an empty `*objectname`)."
+			}
+		],
+		"tree": [
+			{
+				"stream": "100644 blob df967b96a579e45a18b8251732d16804b2e56a55       5\tREADME.md\n120000 blob 42061c01a1c70097d1e4579f29a5adf40abdec95       9\tlink.md\n100644 blob ba2906d0666cf726c7eaadd2cd3db615dedfdf3a       5\tmain.txt\n160000 commit 8cf5a6e9fce5c7d5374bd060a3c5207c493aab40       -\tmod\n100644 blob 2299c37978265a95cbe835a4b0f0bbf15aad5549       5\tside.txt\n040000 tree 108aabee1ecf7ab27858b9b94edb90863ce0f006       -\tsub\n",
+				"expected": [
+					{
+						"mode": "100644",
+						"type": "blob",
+						"sha": "df967b96a579e45a18b8251732d16804b2e56a55",
+						"size": "5",
+						"name": "README.md"
+					},
+					{
+						"mode": "120000",
+						"type": "blob",
+						"sha": "42061c01a1c70097d1e4579f29a5adf40abdec95",
+						"size": "9",
+						"name": "link.md"
+					},
+					{
+						"mode": "100644",
+						"type": "blob",
+						"sha": "ba2906d0666cf726c7eaadd2cd3db615dedfdf3a",
+						"size": "5",
+						"name": "main.txt"
+					},
+					{
+						"mode": "160000",
+						"type": "commit",
+						"sha": "8cf5a6e9fce5c7d5374bd060a3c5207c493aab40",
+						"size": "-",
+						"name": "mod"
+					},
+					{
+						"mode": "100644",
+						"type": "blob",
+						"sha": "2299c37978265a95cbe835a4b0f0bbf15aad5549",
+						"size": "5",
+						"name": "side.txt"
+					},
+					{
+						"mode": "040000",
+						"type": "tree",
+						"sha": "108aabee1ecf7ab27858b9b94edb90863ce0f006",
+						"size": "-",
+						"name": "sub"
+					}
+				],
+				"note": "`git ls-tree -l <sha>:` from the same scratch repo - one entry of every kind a hosted tree can hold: a regular blob, a symlink (mode 120000, still a blob), a gitlink (mode 160000, type commit, size `-`), and a subtree (mode 040000, size `-`). The size column is space-padded, which is why the header splits on whitespace runs rather than single spaces."
+			}
+		],
+		"tree_framing_cr": [
+			{
+				"stream": "100644 blob abc123 42\tfoo\r\n",
+				"expected": [
+					{
+						"mode": "100644",
+						"type": "blob",
+						"sha": "abc123",
+						"size": "42",
+						"name": "foo\r"
+					}
+				],
+				"note": "record framing is LF-only on both backends: a CR belongs to the record, not the separator. `str::lines` would strip it and serve `foo`."
+			}
+		],
+		"ref_framing_cr": [
+			{
+				"stream": "refs/heads/main\u0000commit\u0000abc\u0000\u00002026-01-01T00:00:00+00:00\r\n",
+				"expected": [
+					{
+						"name": "refs/heads/main",
+						"object_type": "commit",
+						"sha": "abc",
+						"target_sha": "",
+						"committer_date": "2026-01-01T00:00:00+00:00\r"
+					}
+				],
+				"note": "unobservable in practice - git forbids control characters in a ref name and the other fields cannot carry one - but the two readers use one framing rule, so the fixture is the same shape."
+			}
+		]
+	}
+}

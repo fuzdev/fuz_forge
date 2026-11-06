@@ -1,0 +1,17 @@
+[package]
+name = "xtask"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+fuz_audit.workspace = true
+
+[lints]
+workspace = true
+
+# Dev tooling — exempt from `fuz_audit`'s production-binary scan so
+# `cargo xtask check-release` can itself depend on `fuz_audit`.
+[package.metadata.fuz_audit]
+dev_only = true

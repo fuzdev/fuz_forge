@@ -1,0 +1,61 @@
+{
+	"function": "parse_log_record / parse_ref_record / parse_tree_record / parse_commit_detail",
+	"source_ts": "src/lib/server/git/parse.ts",
+	"source_rust": "crates/fuz_forge_server/src/forge_git/parse.rs",
+	"counts": {
+		"log": 2,
+		"refs": 2,
+		"tree": 2,
+		"commit_detail": 2
+	},
+	"tables": {
+		"log": [
+			{
+				"input": "sha\u0000short\u0000subj\u0000An\u0000ae@x\u0000d1\u0000p1",
+				"parses": true,
+				"note": "7 NUL-separated fields"
+			},
+			{
+				"input": "sha\u0000short\u0000subj\u0000An\u0000ae@x\u0000d1\u0000p1\u0000extra",
+				"parses": false,
+				"note": "an 8th field drops the record rather than being absorbed by the last one"
+			}
+		],
+		"refs": [
+			{
+				"input": "refs/heads/main\u0000commit\u0000abc\u0000\u00002026-01-01T00:00:00+00:00",
+				"parses": true,
+				"note": "5 NUL-separated fields"
+			},
+			{
+				"input": "refs/heads/main\u0000commit\u0000abc\u0000\u00002026-01-01T00:00:00+00:00\u0000extra",
+				"parses": false,
+				"note": "a 6th field drops the record"
+			}
+		],
+		"tree": [
+			{
+				"input": "100644 blob abc123 42\tREADME.md",
+				"parses": true,
+				"note": "4 header columns"
+			},
+			{
+				"input": "100644 blob abc123 42 extra\tREADME.md",
+				"parses": false,
+				"note": "a 5th header column drops the line"
+			}
+		],
+		"commit_detail": [
+			{
+				"input": "sha\u0000short\u0000subj\u0000An\u0000ae@x\u0000d1\u0000Cn\u0000ce@x\u0000d2\u0000p1",
+				"parses": false,
+				"note": "10 fields is a truncated record, not a body-less one"
+			},
+			{
+				"input": "sha\u0000short\u0000subj\u0000An\u0000ae@x\u0000d1\u0000Cn\u0000ce@x\u0000d2\u0000p1\u0000",
+				"parses": true,
+				"note": "11 fields with an empty body"
+			}
+		]
+	}
+}

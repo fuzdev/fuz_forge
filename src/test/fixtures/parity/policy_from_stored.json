@@ -1,0 +1,72 @@
+{
+	"function": "policy_from_stored",
+	"source_ts": "src/lib/server/fuz_forge_token_policy.ts",
+	"source_rust": "crates/fuz_forge_server/src/token_policy/check.rs",
+	"counts": {
+		"stored": 8
+	},
+	"tables": {
+		"stored": [
+			{
+				"document": {
+					"version": 1,
+					"files": {
+						"read": {
+							"a.bin": true
+						}
+					}
+				},
+				"accepted": true,
+				"note": "a readable document parses through"
+			},
+			{
+				"document": {
+					"version": 2,
+					"files": {
+						"read": "*"
+					}
+				},
+				"accepted": false,
+				"note": "a future grammar"
+			},
+			{
+				"document": {
+					"version": 1,
+					"files": {
+						"read": {
+							"a.bin": 1
+						}
+					}
+				},
+				"accepted": false,
+				"note": "a grant value outside `true | {}`"
+			},
+			{
+				"document": {
+					"version": 1,
+					"sudo": "*"
+				},
+				"accepted": false,
+				"note": "an unknown section"
+			},
+			{
+				"document": "not a policy",
+				"accepted": false
+			},
+			{
+				"document": null,
+				"accepted": false
+			},
+			{
+				"document": [],
+				"accepted": false
+			},
+			{
+				"text": "not json",
+				"accepted": false,
+				"rust_only": true,
+				"note": "unparseable bytes: Rust reads `policy::text` and does its own parse, while the TS driver hands the schema an already-parsed jsonb value, so this never reaches `policy_from_stored` there"
+			}
+		]
+	}
+}

@@ -1,0 +1,40 @@
+/* global stylesheet imported by `src/routes/+layout.svelte` */
+
+/*
+
+:root {
+  --some_stylish_property: 100%;
+}
+
+*/
+
+/*
+ * Tab bar — mirrors a sibling app's `.tab*` styles. Lives here (not in a
+ * component) so `<a class="tab">` works from any markup without scoped
+ * styles. Lift to `fuz_css/src/lib/css_class_composites.ts` once a
+ * second consumer validates the API.
+ */
+.tabs {
+	display: flex;
+	border-bottom: 1px solid var(--border_color_30);
+}
+
+.tab {
+	display: inline-flex;
+	align-items: center;
+	padding: var(--space_xs) var(--space_md);
+	border-bottom: 2px solid transparent;
+	border-radius: 0;
+	margin-bottom: -1px;
+	color: inherit;
+	text-decoration: none;
+}
+
+.tab:hover {
+	background-color: var(--ink_10);
+}
+
+.tab.selected {
+	border-bottom-color: var(--palette_a_50);
+	cursor: default;
+}

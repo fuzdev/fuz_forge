@@ -1,0 +1,143 @@
+{
+	"function": "seed_from_url_canonical / require_seed_from_url",
+	"source_ts": "src/lib/fuz_forge/repo/seed_from.ts",
+	"source_rust": "crates/fuz_forge_server/src/handlers/seed_from.rs",
+	"counts": {
+		"urls": 26,
+		"canonicalized": 5
+	},
+	"tables": {
+		"urls": [
+			{
+				"input": "https://example.com/org/repo.git",
+				"accepted": true
+			},
+			{
+				"input": "http://example.com/x.git",
+				"accepted": true
+			},
+			{
+				"input": "HTTPS://Example.COM/x.git",
+				"accepted": true
+			},
+			{
+				"input": "https://example.com:8443/x.git",
+				"accepted": true
+			},
+			{
+				"input": "https://example.com",
+				"accepted": true
+			},
+			{
+				"input": "https://127.0.0.1:1/x.git",
+				"accepted": true,
+				"note": "grammatical; the host policy is what decides it"
+			},
+			{
+				"input": "https://192.168.10.5/x.git",
+				"accepted": true,
+				"note": "grammatical; the host policy is what decides it"
+			},
+			{
+				"input": "https://[::1]/x.git",
+				"accepted": true,
+				"note": "grammatical; the host policy is what decides it"
+			},
+			{
+				"input": "file:///srv/git/secret.git",
+				"accepted": false
+			},
+			{
+				"input": "file://localhost/srv/git/x.git",
+				"accepted": false
+			},
+			{
+				"input": "ext::sh -c id",
+				"accepted": false
+			},
+			{
+				"input": "ssh://example.com/x.git",
+				"accepted": false
+			},
+			{
+				"input": "ssh://git@example.com/x.git",
+				"accepted": false
+			},
+			{
+				"input": "git://example.com/x.git",
+				"accepted": false
+			},
+			{
+				"input": "ftp://example.com/x.git",
+				"accepted": false
+			},
+			{
+				"input": "git@example.com:x.git",
+				"accepted": false
+			},
+			{
+				"input": "example.com:x.git",
+				"accepted": false
+			},
+			{
+				"input": "../x",
+				"accepted": false
+			},
+			{
+				"input": "/srv/git/x.git",
+				"accepted": false
+			},
+			{
+				"input": "x.git",
+				"accepted": false
+			},
+			{
+				"input": "https://user:pw@example.com/x.git",
+				"accepted": false
+			},
+			{
+				"input": "https://user@example.com/x.git",
+				"accepted": false
+			},
+			{
+				"input": "https://:pw@example.com/x.git",
+				"accepted": false
+			},
+			{
+				"input": "http://",
+				"accepted": false
+			},
+			{
+				"input": "--upload-pack=touch /tmp/pwn",
+				"accepted": false
+			},
+			{
+				"input": "https://exa mple.com/x.git",
+				"accepted": false
+			}
+		],
+		"canonicalized": [
+			{
+				"input": "HTTPS://Example.COM/x.git",
+				"expected": "https://example.com/x.git"
+			},
+			{
+				"input": "https://example.com",
+				"expected": "https://example.com/"
+			},
+			{
+				"input": "https://example.invalid\\user:pw@evil.invalid/x.git",
+				"expected": "https://example.invalid/user:pw@evil.invalid/x.git",
+				"note": "parses with host `example.invalid` and no userinfo, but git treats `\\` as ordinary and would dial `evil.invalid` - storing the serialization is what makes the validated host the host git contacts"
+			},
+			{
+				"input": "https://93.184.216.34\\@127.0.0.1/x.git",
+				"expected": "https://93.184.216.34/@127.0.0.1/x.git"
+			},
+			{
+				"input": "https://bücher.de/x.git",
+				"expected": "https://xn--bcher-kva.de/x.git"
+			}
+		]
+	}
+}

@@ -1,0 +1,193 @@
+{
+	"function": "RepoListSince / require_iso8601_datetime",
+	"source_ts": "src/lib/fuz_forge/repo/repo_list_since.ts",
+	"source_rust": "crates/fuz_forge_server/src/handlers/repo_list_since.rs",
+	"counts": {
+		"since": 41,
+		"constants": 1
+	},
+	"tables": {
+		"since": [
+			{
+				"input": "2020-01-01T00:00:00Z",
+				"accepted": true
+			},
+			{
+				"input": "2020-01-01T00:00Z",
+				"accepted": true
+			},
+			{
+				"input": "2020-01-01T23:59:59Z",
+				"accepted": true
+			},
+			{
+				"input": "2020-01-01T00:00:00.1Z",
+				"accepted": true
+			},
+			{
+				"input": "2020-01-01T00:00:00.123456789Z",
+				"accepted": true
+			},
+			{
+				"input": "2020-02-29T00:00:00Z",
+				"accepted": true
+			},
+			{
+				"input": "2000-02-29T00:00:00Z",
+				"accepted": true
+			},
+			{
+				"input": "1970-01-01T00:00:00Z",
+				"accepted": true
+			},
+			{
+				"input": "2999-12-31T23:59:59Z",
+				"accepted": true
+			},
+			{
+				"input": "0001-01-01T00:00:00Z",
+				"accepted": true,
+				"note": "the lowest year Postgres stores - the floor `MIN_ISO8601_YEAR` draws"
+			},
+			{
+				"input": "2020-01-01T00:00:00.1111111111111111111111111111111111111111111Z",
+				"accepted": true,
+				"note": "the longest value `SINCE_MAX_LENGTH` admits (64 characters, 43 fractional digits)"
+			},
+			{
+				"input": "yesterday",
+				"accepted": false,
+				"note": "a Postgres special word: the cast parses it and `Date.parse` answers NaN"
+			},
+			{
+				"input": "today",
+				"accepted": false,
+				"note": "a Postgres special word: the cast parses it and `Date.parse` answers NaN"
+			},
+			{
+				"input": "now",
+				"accepted": false,
+				"note": "a Postgres special word: the cast parses it and `Date.parse` answers NaN"
+			},
+			{
+				"input": "epoch",
+				"accepted": false,
+				"note": "a Postgres special word: the cast parses it and `Date.parse` answers NaN"
+			},
+			{
+				"input": "infinity",
+				"accepted": false,
+				"note": "a Postgres special word: the cast parses it and `Date.parse` answers NaN"
+			},
+			{
+				"input": "garbage",
+				"accepted": false
+			},
+			{
+				"input": "",
+				"accepted": false
+			},
+			{
+				"input": "2020-01-01",
+				"accepted": false
+			},
+			{
+				"input": "2020-01-01T00:00:00",
+				"accepted": false
+			},
+			{
+				"input": "2020-01-01T00:00:00+02:00",
+				"accepted": false
+			},
+			{
+				"input": "2020-01-01 00:00:00Z",
+				"accepted": false
+			},
+			{
+				"input": "2020-01-01t00:00:00Z",
+				"accepted": false
+			},
+			{
+				"input": "2020-01-01T00:00:00z",
+				"accepted": false
+			},
+			{
+				"input": "2020-01-01T00:00:00.Z",
+				"accepted": false
+			},
+			{
+				"input": "2020-13-01T00:00:00Z",
+				"accepted": false
+			},
+			{
+				"input": "2020-00-01T00:00:00Z",
+				"accepted": false
+			},
+			{
+				"input": "2020-01-32T00:00:00Z",
+				"accepted": false
+			},
+			{
+				"input": "2020-02-30T00:00:00Z",
+				"accepted": false
+			},
+			{
+				"input": "2021-02-29T00:00:00Z",
+				"accepted": false
+			},
+			{
+				"input": "1900-02-29T00:00:00Z",
+				"accepted": false
+			},
+			{
+				"input": "2020-01-01T24:00:00Z",
+				"accepted": false
+			},
+			{
+				"input": "2020-01-01T23:59:60Z",
+				"accepted": false
+			},
+			{
+				"input": "2020-1-1T00:00:00Z",
+				"accepted": false
+			},
+			{
+				"input": "20200101T000000Z",
+				"accepted": false
+			},
+			{
+				"input": "99999-01-01T00:00:00Z",
+				"accepted": false
+			},
+			{
+				"input": " 2020-01-01T00:00:00Z",
+				"accepted": false
+			},
+			{
+				"input": "2020-01-01T00:00:00Z ",
+				"accepted": false
+			},
+			{
+				"input": "0000-01-01T00:00:00Z",
+				"accepted": false,
+				"note": "year zero: `\\d{4}` admits it and the Gregorian rule makes it a leap year, while Postgres refuses the year outright"
+			},
+			{
+				"input": "0000-02-29T00:00:00Z",
+				"accepted": false,
+				"note": "year zero: `\\d{4}` admits it and the Gregorian rule makes it a leap year, while Postgres refuses the year outright"
+			},
+			{
+				"input": "2020-01-01T00:00:00.111111111111111111111111111111111111111111111111111Z",
+				"accepted": false,
+				"note": "a fraction past `SINCE_MAX_LENGTH`: the shape's `\\.\\d+` is unbounded and Postgres stops parsing one at 129 digits"
+			}
+		],
+		"constants": [
+			{
+				"name": "SINCE_MAX_LENGTH",
+				"value": 64
+			}
+		]
+	}
+}

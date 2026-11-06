@@ -1,0 +1,100 @@
+[package]
+name = "fuz_forge_server"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Rust backend for fuz_forge — the fuzfd server: JSON-RPC + WebSocket API, git smart-HTTP, and the content-addressed file store"
+
+[[bin]]
+name = "fuzfd"
+path = "src/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+# Local crates — single-sourced wire validators (repo slug + segment grammar).
+fuz_forge_wire.workspace = true
+
+# Spine crates.
+fuz_actions.workspace = true
+fuz_auth.workspace = true
+fuz_cell.workspace = true
+fuz_cell_actions.workspace = true
+fuz_sys = { workspace = true, features = ["logging", "tls"] }
+fuz_crypto.workspace = true
+fuz_db.workspace = true
+fuz_db_admin.workspace = true
+fuz_fact.workspace = true
+fuz_fact_serving.workspace = true
+fuz_http.workspace = true
+fuz_realtime.workspace = true
+fuz_storage.workspace = true
+
+# Async runtime + web.
+tokio.workspace = true
+tokio-util.workspace = true
+axum.workspace = true
+futures.workspace = true
+futures-util.workspace = true
+
+# Logging. Subscriber init comes from `fuz_sys::logging` (feature-gated).
+tracing.workspace = true
+
+# Serialization.
+serde.workspace = true
+serde_json.workspace = true
+
+# Errors.
+thiserror.workspace = true
+
+# DB.
+tokio-postgres.workspace = true
+deadpool-postgres.workspace = true
+
+# Crypto + hashing.
+subtle.workspace = true
+base64.workspace = true
+
+# Misc.
+uuid.workspace = true
+time.workspace = true
+url.workspace = true
+
+[dev-dependencies]
+# `ServiceExt::oneshot` for the router's `client_ip` posture tests.
+tower.workspace = true
+# Re-declare fuz_http (already a normal dep) with the test-only
+# `GatedRouter::into_router_for_testing`, so a unit test can drive the composed
+# router in-process. Enabled from a dev-dependency it stays out of every build
+# that compiles no tests; `cargo xtask check-release` refuses it on a normal edge.
+fuz_http = { workspace = true, features = ["test_router_access"] }
+
+# Thread-local `tracing` capture so a unit test can pin a `warn!` the read path
+# emits (the malformed-repo-cell skip). Already a workspace dependency — the
+# production subscriber init comes from `fuz_sys::logging`.
+tracing-subscriber.workspace = true
+
+# Signed-artifact distribution loop over the HTTP forge backend
+# (tests/signed_tool_install.rs): sign + publish a tool via `fuz_sign`, serve it
+# from an in-process router, install it back over `fuz_storage::ForgeStorage`.
+fuz_sign.workspace = true
+fuz_release.workspace = true
+# Stub executables for the host target (`platform::test_stubs`): the published
+# tool must pass the publish and install platform checks. Dev-only feature,
+# kept out of every production binary by resolver-2.
+fuz_artifact = { workspace = true, features = ["test_binary_stubs"] }
+# Re-declare fuz_crypto (already a normal dep) with the dev-only trust-anchor
+# seam so the test can register a key the real ed25519 verify path admits;
+# resolver-2 keeps the feature out of every production binary. (The blessed
+# "normal dep + dev-dep-with-feature" combo `fuz_sign` itself uses.)
+fuz_crypto = { workspace = true, features = ["test_trust_anchor"] }
+# Dev-only in-process `~/.fuz` redirect so the install lands under a temp home.
+fuz_home = { workspace = true, features = ["test_home_override"] }
+
+# The spine's shared Postgres-suite harness (`fuz_testing`'s `fresh_db`, `seed`,
+# and the column-projection guard) behind the `#[ignore]`d `tests/` suites. A
+# dev-dependency never reaches the `fuzfd` binary, and `cargo xtask
+# check-release` walks runtime edges only.
+fuz_testing.workspace = true

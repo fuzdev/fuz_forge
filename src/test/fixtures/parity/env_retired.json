@@ -1,0 +1,28 @@
+{
+	"function": "ServerEnv / FuzForgeEnv::from_vars",
+	"source_ts": "src/lib/server/env/schema.ts",
+	"source_rust": "crates/fuz_forge_server/src/env.rs",
+	"counts": {
+		"retired": 4
+	},
+	"tables": {
+		"retired": [
+			{
+				"name": "FUZ_FORGE_BIND_ADDR",
+				"value": "127.0.0.1:9999"
+			},
+			{
+				"name": "FUZ_FORGE_ALLOWED_ORIGINS",
+				"value": "http://stale.example"
+			},
+			{
+				"name": "FUZ_FORGE_BOOTSTRAP_TOKEN_PATH",
+				"value": "/tmp/stale"
+			},
+			{
+				"name": "FUZ_FORGE_REPO_PATH",
+				"value": "/tmp/stale_repos"
+			}
+		]
+	}
+}

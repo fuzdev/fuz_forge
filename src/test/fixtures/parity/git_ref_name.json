@@ -1,0 +1,164 @@
+{
+	"function": "is_safe_ref_name",
+	"source_ts": "src/lib/server/git/parse.ts",
+	"source_rust": "crates/fuz_forge_server/src/forge_git/parse.rs",
+	"counts": {
+		"refs": 35,
+		"generated": 1
+	},
+	"tables": {
+		"refs": [
+			{
+				"input": "main",
+				"accepted": true
+			},
+			{
+				"input": "master",
+				"accepted": true
+			},
+			{
+				"input": "release/1.0",
+				"accepted": true
+			},
+			{
+				"input": "feat_x.y",
+				"accepted": true
+			},
+			{
+				"input": "feature/m-forge-3",
+				"accepted": true
+			},
+			{
+				"input": "release-1.2.3",
+				"accepted": true
+			},
+			{
+				"input": "topic_branch",
+				"accepted": true
+			},
+			{
+				"input": "feat@2",
+				"accepted": true,
+				"note": "a git-valid exotic name an allowlist grammar wrongly rejects"
+			},
+			{
+				"input": "foo/bar/baz",
+				"accepted": true
+			},
+			{
+				"input": "",
+				"accepted": false
+			},
+			{
+				"input": "-flag",
+				"accepted": false,
+				"note": "the leading-dash arg-injection guard"
+			},
+			{
+				"input": "-rf",
+				"accepted": false,
+				"note": "the leading-dash arg-injection guard"
+			},
+			{
+				"input": ".hidden",
+				"accepted": false
+			},
+			{
+				"input": "/abs",
+				"accepted": false
+			},
+			{
+				"input": "name/",
+				"accepted": false
+			},
+			{
+				"input": "name.",
+				"accepted": false
+			},
+			{
+				"input": "name.lock",
+				"accepted": false
+			},
+			{
+				"input": "foo//bar",
+				"accepted": false
+			},
+			{
+				"input": "foo/.bar",
+				"accepted": false
+			},
+			{
+				"input": "foo.lock/bar",
+				"accepted": false
+			},
+			{
+				"input": "@",
+				"accepted": false
+			},
+			{
+				"input": "with..dots",
+				"accepted": false
+			},
+			{
+				"input": "foo..bar",
+				"accepted": false
+			},
+			{
+				"input": "with@{at}",
+				"accepted": false
+			},
+			{
+				"input": "has space",
+				"accepted": false
+			},
+			{
+				"input": "foo bar",
+				"accepted": false
+			},
+			{
+				"input": "has\nnewline",
+				"accepted": false
+			},
+			{
+				"input": "has\ttab",
+				"accepted": false
+			},
+			{
+				"input": "with~tilde",
+				"accepted": false
+			},
+			{
+				"input": "with^caret",
+				"accepted": false
+			},
+			{
+				"input": "with:colon",
+				"accepted": false
+			},
+			{
+				"input": "with?q",
+				"accepted": false
+			},
+			{
+				"input": "with*star",
+				"accepted": false
+			},
+			{
+				"input": "with[bracket",
+				"accepted": false
+			},
+			{
+				"input": "with\\backslash",
+				"accepted": false
+			}
+		],
+		"generated": [
+			{
+				"unit": "a",
+				"repeat": 256,
+				"accepted": false,
+				"note": "the 255-codepoint cap, generated rather than listed"
+			}
+		]
+	}
+}

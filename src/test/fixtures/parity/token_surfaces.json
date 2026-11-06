@@ -1,0 +1,97 @@
+{
+	"function": "token_scope_admits_forge_surface",
+	"source_ts": "src/lib/server/fuz_forge_token_surfaces.ts",
+	"source_rust": "crates/fuz_forge_server/src/token_surfaces.rs",
+	"counts": {
+		"cases": 10
+	},
+	"tables": {
+		"cases": [
+			{
+				"policy": null,
+				"scope": {
+					"kind": "methods",
+					"methods": ["fuz_forge_repo_list"]
+				},
+				"accepted": false,
+				"note": "no policy row, so the spine scope governs and a narrowed one is refused; without that rule the answer would be `true`, arrived at by never asking"
+			},
+			{
+				"policy": null,
+				"scope": {
+					"kind": "methods",
+					"methods": []
+				},
+				"accepted": false,
+				"note": "an empty narrowed scope is refused"
+			},
+			{
+				"policy": null,
+				"scope": {
+					"kind": "methods",
+					"methods": ["surface:file_store"]
+				},
+				"accepted": false,
+				"note": "the rule is all-or-nothing: the `methods` list is a method allowlist, so a token cannot talk its way onto a surface by naming it"
+			},
+			{
+				"policy": null,
+				"scope": {
+					"kind": "full"
+				},
+				"accepted": true
+			},
+			{
+				"policy": null,
+				"scope": {
+					"kind": "full_grandfathered"
+				},
+				"accepted": true,
+				"note": "the migration's backfill: `grandfathered` is a fact about the row the enforcement path must never branch on",
+				"ts_only": true
+			},
+			{
+				"policy": "files_read",
+				"scope": {
+					"kind": "methods",
+					"methods": []
+				},
+				"accepted": true,
+				"note": "the case a blanket whole-surface refusal got wrong: every token the file / forge templates mint carries a `Methods(0)` spine scope, so consulting the scope for such a token refuses the whole feature"
+			},
+			{
+				"policy": "files_read",
+				"scope": {
+					"kind": "methods",
+					"methods": ["cell_get"]
+				},
+				"accepted": true
+			},
+			{
+				"policy": "files_read",
+				"scope": {
+					"kind": "full"
+				},
+				"accepted": true
+			},
+			{
+				"policy": null,
+				"scope": {
+					"kind": "absent"
+				},
+				"accepted": true,
+				"note": "the anonymous caller holds no credential to narrow; the surrounding role gate is what refuses them",
+				"ts_only": true
+			},
+			{
+				"policy": "files_read",
+				"scope": {
+					"kind": "absent"
+				},
+				"accepted": true,
+				"note": "the anonymous caller holds no credential to narrow; the surrounding role gate is what refuses them",
+				"ts_only": true
+			}
+		]
+	}
+}

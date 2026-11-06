@@ -1,0 +1,148 @@
+{
+	"function": "RepoId / is_valid_repo_id",
+	"source_ts": "src/lib/fuz_forge/repo/repo_id.ts",
+	"source_rust": "crates/fuz_forge_wire/src/lib.rs",
+	"counts": {
+		"ids": 28
+	},
+	"tables": {
+		"ids": [
+			{
+				"input": "7f3a9c2e-1b4d-4e6f-8a9b-0c1d2e3f4a5b",
+				"accepted": true
+			},
+			{
+				"input": "3f8a1c2e-1234-4abc-9def-0123456789ab",
+				"accepted": true,
+				"note": "a Postgres gen_random_uuid() v4 - the only shape real ids take"
+			},
+			{
+				"input": "3F8A1C2E-1234-4ABC-9DEF-0123456789AB",
+				"accepted": true,
+				"note": "hex is case-insensitive in the versioned grammar"
+			},
+			{
+				"input": "3f8a1c2e-1234-1abc-9def-0123456789ab",
+				"accepted": true,
+				"note": "every RFC 9562 version nibble 1..=8 is admitted, not just v4"
+			},
+			{
+				"input": "3f8a1c2e-1234-8abc-9def-0123456789ab",
+				"accepted": true,
+				"note": "every RFC 9562 version nibble 1..=8 is admitted, not just v4"
+			},
+			{
+				"input": "3f8a1c2e-1234-4abc-8def-0123456789ab",
+				"accepted": true,
+				"note": "all four variant nibbles, either case"
+			},
+			{
+				"input": "3f8a1c2e-1234-4abc-Bdef-0123456789ab",
+				"accepted": true,
+				"note": "all four variant nibbles, either case"
+			},
+			{
+				"input": "00000000-0000-0000-0000-000000000000",
+				"accepted": true,
+				"note": "the nil special"
+			},
+			{
+				"input": "ffffffff-ffff-ffff-ffff-ffffffffffff",
+				"accepted": true,
+				"note": "the max special, lowercase"
+			},
+			{
+				"input": "FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF",
+				"accepted": true,
+				"note": "the max special takes either case (RFC 9562 §4), as fuz_app's `Uuid` and the spine's `fuz_http::is_valid_uuid` do; a bare `z.uuid()` spells its max alternative lowercase with no `i` flag, and `F` is not a version 1-8, so it would refuse this"
+			},
+			{
+				"input": "ffffffff-FFFF-ffff-FFFF-ffffffffffff",
+				"accepted": true,
+				"note": "the max special in mixed case"
+			},
+			{
+				"input": "",
+				"accepted": false
+			},
+			{
+				"input": "1234",
+				"accepted": false
+			},
+			{
+				"input": "not-a-uuid",
+				"accepted": false
+			},
+			{
+				"input": "fuz_app",
+				"accepted": false,
+				"note": "a bare repo name - the slug carries the human handle"
+			},
+			{
+				"input": "fuz-app_v23",
+				"accepted": false,
+				"note": "a bare repo name - the slug carries the human handle"
+			},
+			{
+				"input": "fuzdev/fuz_app",
+				"accepted": false,
+				"note": "a slug"
+			},
+			{
+				"input": "7f3a9c2e-1b4d-4e6f-8a9b",
+				"accepted": false,
+				"note": "truncated"
+			},
+			{
+				"input": "FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFE",
+				"accepted": false,
+				"note": "one digit off the max is a versioned UUID with version nibble F"
+			},
+			{
+				"input": "00000000-0000-0000-0000-000000000001",
+				"accepted": false,
+				"note": "version nibble 0 - the synthetic near-nil id that exposed the grammar split (`Uuid::parse_str` accepted it, `z.uuid()` did not)"
+			},
+			{
+				"input": "11111111-1111-1111-1111-111111111111",
+				"accepted": false,
+				"note": "the all-ones id every hand-written fixture reaches for: version nibble `1` is fine, variant nibble `1` is not"
+			},
+			{
+				"input": "3f8a1c2e-1234-9abc-9def-0123456789ab",
+				"accepted": false,
+				"note": "version nibble 9"
+			},
+			{
+				"input": "3f8a1c2e-1234-fabc-9def-0123456789ab",
+				"accepted": false,
+				"note": "a hex-but-not-version nibble"
+			},
+			{
+				"input": "3f8a1c2e-1234-4abc-1def-0123456789ab",
+				"accepted": false,
+				"note": "variant nibble outside [89abAB]"
+			},
+			{
+				"input": "3f8a1c2e-1234-4abc-cdef-0123456789ab",
+				"accepted": false,
+				"note": "variant nibble outside [89abAB]"
+			},
+			{
+				"input": "3f8a1c2e12344abc9def0123456789ab",
+				"accepted": false,
+				"note": "`Uuid::parse_str` and Postgres accept the hyphenless form; the wire grammar does not"
+			},
+			{
+				"input": "{3f8a1c2e-1234-4abc-9def-0123456789ab}",
+				"accepted": false,
+				"note": "`Uuid::parse_str` and Postgres accept the braced form; the wire grammar does not"
+			},
+			{
+				"input": "urn:uuid:3f8a1c2e-1234-4abc-9def-0123456789ab",
+				"accepted": false,
+				"note": "`Uuid::parse_str` and Postgres accept the URN form; the wire grammar does not"
+			}
+		]
+	}
+}

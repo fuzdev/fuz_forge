@@ -1,0 +1,194 @@
+{
+	"function": "seed_from_host_is_private",
+	"source_ts": "src/lib/fuz_forge/repo/seed_from.ts",
+	"source_rust": "crates/fuz_forge_server/src/handlers/seed_from.rs",
+	"counts": {
+		"hosts": 33,
+		"private_urls": 10
+	},
+	"tables": {
+		"hosts": [
+			{
+				"input": "93.184.216.34",
+				"accepted": true
+			},
+			{
+				"input": "172.32.0.1",
+				"accepted": true
+			},
+			{
+				"input": "169.253.0.1",
+				"accepted": true
+			},
+			{
+				"input": "100.63.255.254",
+				"accepted": true
+			},
+			{
+				"input": "100.128.0.1",
+				"accepted": true
+			},
+			{
+				"input": "[2606:4700:4700::1111]",
+				"accepted": true
+			},
+			{
+				"input": "[fe00::1]",
+				"accepted": true
+			},
+			{
+				"input": "example.com",
+				"accepted": true
+			},
+			{
+				"input": "notlocalhost",
+				"accepted": true,
+				"note": "the boundary of the `.localhost` rule - a suffix match on the label, not a substring"
+			},
+			{
+				"input": "localhost.example.com",
+				"accepted": true,
+				"note": "the boundary of the `.localhost` rule - a suffix match on the label, not a substring"
+			},
+			{
+				"input": "localtest.me",
+				"accepted": true,
+				"note": "the documented limitation: a name outside a reserved TLD that nonetheless resolves into loopback, and this policy reads the host text without resolving it"
+			},
+			{
+				"input": "127.0.0.1.nip.io",
+				"accepted": true,
+				"note": "the documented limitation: a name outside a reserved TLD that nonetheless resolves into loopback, and this policy reads the host text without resolving it"
+			},
+			{
+				"input": "127.0.0.1",
+				"accepted": false
+			},
+			{
+				"input": "127.255.255.254",
+				"accepted": false
+			},
+			{
+				"input": "localhost",
+				"accepted": false
+			},
+			{
+				"input": "localhost.",
+				"accepted": false
+			},
+			{
+				"input": "evil.localhost",
+				"accepted": false
+			},
+			{
+				"input": "deep.sub.localhost.",
+				"accepted": false
+			},
+			{
+				"input": "0.0.0.0",
+				"accepted": false
+			},
+			{
+				"input": "169.254.169.254",
+				"accepted": false
+			},
+			{
+				"input": "10.0.0.1",
+				"accepted": false
+			},
+			{
+				"input": "172.16.0.1",
+				"accepted": false
+			},
+			{
+				"input": "172.31.255.254",
+				"accepted": false
+			},
+			{
+				"input": "192.168.1.1",
+				"accepted": false
+			},
+			{
+				"input": "100.64.0.1",
+				"accepted": false
+			},
+			{
+				"input": "100.127.255.254",
+				"accepted": false
+			},
+			{
+				"input": "[::1]",
+				"accepted": false
+			},
+			{
+				"input": "[::]",
+				"accepted": false
+			},
+			{
+				"input": "[fe80::1]",
+				"accepted": false
+			},
+			{
+				"input": "[febf::1]",
+				"accepted": false
+			},
+			{
+				"input": "[fc00::1]",
+				"accepted": false
+			},
+			{
+				"input": "[fdff::1]",
+				"accepted": false
+			},
+			{
+				"input": "[::ffff:7f00:1]",
+				"accepted": false
+			}
+		],
+		"private_urls": [
+			{
+				"input": "https://127.0.0.1:1/x.git",
+				"accepted": false
+			},
+			{
+				"input": "https://192.168.10.5/x.git",
+				"accepted": false
+			},
+			{
+				"input": "https://[::1]/x.git",
+				"accepted": false
+			},
+			{
+				"input": "HTTP://LocalHost/x.git",
+				"accepted": false
+			},
+			{
+				"input": "https://[::ffff:127.0.0.1]/x.git",
+				"accepted": false,
+				"note": "the parser rewrites the dotted IPv4-mapped form to `[::ffff:7f00:1]` before the policy sees it"
+			},
+			{
+				"input": "https://2130706433/x.git",
+				"accepted": false,
+				"note": "the folded-integer IPv4 spelling serializes to plain dotted-quad"
+			},
+			{
+				"input": "https://0177.0.0.1/x.git",
+				"accepted": false,
+				"note": "the octal IPv4 spelling serializes to plain dotted-quad"
+			},
+			{
+				"input": "https://169.254.169.254/latest/meta-data/",
+				"accepted": false
+			},
+			{
+				"input": "https://evil.localhost/x.git",
+				"accepted": false
+			},
+			{
+				"input": "https://100.64.0.1/x.git",
+				"accepted": false
+			}
+		]
+	}
+}

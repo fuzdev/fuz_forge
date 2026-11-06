@@ -1,0 +1,193 @@
+{
+	"function": "RepoSlug / validate_repo_slug",
+	"source_ts": "src/lib/fuz_forge/repo/repo_id.ts",
+	"source_rust": "crates/fuz_forge_wire/src/lib.rs",
+	"counts": {
+		"slugs": 34,
+		"constants": 1
+	},
+	"tables": {
+		"slugs": [
+			{
+				"input": "fuzdev/fuz_app",
+				"accepted": true,
+				"canonical": "fuzdev/fuz_app"
+			},
+			{
+				"input": "a/b",
+				"accepted": true,
+				"canonical": "a/b",
+				"note": "single-char segments are permitted"
+			},
+			{
+				"input": "someone/some-analysis",
+				"accepted": true,
+				"canonical": "someone/some-analysis"
+			},
+			{
+				"input": "org_1/repo-2",
+				"accepted": true,
+				"canonical": "org_1/repo-2"
+			},
+			{
+				"input": "foo/bar",
+				"accepted": true,
+				"canonical": "foo/bar"
+			},
+			{
+				"input": "MyOrg/MyRepo",
+				"accepted": true,
+				"canonical": "myorg/myrepo",
+				"note": "slugs are case-insensitive and canonicalize to lowercase"
+			},
+			{
+				"input": "Org/Repo",
+				"accepted": true,
+				"canonical": "org/repo",
+				"note": "slugs are case-insensitive and canonicalize to lowercase"
+			},
+			{
+				"input": "FOO/BAR",
+				"accepted": true,
+				"canonical": "foo/bar",
+				"note": "slugs are case-insensitive and canonicalize to lowercase"
+			},
+			{
+				"input": "My-Org/My-Repo",
+				"accepted": true,
+				"canonical": "my-org/my-repo",
+				"note": "slugs are case-insensitive and canonicalize to lowercase"
+			},
+			{
+				"input": "",
+				"accepted": false
+			},
+			{
+				"input": "noslash",
+				"accepted": false,
+				"note": "single segment"
+			},
+			{
+				"input": "foobar",
+				"accepted": false,
+				"note": "single segment"
+			},
+			{
+				"input": "fuz_app",
+				"accepted": false,
+				"note": "single segment"
+			},
+			{
+				"input": "too/many/slashes",
+				"accepted": false,
+				"note": "three segments"
+			},
+			{
+				"input": "foo/bar/baz",
+				"accepted": false,
+				"note": "three segments"
+			},
+			{
+				"input": "org/team/repo",
+				"accepted": false,
+				"note": "three segments"
+			},
+			{
+				"input": "org//repo",
+				"accepted": false,
+				"note": "an empty segment"
+			},
+			{
+				"input": "/fuzdev/fuz_app",
+				"accepted": false,
+				"note": "a leading `/` makes three segments, the first empty"
+			},
+			{
+				"input": "fuzdev/fuz_app/",
+				"accepted": false,
+				"note": "a trailing `/` makes three segments, the last empty"
+			},
+			{
+				"input": "/repo",
+				"accepted": false,
+				"note": "an empty leading segment"
+			},
+			{
+				"input": "org/",
+				"accepted": false,
+				"note": "an empty trailing segment"
+			},
+			{
+				"input": "owner/",
+				"accepted": false,
+				"note": "an empty trailing segment"
+			},
+			{
+				"input": "-lead/repo",
+				"accepted": false,
+				"note": "a segment may not start with a separator"
+			},
+			{
+				"input": "-owner/repo",
+				"accepted": false,
+				"note": "a segment may not start with a separator"
+			},
+			{
+				"input": "trail-/repo",
+				"accepted": false,
+				"note": "a segment may not end with a separator"
+			},
+			{
+				"input": "owner-/repo",
+				"accepted": false,
+				"note": "a segment may not end with a separator"
+			},
+			{
+				"input": "owner/-repo",
+				"accepted": false,
+				"note": "a segment may not start with a separator"
+			},
+			{
+				"input": "owner/repo-",
+				"accepted": false,
+				"note": "a segment may not end with a separator"
+			},
+			{
+				"input": "a--b/repo",
+				"accepted": false,
+				"note": "consecutive separators"
+			},
+			{
+				"input": "a--b/c",
+				"accepted": false,
+				"note": "consecutive separators"
+			},
+			{
+				"input": "a/b__c",
+				"accepted": false,
+				"note": "consecutive separators"
+			},
+			{
+				"input": "../etc",
+				"accepted": false,
+				"note": "traversal"
+			},
+			{
+				"input": "..",
+				"accepted": false,
+				"note": "traversal"
+			},
+			{
+				"input": "foo.bar/baz",
+				"accepted": false,
+				"note": "`.` is not in the segment charset"
+			}
+		],
+		"constants": [
+			{
+				"name": "REPO_SEGMENT_LENGTH_MAX",
+				"value": 64
+			}
+		]
+	}
+}

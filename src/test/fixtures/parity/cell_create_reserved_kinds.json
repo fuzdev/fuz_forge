@@ -1,0 +1,57 @@
+{
+	"function": "cell_create_admits",
+	"source_ts": "src/lib/server/fuz_forge_cell_create_authorize.ts",
+	"source_rust": "crates/fuz_forge_server/src/cell_create_authorize.rs",
+	"counts": {
+		"reserved": 2,
+		"cases": 9
+	},
+	"tables": {
+		"reserved": [{ "name": "repo" }, { "name": "file" }],
+		"cases": [
+			{
+				"args": ["repo", false],
+				"accepted": false,
+				"note": "a repo cell carries the hook secret digest the internal callbacks trust"
+			},
+			{
+				"args": ["file", false],
+				"accepted": false,
+				"note": "a file cell is a file-store entry"
+			},
+			{
+				"args": ["repo", true],
+				"accepted": true,
+				"note": "a global admin creates any kind"
+			},
+			{
+				"args": ["file", true],
+				"accepted": true
+			},
+			{
+				"args": ["note", false],
+				"accepted": true,
+				"note": "every other kind stays open"
+			},
+			{
+				"args": [null, false],
+				"accepted": true,
+				"note": "a typeless cell is never reserved"
+			},
+			{
+				"args": ["Repo", false],
+				"accepted": true,
+				"note": "kinds compare exactly: the forge reads the lowercase literal, so another spelling is a different kind"
+			},
+			{
+				"args": ["repos", false],
+				"accepted": true,
+				"note": "no prefix match"
+			},
+			{
+				"args": ["files", false],
+				"accepted": true
+			}
+		]
+	}
+}

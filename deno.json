@@ -1,0 +1,41 @@
+{
+	"minimumDependencyAge": { "age": "P1D", "exclude": ["npm:@fuzdev/*", "npm:@ryanatkn/*"] },
+	"nodeModulesDir": "manual",
+	"exclude": ["**/*.test.ts", "**/*.svelte.ts", "**/*.gen.ts", "src/test/"],
+	"tasks": {
+		"dev:setup": "FUZ_FORGE_HOME=$PWD/.fuz_forge deno run --allow-read --allow-write --allow-env --allow-run=which,createdb scripts/dev_setup.ts",
+		"prod:setup": "deno run --allow-read --allow-write --allow-env scripts/prod_setup.ts",
+		"check": "deno check src/lib/runtime/**/*.ts src/lib/server/**/*.ts src/lib/fuz_forge/**/*.ts scripts/*.ts",
+		"apply": "zap apply --env-file .env.production zap.ts",
+		"apply:bootstrap": "zap apply --env-file .env.production --bootstrap zap.ts",
+		"deploy": "zap deploy --env-file .env.production zap.ts",
+		"apply:forge2": "zap apply --env-file .env.production.forge2 zap.forge2.ts",
+		"apply:forge2:bootstrap": "zap apply --env-file .env.production.forge2 --bootstrap zap.forge2.ts",
+		"deploy:forge2": "zap deploy --env-file .env.production.forge2 zap.forge2.ts",
+		"install": "cargo build --release --bin fuzf && mkdir -p ~/.local/bin && cp target/release/fuzf ~/.local/bin/fuzf",
+		"release": "gro build && deno run --allow-read --allow-write --allow-env --allow-run=gh,git scripts/release.ts",
+		"dev:reset": "FUZ_FORGE_HOME=$PWD/.fuz_forge deno run --allow-read --allow-write --allow-env --allow-run=dropdb,createdb scripts/dev_reset.ts",
+		"dev:start": "NODE_ENV=development FUZ_FORGE_HOME=$PWD/.fuz_forge FUZ_BOOTSTRAP_TOKEN_PATH=$PWD/.fuz_forge/secret_bootstrap_token deno run --allow-all src/lib/server/server_main.ts start --env_file .env.development",
+		"dev:fuzf": "FUZ_FORGE_HOME=$PWD/.fuz_forge cargo run --quiet --bin fuzf --",
+		"db:status": "deno run --allow-read --allow-env --allow-net --allow-ffi scripts/db_status.ts"
+	},
+	"imports": {
+		"@std/fs": "jsr:@std/fs@^1",
+		"hono": "npm:hono@^4.13.9",
+		"@hono/deno": "npm:@hono/deno@^1.0.3",
+		"zod": "npm:zod@^4.6.5",
+		"@fuzdev/pglet-wasm": "npm:@fuzdev/pglet-wasm@^0.1.2",
+		"pg": "npm:pg@^8.23.0",
+		"@fuzdev/blake3-wasm": "npm:@fuzdev/blake3-wasm@^0.2.0",
+		"@fuzdev/fuz_app/": "npm:/@fuzdev/fuz_app@^0.163.0/",
+		"@fuzdev/fuz_util/": "npm:/@fuzdev/fuz_util@^0.79.1/",
+		"@fuzdev/fuz_schema/": "npm:/@fuzdev/fuz_schema@^0.5.4/",
+		"@node-rs/argon2": "npm:@node-rs/argon2@^2.2.1"
+	},
+	"fmt": {
+		"useTabs": true,
+		"lineWidth": 100,
+		"indentWidth": 2,
+		"singleQuote": true
+	}
+}

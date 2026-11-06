@@ -1,0 +1,54 @@
+{
+	"function": "the git read layer's byte caps and log page limits",
+	"source_ts": "src/lib/server/git/read.ts",
+	"source_rust": [
+		"crates/fuz_forge_server/src/forge_git/read.rs",
+		"crates/fuz_forge_server/src/handlers/repo_read.rs"
+	],
+	"counts": {
+		"byte_caps": 7,
+		"log_page_limits": 2
+	},
+	"tables": {
+		"byte_caps": [
+			{
+				"name": "MAX_LOG_BYTES",
+				"value": 1000000
+			},
+			{
+				"name": "MAX_COMMIT_META_BYTES",
+				"value": 1000000
+			},
+			{
+				"name": "MAX_DIFF_BYTES",
+				"value": 5000000
+			},
+			{
+				"name": "MAX_REFS_BYTES",
+				"value": 1000000
+			},
+			{
+				"name": "MAX_TREE_BYTES",
+				"value": 5000000
+			},
+			{
+				"name": "MAX_BLOB_BYTES",
+				"value": 5000000
+			},
+			{
+				"name": "BLOB_BINARY_SNIFF_BYTES",
+				"value": 8192
+			}
+		],
+		"log_page_limits": [
+			{
+				"name": "DEFAULT_LOG_LIMIT",
+				"value": 50
+			},
+			{
+				"name": "MAX_LOG_LIMIT",
+				"value": 200
+			}
+		]
+	}
+}

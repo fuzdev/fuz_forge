@@ -1,0 +1,83 @@
+{
+	"function": "is_safe_path",
+	"source_ts": "src/lib/server/git/parse.ts",
+	"source_rust": "crates/fuz_forge_server/src/forge_git/parse.rs",
+	"counts": {
+		"paths": 12,
+		"generated": 3
+	},
+	"tables": {
+		"paths": [
+			{
+				"input": "",
+				"accepted": true,
+				"note": "the root tree"
+			},
+			{
+				"input": "a/b",
+				"accepted": true
+			},
+			{
+				"input": "a..b",
+				"accepted": true,
+				"note": "a `..` substring within a segment is not a `..` segment"
+			},
+			{
+				"input": "foo...bar/baz.txt",
+				"accepted": true
+			},
+			{
+				"input": "a/./b",
+				"accepted": false
+			},
+			{
+				"input": "./a",
+				"accepted": false
+			},
+			{
+				"input": "a/.",
+				"accepted": false
+			},
+			{
+				"input": ".",
+				"accepted": false
+			},
+			{
+				"input": "..",
+				"accepted": false
+			},
+			{
+				"input": "a//b",
+				"accepted": false
+			},
+			{
+				"input": "-rf",
+				"accepted": false
+			},
+			{
+				"input": "/abs",
+				"accepted": false
+			}
+		],
+		"generated": [
+			{
+				"unit": "漢",
+				"repeat": 4096,
+				"accepted": true,
+				"note": "4096 CJK chars = 4096 UTF-16 units (12288 bytes) - accepted"
+			},
+			{
+				"unit": "🙂",
+				"repeat": 2048,
+				"accepted": true,
+				"note": "2048 astral chars = 4096 UTF-16 units (8192 bytes) - at the cap"
+			},
+			{
+				"unit": "🙂",
+				"repeat": 2049,
+				"accepted": false,
+				"note": "2049 astral chars = 4098 UTF-16 units - over it"
+			}
+		]
+	}
+}

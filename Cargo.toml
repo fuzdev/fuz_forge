@@ -1,0 +1,133 @@
+[workspace]
+resolver = "2"
+members = ["crates/fuz_forge", "crates/fuz_forge_server", "crates/fuz_forge_wire", "crates/testing_fuz_forge_server", "crates/xtask"]
+
+[workspace.package]
+version = "0.0.1"
+edition = "2024"
+license = "0BSD"
+repository = "https://github.com/fuzdev/fuz_forge"
+homepage = "https://github.com/fuzdev/fuz_forge"
+publish = false
+
+[workspace.dependencies]
+# Local crates.
+fuz_forge_wire = { path = "crates/fuz_forge_wire" }
+
+# Spine crates (path deps to the sibling fuz workspace at ../fuz).
+# Requires fuz checked out beside this repo.
+fuz_actions = { path = "../fuz/crates/fuz_actions" }
+fuz_auth = { path = "../fuz/crates/fuz_auth" }
+fuz_cell = { path = "../fuz/crates/fuz_cell" }
+fuz_cell_actions = { path = "../fuz/crates/fuz_cell_actions" }
+fuz_home = { path = "../fuz/crates/fuz_home" }
+fuz_sys = { path = "../fuz/crates/fuz_sys" }
+fuz_crypto = { path = "../fuz/crates/fuz_crypto" }
+fuz_db = { path = "../fuz/crates/fuz_db" }
+fuz_db_admin = { path = "../fuz/crates/fuz_db_admin" }
+fuz_fact = { path = "../fuz/crates/fuz_fact" }
+fuz_fact_serving = { path = "../fuz/crates/fuz_fact_serving" }
+fuz_http = { path = "../fuz/crates/fuz_http" }
+fuz_realtime = { path = "../fuz/crates/fuz_realtime" }
+fuz_artifact = { path = "../fuz/crates/fuz_artifact" }
+fuz_release = { path = "../fuz/crates/fuz_release" }
+fuz_sign = { path = "../fuz/crates/fuz_sign" }
+fuz_storage = { path = "../fuz/crates/fuz_storage" }
+fuz_testing = { path = "../fuz/crates/fuz_testing" }
+fuz_audit = { path = "../fuz/crates/fuz_audit" }
+
+# Async runtime + web framework.
+tokio = { version = "1", features = ["net", "rt-multi-thread", "macros", "sync", "fs", "signal", "time", "process", "io-util"] }
+tokio-util = { version = "0.7", features = ["codec", "time", "rt", "io"] }
+axum = { version = "0.8", features = ["ws"] }
+# `ServiceExt::oneshot`, for driving a composed `Router` in-process without
+# binding a socket (dev-only; the router's `client_ip` posture tests). Already
+# in the lockfile transitively via axum.
+tower = "0.5"
+futures = "0.3"
+futures-util = { version = "0.3", features = ["sink"] }
+
+# Logging.
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Serialization.
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Errors.
+thiserror = "2"
+
+# CLI arg parsing (user-facing CLIs with subcommands).
+argh = "0.1"
+
+# DB.
+tokio-postgres = { version = "0.7", features = ["with-uuid-1"] }
+deadpool-postgres = "0.14"
+
+# Crypto + hashing.
+subtle = "2"
+base64 = "0.22"
+
+# Misc.
+uuid = { version = "1", features = ["v4", "serde"] }
+time = { version = "0.3", features = ["formatting"] }
+url = "2"
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls-no-provider", "stream"] }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+missing_debug_implementations = "warn"
+trivial_casts = "warn"
+trivial_numeric_casts = "warn"
+unused_lifetimes = "warn"
+unused_qualifications = "warn"
+
+[workspace.lints.rustdoc]
+# A doc link is the only machine-checkable claim a doc comment makes, so
+# deny broken links and malformed markup (CI's `cargo doc` step enforces it).
+# `private_intra_doc_links` is allowed: module headers deliberately point at
+# private members, and the docs are built with `--document-private-items`.
+broken_intra_doc_links = "deny"
+invalid_html_tags = "deny"
+bare_urls = "deny"
+redundant_explicit_links = "deny"
+private_intra_doc_links = "allow"
+
+[workspace.lints.clippy]
+# Enable lint groups (priority -1 so individual lints can override)
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+cargo = { level = "warn", priority = -1 }
+
+# Pedantic overrides
+# Fires only on test asserts; its `assert_eq!(x, [] as [T; 0])` rewrite reads worse
+assert_is_empty = "allow"
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+similar_names = "allow"
+too_many_lines = "allow"
+
+# Nursery overrides
+significant_drop_tightening = "allow"
+
+# Cargo overrides (private repo)
+cargo_common_metadata = "allow"
+multiple_crate_versions = "allow"
+
+# Restriction lints (panic points need explicit #[allow] with justification)
+clone_on_ref_ptr = "warn"
+dbg_macro = "warn"
+expect_used = "warn"
+panic = "warn"
+todo = "warn"
+unwrap_used = "warn"
+
+[profile.release]
+lto = true
+codegen-units = 1
+# unwind, not abort: fuz_http::compose_stack catches a request panic and
+# answers 500; under abort that panic would kill the server
+panic = "unwind"
+strip = true

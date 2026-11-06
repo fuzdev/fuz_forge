@@ -1,0 +1,15 @@
+[package]
+name = "fuz_forge_wire"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish = false
+description = "Single-sourced forge wire types: the repo slug/id grammar and the typed JSON-RPC + file-store output DTOs"
+
+[lints]
+workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
