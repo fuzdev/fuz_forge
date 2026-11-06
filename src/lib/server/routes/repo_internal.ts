@@ -53,7 +53,8 @@
 
 import { z } from 'zod';
 import type { Context } from 'hono';
-import type { RouteSpec } from '@fuzdev/fuz_app/http/route_spec.ts';
+import { define_route, type RouteSpec } from '@fuzdev/fuz_app/http/route_spec.ts';
+import { route_ok, route_raw } from '@fuzdev/fuz_app/http/route_result.ts';
 import type { QueryDeps } from '@fuzdev/fuz_app/db/query_deps.ts';
 import type { Logger } from '@fuzdev/fuz_util/log.ts';
 import type { Uuid } from '@fuzdev/fuz_app/primitive_schemas.ts';
@@ -249,7 +250,7 @@ export const create_repo_internal_route_specs = (
 	deps: RepoInternalRoutesDeps
 ): Array<RouteSpec> => {
 	return [
-		{
+		define_route({
 			method: 'GET',
 			// `:id` is the cell-id UUID embedded in the hook scripts; the
 			// `org/repo` slug never reaches this route, so no multi-segment
@@ -263,15 +264,15 @@ export const create_repo_internal_route_specs = (
 			output: z.strictObject({ default_branch: z.string() }),
 			transaction: false,
 			handler: async (c) => {
-				if (!internal_pre_auth_ok(deps, c)) return unauthorized(c);
+				if (!internal_pre_auth_ok(deps, c)) return route_raw(unauthorized(c));
 				const id = c.req.param('id');
-				if (!id) return unauthorized(c);
+				if (!id) return route_raw(unauthorized(c));
 				const lookup = await internal_verify_repo_secret(deps, c, id);
-				if (!lookup) return unauthorized(c);
-				return c.json({ default_branch: lookup.narrow.default_branch });
+				if (!lookup) return route_raw(unauthorized(c));
+				return route_ok({ default_branch: lookup.narrow.default_branch });
 			}
-		},
-		{
+		}),
+		define_route({
 			method: 'POST',
 			path: '/internal/repo-receive-callback',
 			auth: { account: 'none', actor: 'none' },
@@ -289,20 +290,20 @@ export const create_repo_internal_route_specs = (
 			// single statement so the route doesn't need a wrapping tx.
 			transaction: false,
 			handler: async (c) => {
-				if (!internal_pre_auth_ok(deps, c)) return unauthorized(c);
+				if (!internal_pre_auth_ok(deps, c)) return route_raw(unauthorized(c));
 
 				let raw_body: unknown;
 				try {
 					raw_body = await c.req.json();
 				} catch {
-					return unauthorized(c);
+					return route_raw(unauthorized(c));
 				}
 				const parsed = RepoReceiveCallbackBody.safeParse(raw_body);
-				if (!parsed.success) return unauthorized(c);
+				if (!parsed.success) return route_raw(unauthorized(c));
 				const body = parsed.data;
 
 				const lookup = await internal_verify_repo_secret(deps, c, body.repo_id);
-				if (!lookup) return unauthorized(c);
+				if (!lookup) return route_raw(unauthorized(c));
 
 				const now_iso = to_iso8601_seconds(new Date());
 				const { next, head_sha } = compute_next_cell_data(
@@ -326,8 +327,8 @@ export const create_repo_internal_route_specs = (
 					last_pushed_by: body.pushed_by
 				});
 
-				return c.json({ ok: true as const });
+				return route_ok({ ok: true });
 			}
-		}
+		})
 	];
 };

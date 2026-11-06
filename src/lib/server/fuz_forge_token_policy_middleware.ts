@@ -40,9 +40,9 @@ import {
 	resolved_auth_api_token_id,
 	resolved_auth_scope
 } from '@fuzdev/fuz_app/auth/resolved_auth.ts';
-import { token_scope_denied_body } from '@fuzdev/fuz_app/auth/token_scope.ts';
 import { is_db_checkout_error } from '@fuzdev/fuz_app/db/db_checkout_error.ts';
-import { rest_error } from '@fuzdev/fuz_app/http/error_schemas.ts';
+import { REST_TOKEN_SCOPE_REQUIRED, rest_error } from '@fuzdev/fuz_app/http/error_schemas.ts';
+import { route_fail, type RouteFailOf } from '@fuzdev/fuz_app/http/route_result.ts';
 import { string } from '@fuzdev/fuz_schema/schema.ts';
 
 import { query_token_policy_by_id } from './db/fuz_forge_api_token_policy_queries.ts';
@@ -201,10 +201,13 @@ export const ERROR_FORBIDDEN = 'forbidden';
  * @param surface - the forge surface being reached, reported in the denial
  * @returns `null` to proceed, or the 403 denial
  */
-export const enforce_surface = (c: Context, surface: FuzForgeTokenSurface): Response | null => {
+export const enforce_surface = (
+	c: Context,
+	surface: FuzForgeTokenSurface
+): RouteFailOf<typeof REST_TOKEN_SCOPE_REQUIRED> | null => {
 	const scope = resolved_auth_scope(get_resolved_auth(c));
 	if (token_scope_admits_forge_surface(get_request_policy(c), scope)) return null;
-	return c.json(token_scope_denied_body(surface), 403);
+	return route_fail(REST_TOKEN_SCOPE_REQUIRED, { required_scope: surface });
 };
 
 /**
@@ -236,11 +239,11 @@ export const enforce_capability = (
 	c: Context,
 	capability: FuzForgeCapability,
 	surface: FuzForgeTokenSurface
-): Response | null => {
+): RouteFailOf<typeof REST_TOKEN_SCOPE_REQUIRED | typeof REST_FORBIDDEN> | null => {
 	const denied = enforce_surface(c, surface);
 	if (denied) return denied;
 	if (policy_check(get_request_policy(c), capability)) return null;
-	return c.json({ error: ERROR_FORBIDDEN, required: capability_string(capability) }, 403);
+	return route_fail(REST_FORBIDDEN, { required: capability_string(capability) });
 };
 
 /**

@@ -10,7 +10,7 @@ import { Hono } from 'hono';
 import { assert, describe, test } from 'vitest';
 import type { Account } from '@fuzdev/fuz_app/auth/account_schema.ts';
 import { REQUEST_CONTEXT_KEY, type RequestContext } from '@fuzdev/fuz_app/auth/request_context.ts';
-import type { RouteContext } from '@fuzdev/fuz_app/http/route_spec.ts';
+import { to_route_response, type RouteContext } from '@fuzdev/fuz_app/http/route_spec.ts';
 import { create_throwing_stub } from '@fuzdev/fuz_app/testing/stubs.ts';
 import { AsyncSemaphore } from '@fuzdev/fuz_util/async.ts';
 
@@ -56,7 +56,9 @@ describe('POST /:filename upload permit', () => {
 			c.set(REQUEST_CONTEXT_KEY, request_context);
 			await next();
 		});
-		app.post(upload.path, (c) => upload.handler(c, create_throwing_stub<RouteContext>('route')));
+		app.post(upload.path, async (c) =>
+			to_route_response(c, await upload.handler(c, create_throwing_stub<RouteContext>('route')))
+		);
 
 		const res = await app.request('/a.txt', {
 			method: 'POST',

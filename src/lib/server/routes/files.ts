@@ -27,10 +27,15 @@
 
 import type { Context } from 'hono';
 import { z } from 'zod';
-import type { RouteSpec } from '@fuzdev/fuz_app/http/route_spec.ts';
+import { define_route, type RouteSpec } from '@fuzdev/fuz_app/http/route_spec.ts';
+import {
+	route_fail,
+	route_ok,
+	route_raw,
+	type RouteFailOf
+} from '@fuzdev/fuz_app/http/route_result.ts';
 import { string } from '@fuzdev/fuz_schema/schema.ts';
 import {
-	ERROR_INVALID_ROUTE_PARAMS,
 	ERROR_PAYLOAD_TOO_LARGE,
 	REST_INVALID_ROUTE_PARAMS,
 	REST_TOKEN_SCOPE_REQUIRED,
@@ -95,16 +100,16 @@ export const REST_FILE_TOO_LARGE = rest_error(413, ERROR_PAYLOAD_TOO_LARGE, { me
 export const REST_STORAGE_FULL = rest_error(507, ERROR_STORAGE_FULL);
 
 /** The answer to a file-store miss, the body every per-file route shares. */
-const file_not_found = (c: Context): Response =>
-	c.json({ error: ERROR_FILE_NOT_FOUND, message: 'File not found' }, 404);
+const file_not_found = (): RouteFailOf<typeof REST_FILE_NOT_FOUND> =>
+	route_fail(REST_FILE_NOT_FOUND, { message: 'File not found' });
 
 /** The answer to an upload with an empty body. */
-const empty_body = (c: Context): Response =>
-	c.json({ error: ERROR_EMPTY_BODY, message: 'Empty body' }, 400);
+const empty_body = (): RouteFailOf<typeof REST_EMPTY_BODY> =>
+	route_fail(REST_EMPTY_BODY, { message: 'Empty body' });
 
 /** The answer to an upload over `max_upload_bytes`. */
-const file_too_large = (c: Context, message: string): Response =>
-	c.json({ error: ERROR_PAYLOAD_TOO_LARGE, message }, 413);
+const file_too_large = (message: string): RouteFailOf<typeof REST_FILE_TOO_LARGE> =>
+	route_fail(REST_FILE_TOO_LARGE, { message });
 
 /** Dependencies for file store routes. */
 export interface FileRoutesDeps {
@@ -237,7 +242,7 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 	return [
 		// POST /:filename{.+} — upload a file (admin, not keeper — stores bytes, doesn't execute).
 		// Catch-all param so path-structured keys (`tools/<name>/...`) match.
-		{
+		define_route({
 			method: 'POST',
 			path: '/:filename{.+}',
 			auth: { account: 'required', actor: 'required', roles: ['admin'] },
@@ -262,7 +267,7 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 			handler: async (c) => {
 				const filename = c.req.param('filename');
 				if (!filename || !is_valid_file_key(filename)) {
-					return c.json({ error: ERROR_INVALID_ROUTE_PARAMS }, 400);
+					return route_fail(REST_INVALID_ROUTE_PARAMS);
 				}
 
 				const denied = enforce_capability(c, { kind: 'files.write', filename }, SURFACE_FILE_STORE);
@@ -276,7 +281,6 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 				const declared_content_length = parse_content_length(c.req.header('Content-Length'));
 				if (declared_content_length !== null && declared_content_length > max_upload_bytes) {
 					return file_too_large(
-						c,
 						`File too large: ${declared_content_length} bytes exceeds ${max_upload_bytes} byte limit`
 					);
 				}
@@ -304,7 +308,7 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 						log
 					);
 					if (!budget) {
-						return c.json({ error: ERROR_STORAGE_FULL }, 507);
+						return route_fail(REST_STORAGE_FULL);
 					}
 
 					const content_type = infer_content_type(filename);
@@ -332,25 +336,25 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 						});
 					} catch (err) {
 						if (err instanceof FactPayloadTooLargeError) {
-							return file_too_large(c, `File too large: exceeds ${max_upload_bytes} byte limit`);
+							return file_too_large(`File too large: exceeds ${max_upload_bytes} byte limit`);
 						}
 						// Mid-stream disk-full (ENOSPC) — the backstop for what the
 						// free-space preflight can't catch (chunked uploads, TOCTOU races).
 						if (err instanceof FactStorageFullError) {
-							return c.json({ error: ERROR_STORAGE_FULL }, 507);
+							return route_fail(REST_STORAGE_FULL);
 						}
 						throw err;
 					}
 
 					if (outcome.size === 0) {
-						return empty_body(c);
+						return empty_body();
 					}
 
 					const blake3_hash = outcome.hash.slice(FACT_HASH_PREFIX.length);
 
 					// Idempotent: identical bytes → no cell write (the fact deduped).
 					if (existing_data?.blake3 === outcome.hash) {
-						return c.json({
+						return route_ok({
 							filename,
 							blake3_hash,
 							size_bytes: outcome.size,
@@ -384,7 +388,7 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 						status = 'created';
 					}
 
-					return c.json({
+					return route_ok({
 						filename,
 						blake3_hash,
 						size_bytes: outcome.size,
@@ -395,11 +399,11 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 					upload_semaphore.release();
 				}
 			}
-		},
+		}),
 
 		// GET / — list all files. Distinct path from the catch-all `/:filename{.+}`
 		// (which needs ≥1 trailing segment), so no shadowing.
-		{
+		define_route({
 			method: 'GET',
 			path: '/',
 			auth: { account: 'required', actor: 'none' },
@@ -458,9 +462,9 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 							policy_check(policy, { kind: 'files.read', filename: entry.filename })
 						)
 					: merged;
-				return c.json({ files: visible });
+				return route_ok({ files: visible });
 			}
-		},
+		}),
 
 		// GET /:filename{.+} — download a file, or (with `?meta`) its metadata JSON.
 		// One handler for both: they share the `files.read` gate, validation, and
@@ -468,7 +472,7 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 		// metadata endpoint can't be a `/:filename/meta` suffix because the Rust
 		// twin's axum 0.8 catch-all must be terminal, so it rides as a query param
 		// on the same GET (keeping one validation + capability path, no drift).
-		{
+		define_route({
 			method: 'GET',
 			path: '/:filename{.+}',
 			auth: { account: 'required', actor: 'none' },
@@ -487,7 +491,7 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 			handler: async (c) => {
 				const filename = c.req.param('filename')!;
 				if (!is_valid_file_key(filename)) {
-					return c.json({ error: ERROR_INVALID_ROUTE_PARAMS }, 400);
+					return route_fail(REST_INVALID_ROUTE_PARAMS);
 				}
 
 				const denied = enforce_capability(c, { kind: 'files.read', filename }, SURFACE_FILE_STORE);
@@ -496,7 +500,7 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 				const cell = await query_cell_get_by_path(query_deps, file_cell_path(filename));
 				const file_data = cell ? narrow_file_cell_data(cell.data) : null;
 				if (!cell || !file_data) {
-					return file_not_found(c);
+					return file_not_found();
 				}
 
 				// `?meta`: metadata only — no fact-store byte fetch. Presence
@@ -508,12 +512,12 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 				// `Query<T>` extractor (whose pre-auth 400 on a duplicate key
 				// had no counterpart here).
 				if (first_query_param(raw_query_of(c.req.raw.url), 'meta') !== undefined) {
-					return c.json(file_meta_view(filename, file_data, cell.updated_at ?? cell.created_at));
+					return route_ok(file_meta_view(filename, file_data, cell.updated_at ?? cell.created_at));
 				}
 
 				const bytes = await fact_store.get(file_data.blake3);
 				if (!bytes) {
-					return file_not_found(c);
+					return file_not_found();
 				}
 
 				// `Content-Length` is intentionally NOT set here: the body is a
@@ -525,18 +529,20 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 				// and Node's `writeHead` emits both keys — which the bench's undici
 				// client (Node `fetch`) rejects as an HTTP/1.1 protocol violation.
 				// TODO: remove double cast when Deno and Node BodyInit types align on Uint8Array
-				return new Response(bytes as unknown as BodyInit, {
-					headers: {
-						'Content-Type': file_data.content_type,
-						'Content-Disposition': `attachment; filename="${filename}"`,
-						'X-Blake3-Hash': file_data.blake3.slice(FACT_HASH_PREFIX.length)
-					}
-				});
+				return route_raw(
+					new Response(bytes as unknown as BodyInit, {
+						headers: {
+							'Content-Type': file_data.content_type,
+							'Content-Disposition': `attachment; filename="${filename}"`,
+							'X-Blake3-Hash': file_data.blake3.slice(FACT_HASH_PREFIX.length)
+						}
+					})
+				);
 			}
-		},
+		}),
 
 		// DELETE /:filename{.+} — delete a file (admin, not keeper — data management, not execution)
-		{
+		define_route({
 			method: 'DELETE',
 			path: '/:filename{.+}',
 			auth: { account: 'required', actor: 'required', roles: ['admin'] },
@@ -557,7 +563,7 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 			handler: async (c) => {
 				const filename = c.req.param('filename')!;
 				if (!is_valid_file_key(filename)) {
-					return c.json({ error: ERROR_INVALID_ROUTE_PARAMS }, 400);
+					return route_fail(REST_INVALID_ROUTE_PARAMS);
 				}
 
 				const denied = enforce_capability(
@@ -569,7 +575,7 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 
 				const cell = await query_cell_get_by_path(query_deps, file_cell_path(filename));
 				if (!cell) {
-					return file_not_found(c);
+					return file_not_found();
 				}
 
 				// Soft-delete the cell; the fact is intentionally left in the
@@ -577,9 +583,9 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 				const actor_id = require_acting_actor_id(c);
 				await query_cell_delete(query_deps, cell.id, { deleted_by: actor_id });
 
-				return c.json({ deleted: true, filename });
+				return route_ok({ deleted: true, filename });
 			}
-		}
+		})
 	];
 };
 

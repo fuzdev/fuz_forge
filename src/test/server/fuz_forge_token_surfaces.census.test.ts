@@ -396,7 +396,7 @@ const IN_HANDLER_SURFACE_SITES: Record<string, InHandlerSurface> = {
 				sources: [
 					'const scope = resolved_auth_scope(get_resolved_auth(c));',
 					'if (token_scope_admits_forge_surface(get_request_policy(c), scope)) return null;',
-					'return c.json(token_scope_denied_body(surface), 403);',
+					'return route_fail(REST_TOKEN_SCOPE_REQUIRED, { required_scope: surface });',
 					'const denied = enforce_surface(c, surface);'
 				]
 			},

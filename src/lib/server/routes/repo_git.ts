@@ -77,7 +77,8 @@
 
 import { z } from 'zod';
 import type { Context } from 'hono';
-import type { RouteSpec } from '@fuzdev/fuz_app/http/route_spec.ts';
+import { define_route, type RouteSpec } from '@fuzdev/fuz_app/http/route_spec.ts';
+import { route_raw, type RouteRaw } from '@fuzdev/fuz_app/http/route_result.ts';
 
 import {
 	authenticate_git_request,
@@ -210,44 +211,52 @@ const resolve_slug = (c: Context): string => {
  * handler keyed on `?service=<…>`.
  */
 export const create_repo_git_route_specs = (deps: RepoGitRoutesDeps): Array<RouteSpec> => {
-	const handle_advertise = async (c: Context): Promise<Response> => {
+	const handle_advertise = async (c: Context): Promise<RouteRaw> => {
 		const auth = await authenticate_git_request(deps, c, resolve_slug(c));
-		if (!auth) return git_unauthorized(c);
+		if (!auth) return route_raw(git_unauthorized(c));
 
 		const service = first_service_param(raw_query_of(c.req.raw.url));
 		if (service !== 'git-upload-pack' && service !== 'git-receive-pack') {
 			// Dumb HTTP isn't supported; reject anything unexpected with a
 			// generic 400 (no enumeration risk since this branch is post-auth).
-			return c.text('Bad Request\n', 400);
+			return route_raw(c.text('Bad Request\n', 400));
 		}
 
 		const operation: GitOp = service === 'git-receive-pack' ? 'push' : 'pull';
-		if (!(await check_repo_capability(deps, auth, operation))) return git_unauthorized(c);
+		if (!(await check_repo_capability(deps, auth, operation))) {
+			return route_raw(git_unauthorized(c));
+		}
 
-		return proxy_to_git_http_backend(deps, c, auth, {
-			request_method: 'GET',
-			path_info: `/${auth.repo_id}.git/info/refs`,
-			query_string: `service=${service}`
-		});
+		return route_raw(
+			await proxy_to_git_http_backend(deps, c, auth, {
+				request_method: 'GET',
+				path_info: `/${auth.repo_id}.git/info/refs`,
+				query_string: `service=${service}`
+			})
+		);
 	};
 
 	const handle_post =
 		(path_suffix: string, operation: GitOp) =>
-		async (c: Context): Promise<Response> => {
+		async (c: Context): Promise<RouteRaw> => {
 			const auth = await authenticate_git_request(deps, c, resolve_slug(c));
-			if (!auth) return git_unauthorized(c);
+			if (!auth) return route_raw(git_unauthorized(c));
 
-			if (!(await check_repo_capability(deps, auth, operation))) return git_unauthorized(c);
+			if (!(await check_repo_capability(deps, auth, operation))) {
+				return route_raw(git_unauthorized(c));
+			}
 
-			return proxy_to_git_http_backend(deps, c, auth, {
-				request_method: 'POST',
-				path_info: `/${auth.repo_id}.git${path_suffix}`,
-				query_string: ''
-			});
+			return route_raw(
+				await proxy_to_git_http_backend(deps, c, auth, {
+					request_method: 'POST',
+					path_info: `/${auth.repo_id}.git${path_suffix}`,
+					query_string: ''
+				})
+			);
 		};
 
 	return [
-		{
+		define_route({
 			method: 'GET',
 			path: GIT_INFO_REFS_PATH,
 			auth: { account: 'none', actor: 'none' },
@@ -257,8 +266,8 @@ export const create_repo_git_route_specs = (deps: RepoGitRoutesDeps): Array<Rout
 			output: z.unknown(),
 			transaction: false,
 			handler: (c) => handle_advertise(c)
-		},
-		{
+		}),
+		define_route({
 			method: 'POST',
 			path: GIT_UPLOAD_PACK_PATH,
 			auth: { account: 'none', actor: 'none' },
@@ -268,8 +277,8 @@ export const create_repo_git_route_specs = (deps: RepoGitRoutesDeps): Array<Rout
 			output: z.unknown(),
 			transaction: false,
 			handler: handle_post('/git-upload-pack', 'pull')
-		},
-		{
+		}),
+		define_route({
 			method: 'POST',
 			path: GIT_RECEIVE_PACK_PATH,
 			auth: { account: 'none', actor: 'none' },
@@ -280,6 +289,6 @@ export const create_repo_git_route_specs = (deps: RepoGitRoutesDeps): Array<Rout
 			output: z.unknown(),
 			transaction: false,
 			handler: handle_post('/git-receive-pack', 'push')
-		}
+		})
 	];
 };
