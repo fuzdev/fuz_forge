@@ -166,9 +166,9 @@ export const ActionInputs = {
 	account_token_revoke: account_specs.account_token_revoke_action_spec.input
 } as const;
 export interface ActionInputs {
-	heartbeat: z.infer<typeof fuz_forge_specs.heartbeat_action_spec.input>;
-	cancel: z.infer<typeof fuz_forge_specs.cancel_action_spec.input>;
-	'peer/ping': z.infer<typeof fuz_forge_specs.peer_ping_action_spec.input>;
+	heartbeat: Infer<typeof fuz_forge_specs.heartbeat_action_spec.input>;
+	cancel: Infer<typeof fuz_forge_specs.cancel_action_spec.input>;
+	'peer/ping': Infer<typeof fuz_forge_specs.peer_ping_action_spec.input>;
 	fuz_forge_repo_updated: z.infer<typeof fuz_forge_specs.fuz_forge_repo_updated_action_spec.input>;
 	fuz_forge_repo_list: z.infer<typeof fuz_forge_specs.fuz_forge_repo_list_action_spec.input>;
 	fuz_forge_repo_get: z.infer<typeof fuz_forge_specs.fuz_forge_repo_get_action_spec.input>;
@@ -288,9 +288,9 @@ export const ActionOutputs = {
 	account_token_revoke: account_specs.account_token_revoke_action_spec.output
 } as const;
 export interface ActionOutputs {
-	heartbeat: z.infer<typeof fuz_forge_specs.heartbeat_action_spec.output>;
-	cancel: z.infer<typeof fuz_forge_specs.cancel_action_spec.output>;
-	'peer/ping': z.infer<typeof fuz_forge_specs.peer_ping_action_spec.output>;
+	heartbeat: Infer<typeof fuz_forge_specs.heartbeat_action_spec.output>;
+	cancel: Infer<typeof fuz_forge_specs.cancel_action_spec.output>;
+	'peer/ping': Infer<typeof fuz_forge_specs.peer_ping_action_spec.output>;
 	fuz_forge_repo_updated: z.infer<typeof fuz_forge_specs.fuz_forge_repo_updated_action_spec.output>;
 	fuz_forge_repo_list: z.infer<typeof fuz_forge_specs.fuz_forge_repo_list_action_spec.output>;
 	fuz_forge_repo_get: z.infer<typeof fuz_forge_specs.fuz_forge_repo_get_action_spec.output>;

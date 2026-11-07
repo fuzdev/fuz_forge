@@ -72,7 +72,7 @@ export interface RpcPostResult {
  * transport with explicit headers, returning the HTTP status alongside the
  * envelope — the status is half the contract, since both backends map
  * `-32600` / `-32602` onto `400` (`error_code_to_http_status` in `fuz_http`,
- * the `JsonrpcRequest.safeParse` arm of `action_rpc.ts`).
+ * the `JsonrpcRequest` check of `classify_jsonrpc_message`).
  *
  * Hand-built rather than `rpc_call` because an explicit-`null` `params` needs
  * the key spelled literally, which `create_rpc_post_init` strips to the absent
