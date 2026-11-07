@@ -7,18 +7,29 @@
  * @module
  */
 
-import { z } from 'zod';
 import { meta } from '@fuzdev/fuz_schema/meta.ts';
 import {
 	array,
+	boolean,
+	check,
+	integer,
 	literal,
 	max_length,
+	max_value,
+	message,
 	min_length,
+	min_value,
+	nullable,
+	number,
 	object,
+	optional,
 	pipe,
 	string,
 	union,
 	variant,
+	void as fuz_void,
+	with_default,
+	with_default_fn,
 	type Infer
 } from '@fuzdev/fuz_schema/schema.ts';
 import type {
@@ -31,11 +42,11 @@ import { cancel_action_spec } from '@fuzdev/fuz_app/actions/cancel.ts';
 import { peer_ping_action_spec } from '@fuzdev/fuz_app/actions/peer_ping.ts';
 import { protocol_action_specs } from '@fuzdev/fuz_app/actions/protocol.ts';
 import { ActingActor } from '@fuzdev/fuz_app/primitive_schemas.ts';
-import { ZodActingActor } from '@fuzdev/fuz_app/zod_schemas.ts';
 import { ERROR_TOKEN_LIFETIME_INVALID } from '@fuzdev/fuz_app/auth/account_action_specs.ts';
 import { TokenLifetimeInput } from '@fuzdev/fuz_app/auth/token_lifetime.ts';
 // brings in the `invalid_reason` meta key, merged into fuz_schema's `SchemaMeta`
 import type {} from '@fuzdev/fuz_app/schema_meta.ts';
+import type {} from '@fuzdev/fuz_app/sensitivity.ts';
 
 // Re-export so codegen (which builds `import * as specs from './action_specs'`)
 // resolves `specs.heartbeat_action_spec` / `specs.cancel_action_spec` via the
@@ -44,7 +55,6 @@ import type {} from '@fuzdev/fuz_app/schema_meta.ts';
 export { heartbeat_action_spec, cancel_action_spec, peer_ping_action_spec };
 
 import { RepoId, RepoSlug } from './fuz_forge/repo/repo_id.ts';
-import { RepoId as RepoIdFuz } from './fuz_forge/repo/repo_id_fuz.ts';
 import { RepoListSince } from './fuz_forge/repo/repo_list_since.ts';
 import { seed_from_url_canonical, SEED_FROM_URL_MESSAGE } from './fuz_forge/repo/seed_from.ts';
 
@@ -62,24 +72,24 @@ import { seed_from_url_canonical, SEED_FROM_URL_MESSAGE } from './fuz_forge/repo
  * credential between the bare repo's hook scripts and the loopback
  * callback, server-only state no list/get response carries.
  */
-export const FuzForgeRepoOutput = z.strictObject({
+export const FuzForgeRepoOutput = object({
 	/** Cell-id UUID — the repo's wire/dir/URL handle. */
-	id: z.string(),
+	id: string,
 	/** Canonical `org/repo` clone handle. */
-	slug: z.string(),
+	slug: string,
 	/** Repo-name segment of the slug. */
-	name: z.string(),
-	default_branch: z.string(),
-	seed_from: z.string().nullable(),
-	seed_completed_at: z.string().nullable(),
-	head_sha: z.string().nullable(),
-	last_pushed_at: z.string().nullable(),
-	last_pushed_by: z.string().nullable(),
-	last_push_username: z.string().nullable(),
-	created_at: z.string(),
-	updated_at: z.string()
+	name: string,
+	default_branch: string,
+	seed_from: nullable(string),
+	seed_completed_at: nullable(string),
+	head_sha: nullable(string),
+	last_pushed_at: nullable(string),
+	last_pushed_by: nullable(string),
+	last_push_username: nullable(string),
+	created_at: string,
+	updated_at: string
 });
-export type FuzForgeRepoOutput = z.infer<typeof FuzForgeRepoOutput>;
+export type FuzForgeRepoOutput = Infer<typeof FuzForgeRepoOutput>;
 
 // Remote notifications (backend → frontend via SSE)
 
@@ -101,13 +111,13 @@ export const fuz_forge_repo_updated_action_spec = {
 	auth: null,
 	side_effects: true,
 	async: true,
-	input: z.strictObject({
-		repo_id: z.string(),
-		head_sha: z.string().nullable(),
-		last_pushed_at: z.string(),
-		last_pushed_by: z.string().nullable()
+	input: object({
+		repo_id: string,
+		head_sha: nullable(string),
+		last_pushed_at: string,
+		last_pushed_by: nullable(string)
 	}),
-	output: z.void(),
+	output: fuz_void,
 	description: 'A forge-hosted repo received a push'
 } satisfies RemoteNotificationActionSpec;
 
@@ -130,8 +140,8 @@ export const fuz_forge_repo_updated_action_spec = {
  *   there and are `NaN` here — so without one grammar in front of them the
  *   same request filtered on one backend and listed everything on the other.
  *   The cap and the year floor close the same split from the other side, where
- *   zod's shape is *wider* than the Postgres cast: year `0000` and a
- *   150-digit fraction both pass `z.iso.datetime()` and both made the Rust
+ *   a plain ISO datetime regex is *wider* than the Postgres cast: year `0000` and a
+ *   150-digit fraction both pass it and both made the Rust
  *   backend answer `-32603` against a `200` here. Rust twin:
  *   `require_iso8601_datetime` in `handlers/repo_list_since.rs`, over the same
  *   `MIN_ISO8601_YEAR` / `SINCE_MAX_LENGTH`.
@@ -145,14 +155,15 @@ export const fuz_forge_repo_updated_action_spec = {
  *   resolves one to *now* rather than to no filter, which is the behavior this
  *   field refuses to inherit.
  */
-export const FuzForgeRepoListInput = z
-	.strictObject({
-		slug_prefix: z.string().max(255).optional(),
-		since: RepoListSince.optional(),
-		acting: ZodActingActor
-	})
-	.default({});
-export type FuzForgeRepoListInput = z.infer<typeof FuzForgeRepoListInput>;
+export const FuzForgeRepoListInput = with_default_fn(
+	object({
+		slug_prefix: optional(pipe(string, max_length(255))),
+		since: optional(RepoListSince),
+		acting: ActingActor
+	}),
+	() => ({})
+);
+export type FuzForgeRepoListInput = Infer<typeof FuzForgeRepoListInput>;
 
 export const fuz_forge_repo_list_action_spec = {
 	method: 'fuz_forge_repo_list',
@@ -162,30 +173,32 @@ export const fuz_forge_repo_list_action_spec = {
 	side_effects: false,
 	async: true,
 	input: FuzForgeRepoListInput,
-	output: z.strictObject({ repos: z.array(FuzForgeRepoOutput) }),
+	output: object({ repos: array(FuzForgeRepoOutput) }),
 	description: 'List forge-hosted repos'
 } satisfies RequestResponseActionSpec;
 
 /**
  * Input for `fuz_forge_repo_get` — by `id` (the cell-id UUID) **or**
  * `slug` (the public clone-URL path). Exactly one must be provided;
- * `.refine()` rejects both-empty and both-set so the input-validation
+ * a `check` rejects both-empty and both-set so the input-validation
  * phase surfaces the constraint rather than the handler.
  *
  * `id` is validated as a UUID; `slug` is lowercase-canonicalized. The
  * handler branches on which field is set: id → `query_cell_get(uuid)`;
  * slug → `repos/<slug>` cell-path lookup (both indexed).
  */
-export const FuzForgeRepoGetInput = z
-	.strictObject({
-		id: RepoId.optional(),
-		slug: RepoSlug.optional(),
-		acting: ZodActingActor
-	})
-	.refine((v) => (v.id !== undefined) !== (v.slug !== undefined), {
-		message: 'must provide exactly one of id or slug'
-	});
-export type FuzForgeRepoGetInput = z.infer<typeof FuzForgeRepoGetInput>;
+export const FuzForgeRepoGetInput = pipe(
+	object({
+		id: optional(RepoId),
+		slug: optional(RepoSlug),
+		acting: ActingActor
+	}),
+	message(
+		check((v: { id?: string; slug?: string }) => (v.id !== undefined) !== (v.slug !== undefined)),
+		'must provide exactly one of id or slug'
+	)
+);
+export type FuzForgeRepoGetInput = Infer<typeof FuzForgeRepoGetInput>;
 
 export const fuz_forge_repo_get_action_spec = {
 	method: 'fuz_forge_repo_get',
@@ -195,7 +208,7 @@ export const fuz_forge_repo_get_action_spec = {
 	side_effects: false,
 	async: true,
 	input: FuzForgeRepoGetInput,
-	output: z.strictObject({ repo: FuzForgeRepoOutput }),
+	output: object({ repo: FuzForgeRepoOutput }),
 	description: 'Get a forge-hosted repo by id'
 } satisfies RequestResponseActionSpec;
 
@@ -206,16 +219,18 @@ export const fuz_forge_repo_get_action_spec = {
  * future mutation RPCs) stays uniform with
  * the get-side surface.
  */
-export const FuzForgeRepoMutationInput = z
-	.strictObject({
-		id: RepoId.optional(),
-		slug: RepoSlug.optional(),
-		acting: ZodActingActor
-	})
-	.refine((v) => (v.id !== undefined) !== (v.slug !== undefined), {
-		message: 'must provide exactly one of id or slug'
-	});
-export type FuzForgeRepoMutationInput = z.infer<typeof FuzForgeRepoMutationInput>;
+export const FuzForgeRepoMutationInput = pipe(
+	object({
+		id: optional(RepoId),
+		slug: optional(RepoSlug),
+		acting: ActingActor
+	}),
+	message(
+		check((v: { id?: string; slug?: string }) => (v.id !== undefined) !== (v.slug !== undefined)),
+		'must provide exactly one of id or slug'
+	)
+);
+export type FuzForgeRepoMutationInput = Infer<typeof FuzForgeRepoMutationInput>;
 
 /**
  * Output for `fuz_forge_repo_resync`. Both fields are SHA-or-null:
@@ -223,11 +238,11 @@ export type FuzForgeRepoMutationInput = z.infer<typeof FuzForgeRepoMutationInput
  * `head_sha` is the on-disk truth that just got written. The two are
  * equal when resync was a no-op (cell already matched disk).
  */
-export const FuzForgeRepoResyncOutput = z.strictObject({
-	previous_head_sha: z.string().nullable(),
-	head_sha: z.string().nullable()
+export const FuzForgeRepoResyncOutput = object({
+	previous_head_sha: nullable(string),
+	head_sha: nullable(string)
 });
-export type FuzForgeRepoResyncOutput = z.infer<typeof FuzForgeRepoResyncOutput>;
+export type FuzForgeRepoResyncOutput = Infer<typeof FuzForgeRepoResyncOutput>;
 
 export const fuz_forge_repo_resync_action_spec = {
 	method: 'fuz_forge_repo_resync',
@@ -249,8 +264,8 @@ export const fuz_forge_repo_resync_action_spec = {
  * `data.hook_secret_hash` holds its digest) and no other observable state
  * changes shape.
  */
-export const FuzForgeRepoRotateSecretOutput = z.strictObject({ ok: z.literal(true) });
-export type FuzForgeRepoRotateSecretOutput = z.infer<typeof FuzForgeRepoRotateSecretOutput>;
+export const FuzForgeRepoRotateSecretOutput = object({ ok: literal(true) });
+export type FuzForgeRepoRotateSecretOutput = Infer<typeof FuzForgeRepoRotateSecretOutput>;
 
 export const fuz_forge_repo_rotate_secret_action_spec = {
 	method: 'fuz_forge_repo_rotate_secret',
@@ -284,54 +299,53 @@ export const fuz_forge_repo_rotate_secret_action_spec = {
  * host and no embedded credentials (`seed_from_url_canonical`), since the
  * value becomes git's remote and is recorded on the cell.
  */
-export const FuzForgeRepoCreateInput = z.strictObject({
+export const FuzForgeRepoCreateInput = object({
 	// Bounded plain string on the wire; the handler parses it as a strict
 	// `RepoSlug` (same loose-spec / strict-handler split as `sha` on the
 	// commit input). Keeping the regex off the spec lets the generated
 	// round-trip/attack-surface harness synthesize a body — its generator
 	// can't satisfy the two-segment `org/repo` pattern.
-	slug: z
-		.string()
-		.min(3)
-		.max(129)
-		.meta({ description: 'org/repo clone handle (canonical human id); validated server-side' }),
-	default_branch: z
-		.string()
-		.min(1)
-		.max(255)
-		.default('main')
-		.meta({ description: 'default branch name (force-push protected)' }),
+	slug: meta(pipe(string, min_length(3), max_length(129)), {
+		description: 'org/repo clone handle (canonical human id); validated server-side'
+	}),
+	default_branch: meta(with_default(pipe(string, min_length(1), max_length(255)), 'main'), {
+		description: 'default branch name (force-push protected)'
+	}),
 	// Unlike `slug`, the grammar lives ON the schema: `seed_from` is optional,
 	// so the generated attack-surface/round-trip harness never has to
 	// synthesize one, and the value is handed to `git clone --bare` as the
 	// remote — a boundary that belongs at dispatch, before any disk or DB
 	// work. Rust twin: `require_seed_from_url` in `handlers/seed_from.rs`.
 	//
-	// The refine only *admits* the value; it deliberately does not normalize
-	// it. A `.transform()` here would make the field unrepresentable in JSON
-	// Schema, which would blank this whole input schema out of the generated
-	// attack surface — so the handler re-runs `seed_from_url_canonical` right
-	// after parse and stores/clones the canonical form (see
+	// The check only *admits* the value; it deliberately does not normalize
+	// it, so the schema stays a plain string in the generated attack surface —
+	// the handler re-runs `seed_from_url_canonical` right after parse and
+	// stores/clones the canonical form (see
 	// `server/routes/fuz_forge_repo_write.ts`).
-	seed_from: z
-		.string()
-		.min(1)
-		.max(2048)
-		.refine((value) => seed_from_url_canonical(value) !== null, {
-			message: SEED_FROM_URL_MESSAGE
-		})
-		.optional()
-		.meta({
+	seed_from: meta(
+		optional(
+			pipe(
+				string,
+				min_length(1),
+				max_length(2048),
+				message(
+					check((value: string) => seed_from_url_canonical(value) !== null),
+					SEED_FROM_URL_MESSAGE
+				)
+			)
+		),
+		{
 			description:
 				'one-shot upstream URL to clone --bare from at create time; absolute http(s), host required, no embedded credentials; recorded and cloned in canonical (parser-serialized) form'
-		}),
-	acting: ZodActingActor
+		}
+	),
+	acting: ActingActor
 });
-export type FuzForgeRepoCreateInput = z.infer<typeof FuzForgeRepoCreateInput>;
+export type FuzForgeRepoCreateInput = Infer<typeof FuzForgeRepoCreateInput>;
 
 /** Output for `fuz_forge_repo_create` — the freshly-created repo row. */
-export const FuzForgeRepoCreateOutput = z.strictObject({ repo: FuzForgeRepoOutput });
-export type FuzForgeRepoCreateOutput = z.infer<typeof FuzForgeRepoCreateOutput>;
+export const FuzForgeRepoCreateOutput = object({ repo: FuzForgeRepoOutput });
+export type FuzForgeRepoCreateOutput = Infer<typeof FuzForgeRepoCreateOutput>;
 
 export const fuz_forge_repo_create_action_spec = {
 	method: 'fuz_forge_repo_create',
@@ -356,16 +370,16 @@ export const fuz_forge_repo_create_action_spec = {
  * `LOG_RECORD_FORMAT` parser in `server/git/parse.ts`. `parents` is an
  * array (zero entries for root commits, two-plus for merges).
  */
-export const FuzForgeRepoCommitSummary = z.strictObject({
-	sha: z.string(),
-	short_sha: z.string(),
-	subject: z.string(),
-	author_name: z.string(),
-	author_email: z.string(),
-	author_date: z.string(),
-	parents: z.array(z.string())
+export const FuzForgeRepoCommitSummary = object({
+	sha: string,
+	short_sha: string,
+	subject: string,
+	author_name: string,
+	author_email: string,
+	author_date: string,
+	parents: array(string)
 });
-export type FuzForgeRepoCommitSummary = z.infer<typeof FuzForgeRepoCommitSummary>;
+export type FuzForgeRepoCommitSummary = Infer<typeof FuzForgeRepoCommitSummary>;
 
 /**
  * Length cap on `fuz_forge_repo_log.since`. The value is a git approxidate
@@ -387,17 +401,17 @@ export const LOG_SINCE_MAX_LENGTH = 64;
  * window. Limits cap to 200 (`MAX_LOG_LIMIT` in `server/git/read.ts`)
  * to keep the per-request output bounded under `MAX_LOG_BYTES`.
  */
-export const FuzForgeRepoLogInput = z.strictObject({
+export const FuzForgeRepoLogInput = object({
 	id: RepoId,
-	ref: z.string().max(255).optional(),
-	limit: z.number().int().positive().max(200).optional(),
-	cursor: z.string().max(64).optional(),
-	author: z.string().max(200).meta({ sensitivity: 'personal' }).optional(),
-	since: z.string().max(LOG_SINCE_MAX_LENGTH).optional(),
-	path: z.string().max(1024).optional(),
-	acting: ZodActingActor
+	ref: optional(pipe(string, max_length(255))),
+	limit: optional(pipe(number, integer, min_value(1), max_value(200))),
+	cursor: optional(pipe(string, max_length(64))),
+	author: optional(meta(pipe(string, max_length(200)), { sensitivity: 'personal' })),
+	since: optional(pipe(string, max_length(LOG_SINCE_MAX_LENGTH))),
+	path: optional(pipe(string, max_length(1024))),
+	acting: ActingActor
 });
-export type FuzForgeRepoLogInput = z.infer<typeof FuzForgeRepoLogInput>;
+export type FuzForgeRepoLogInput = Infer<typeof FuzForgeRepoLogInput>;
 
 /**
  * Output for `fuz_forge_repo_log`. `next_cursor` is a SHA the client passes
@@ -406,12 +420,12 @@ export type FuzForgeRepoLogInput = z.infer<typeof FuzForgeRepoLogInput>;
  * branch the log was actually read from — useful when `input.ref` was
  * omitted and the client wants to display "log of <branch>".
  */
-export const FuzForgeRepoLogOutput = z.strictObject({
-	commits: z.array(FuzForgeRepoCommitSummary),
-	next_cursor: z.string().nullable(),
-	ref: z.string()
+export const FuzForgeRepoLogOutput = object({
+	commits: array(FuzForgeRepoCommitSummary),
+	next_cursor: nullable(string),
+	ref: string
 });
-export type FuzForgeRepoLogOutput = z.infer<typeof FuzForgeRepoLogOutput>;
+export type FuzForgeRepoLogOutput = Infer<typeof FuzForgeRepoLogOutput>;
 
 export const fuz_forge_repo_log_action_spec = {
 	method: 'fuz_forge_repo_log',
@@ -431,20 +445,20 @@ export const fuz_forge_repo_log_action_spec = {
  * committer routinely differ on merges/rebases) and the raw body so
  * the UI can render the full commit message under the subject line.
  */
-export const FuzForgeRepoCommitDetail = z.strictObject({
-	sha: z.string(),
-	short_sha: z.string(),
-	subject: z.string(),
-	author_name: z.string(),
-	author_email: z.string(),
-	author_date: z.string(),
-	committer_name: z.string(),
-	committer_email: z.string(),
-	committer_date: z.string(),
-	parents: z.array(z.string()),
-	body: z.string()
+export const FuzForgeRepoCommitDetail = object({
+	sha: string,
+	short_sha: string,
+	subject: string,
+	author_name: string,
+	author_email: string,
+	author_date: string,
+	committer_name: string,
+	committer_email: string,
+	committer_date: string,
+	parents: array(string),
+	body: string
 });
-export type FuzForgeRepoCommitDetail = z.infer<typeof FuzForgeRepoCommitDetail>;
+export type FuzForgeRepoCommitDetail = Infer<typeof FuzForgeRepoCommitDetail>;
 
 /**
  * Diff body for a single commit. `text` is the unified-diff output of
@@ -457,11 +471,11 @@ export type FuzForgeRepoCommitDetail = z.infer<typeof FuzForgeRepoCommitDetail>;
  * truncated flag. Structured hunks are deferred until something needs
  * them (e.g. inline review comments anchored to lines).
  */
-export const FuzForgeRepoCommitDiff = z.strictObject({
-	text: z.string(),
-	truncated: z.boolean()
+export const FuzForgeRepoCommitDiff = object({
+	text: string,
+	truncated: boolean
 });
-export type FuzForgeRepoCommitDiff = z.infer<typeof FuzForgeRepoCommitDiff>;
+export type FuzForgeRepoCommitDiff = Infer<typeof FuzForgeRepoCommitDiff>;
 
 /**
  * Input for `fuz_forge_repo_commit` — fetch a single commit's metadata +
@@ -470,18 +484,18 @@ export type FuzForgeRepoCommitDiff = z.infer<typeof FuzForgeRepoCommitDiff>;
  * (→ 404 not_found), same defense-in-depth posture as `read_log`'s
  * cursor validation.
  */
-export const FuzForgeRepoCommitInput = z.strictObject({
+export const FuzForgeRepoCommitInput = object({
 	id: RepoId,
-	sha: z.string().max(64),
-	acting: ZodActingActor
+	sha: pipe(string, max_length(64)),
+	acting: ActingActor
 });
-export type FuzForgeRepoCommitInput = z.infer<typeof FuzForgeRepoCommitInput>;
+export type FuzForgeRepoCommitInput = Infer<typeof FuzForgeRepoCommitInput>;
 
-export const FuzForgeRepoCommitOutput = z.strictObject({
+export const FuzForgeRepoCommitOutput = object({
 	commit: FuzForgeRepoCommitDetail,
 	diff: FuzForgeRepoCommitDiff
 });
-export type FuzForgeRepoCommitOutput = z.infer<typeof FuzForgeRepoCommitOutput>;
+export type FuzForgeRepoCommitOutput = Infer<typeof FuzForgeRepoCommitOutput>;
 
 export const fuz_forge_repo_commit_action_spec = {
 	method: 'fuz_forge_repo_commit',
@@ -502,23 +516,23 @@ export const fuz_forge_repo_commit_action_spec = {
  * tag) or `'tag'` (annotated tag) for tags. `target_sha` is non-empty
  * only for annotated tags. `committer_date` is empty for tags.
  */
-export const FuzForgeRepoRefEntry = z.strictObject({
-	name: z.string(),
-	object_type: z.string(),
-	sha: z.string(),
-	target_sha: z.string(),
-	committer_date: z.string()
+export const FuzForgeRepoRefEntry = object({
+	name: string,
+	object_type: string,
+	sha: string,
+	target_sha: string,
+	committer_date: string
 });
-export type FuzForgeRepoRefEntry = z.infer<typeof FuzForgeRepoRefEntry>;
+export type FuzForgeRepoRefEntry = Infer<typeof FuzForgeRepoRefEntry>;
 
-export const FuzForgeRepoRefsInput = z.strictObject({ id: RepoId, acting: ZodActingActor });
-export type FuzForgeRepoRefsInput = z.infer<typeof FuzForgeRepoRefsInput>;
+export const FuzForgeRepoRefsInput = object({ id: RepoId, acting: ActingActor });
+export type FuzForgeRepoRefsInput = Infer<typeof FuzForgeRepoRefsInput>;
 
-export const FuzForgeRepoRefsOutput = z.strictObject({
-	refs: z.array(FuzForgeRepoRefEntry),
-	default_branch: z.string()
+export const FuzForgeRepoRefsOutput = object({
+	refs: array(FuzForgeRepoRefEntry),
+	default_branch: string
 });
-export type FuzForgeRepoRefsOutput = z.infer<typeof FuzForgeRepoRefsOutput>;
+export type FuzForgeRepoRefsOutput = Infer<typeof FuzForgeRepoRefsOutput>;
 
 export const fuz_forge_repo_refs_action_spec = {
 	method: 'fuz_forge_repo_refs',
@@ -538,14 +552,14 @@ export const fuz_forge_repo_refs_action_spec = {
  * semantics — kept as a string so the wire shape mirrors git's output
  * exactly.
  */
-export const FuzForgeRepoTreeEntry = z.strictObject({
-	mode: z.string(),
-	type: z.string(),
-	sha: z.string(),
-	size: z.string(),
-	name: z.string()
+export const FuzForgeRepoTreeEntry = object({
+	mode: string,
+	type: string,
+	sha: string,
+	size: string,
+	name: string
 });
-export type FuzForgeRepoTreeEntry = z.infer<typeof FuzForgeRepoTreeEntry>;
+export type FuzForgeRepoTreeEntry = Infer<typeof FuzForgeRepoTreeEntry>;
 
 /**
  * Input for `fuz_forge_repo_tree`. `path` is the directory within the tree
@@ -553,20 +567,20 @@ export type FuzForgeRepoTreeEntry = z.infer<typeof FuzForgeRepoTreeEntry>;
  * path with `is_safe_path` (no `..`, no leading `-`, no absolute
  * paths) before spawning git.
  */
-export const FuzForgeRepoTreeInput = z.strictObject({
+export const FuzForgeRepoTreeInput = object({
 	id: RepoId,
-	ref: z.string().max(255),
-	path: z.string().max(4096).default(''),
-	acting: ZodActingActor
+	ref: pipe(string, max_length(255)),
+	path: with_default(pipe(string, max_length(4096)), ''),
+	acting: ActingActor
 });
-export type FuzForgeRepoTreeInput = z.infer<typeof FuzForgeRepoTreeInput>;
+export type FuzForgeRepoTreeInput = Infer<typeof FuzForgeRepoTreeInput>;
 
-export const FuzForgeRepoTreeOutput = z.strictObject({
-	entries: z.array(FuzForgeRepoTreeEntry),
+export const FuzForgeRepoTreeOutput = object({
+	entries: array(FuzForgeRepoTreeEntry),
 	/** SHA the ref resolved to at fetch time — for stable URLs + breadcrumb anchoring. */
-	resolved_sha: z.string()
+	resolved_sha: string
 });
-export type FuzForgeRepoTreeOutput = z.infer<typeof FuzForgeRepoTreeOutput>;
+export type FuzForgeRepoTreeOutput = Infer<typeof FuzForgeRepoTreeOutput>;
 
 export const fuz_forge_repo_tree_action_spec = {
 	method: 'fuz_forge_repo_tree',
@@ -589,27 +603,27 @@ export const fuz_forge_repo_tree_action_spec = {
  *   shows a notice + the `git show <sha>` fallback hint (the blob's own sha,
  *   which the body omits but the response still carries)
  */
-export const FuzForgeRepoBlobBody = z.discriminatedUnion('kind', [
-	z.strictObject({ kind: z.literal('text'), text: z.string() }),
-	z.strictObject({ kind: z.literal('binary') }),
-	z.strictObject({ kind: z.literal('truncated'), size: z.number() })
+export const FuzForgeRepoBlobBody = variant('kind', [
+	object({ kind: literal('text'), text: string }),
+	object({ kind: literal('binary') }),
+	object({ kind: literal('truncated'), size: number })
 ]);
-export type FuzForgeRepoBlobBody = z.infer<typeof FuzForgeRepoBlobBody>;
+export type FuzForgeRepoBlobBody = Infer<typeof FuzForgeRepoBlobBody>;
 
-export const FuzForgeRepoBlobInput = z.strictObject({
+export const FuzForgeRepoBlobInput = object({
 	id: RepoId,
-	ref: z.string().max(255),
-	path: z.string().min(1).max(4096),
-	acting: ZodActingActor
+	ref: pipe(string, max_length(255)),
+	path: pipe(string, min_length(1), max_length(4096)),
+	acting: ActingActor
 });
-export type FuzForgeRepoBlobInput = z.infer<typeof FuzForgeRepoBlobInput>;
+export type FuzForgeRepoBlobInput = Infer<typeof FuzForgeRepoBlobInput>;
 
-export const FuzForgeRepoBlobOutput = z.strictObject({
-	sha: z.string(),
-	size: z.number(),
+export const FuzForgeRepoBlobOutput = object({
+	sha: string,
+	size: number,
 	body: FuzForgeRepoBlobBody
 });
-export type FuzForgeRepoBlobOutput = z.infer<typeof FuzForgeRepoBlobOutput>;
+export type FuzForgeRepoBlobOutput = Infer<typeof FuzForgeRepoBlobOutput>;
 
 export const fuz_forge_repo_blob_action_spec = {
 	method: 'fuz_forge_repo_blob',
@@ -652,7 +666,7 @@ export const fuz_forge_repo_blob_action_spec = {
  * `id` as, with its grammar — rather than an inline `uuid`, so the forge has one
  * repo-id grammar on this side.
  */
-const FuzForgeTokenTemplateRepoIds = pipe(array(RepoIdFuz), min_length(1), max_length(64));
+const FuzForgeTokenTemplateRepoIds = pipe(array(RepoId), min_length(1), max_length(64));
 
 /** The `filenames` a `files_*` template names: `'*'` for every file, or a list. */
 const FuzForgeTokenTemplateFilenames = union([
@@ -736,15 +750,15 @@ export const fuz_forge_token_create_scoped_action_spec = {
  * (no `fuz_forge_api_token_policy` row) are absent from the list — the UI
  * treats absence as "admin (unscoped)".
  */
-export const FuzForgeTokenPolicyListOutput = z.strictObject({
-	policies: z.array(
-		z.strictObject({
-			api_token_id: z.string(),
-			template: z.string()
+export const FuzForgeTokenPolicyListOutput = object({
+	policies: array(
+		object({
+			api_token_id: string,
+			template: string
 		})
 	)
 });
-export type FuzForgeTokenPolicyListOutput = z.infer<typeof FuzForgeTokenPolicyListOutput>;
+export type FuzForgeTokenPolicyListOutput = Infer<typeof FuzForgeTokenPolicyListOutput>;
 
 export const fuz_forge_token_policy_list_action_spec = {
 	method: 'fuz_forge_token_policy_list',
@@ -758,7 +772,7 @@ export const fuz_forge_token_policy_list_action_spec = {
 	},
 	side_effects: false,
 	async: true,
-	input: z.strictObject({ acting: ZodActingActor }).default({}),
+	input: with_default_fn(object({ acting: ActingActor }), () => ({})),
 	output: FuzForgeTokenPolicyListOutput,
 	description:
 		'List per-token policy template names for the calling account. Absent tokens are unscoped.',

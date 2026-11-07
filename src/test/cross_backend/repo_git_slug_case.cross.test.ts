@@ -6,13 +6,13 @@
  * lowercase slug resolves identically when addressed in any case.
  *
  * **Why this is a parity probe.** Creation already folds the slug to lowercase
- * (the TS `RepoSlug` zod `.transform` and the Rust `validate_repo_slug`), so the
+ * (the TS `RepoSlug` `to_lower_case` and the Rust `validate_repo_slug`), so the
  * cell is always stored at the lowercase `repos/<slug>` path. The fix this guards
  * is the *lookup* side: every cell-path read must lowercase its input slug so a
  * mixed-case address matches the lowercase-stored cell. Two surfaces carry a
  * by-slug lookup on each backend — the git smart-HTTP auth gate
  * (`repo_git_auth.ts` / `forge_git/auth.rs`) and the `fuz_forge_repo_get` RPC
- * (`fuz_forge_repo_read.ts` / `handlers/repo_read.rs`). serde does not fold like the zod
+ * (`fuz_forge_repo_read.ts` / `handlers/repo_read.rs`). serde does not fold like the TS
  * `.transform`, so without the Rust-side `to_lowercase` the two backends would
  * diverge on mixed-case input; this asserts both fold identically.
  *

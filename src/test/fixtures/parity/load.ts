@@ -21,7 +21,8 @@
  * - `tables` — `<table> -> rows`. Row shapes by kind: predicate
  *   `{input, accepted, note?}`; multi-predicate `{stderr, ref_miss, path_miss,
  *   bad_pattern, note?}`; transform `{input, expected}` (plus `key` where the
- *   call takes one); json-document `{document, accepted}`; argument-list
+ *   call takes one); json-document `{document, accepted}` (plus `filename` where the
+ *   document is read for a named file); argument-list
  *   `{args, accepted}`; constants `{name, value}` (or a name-only `{name}`);
  *   generated `{unit, repeat, accepted}`; stream `{stream, expected}`.
  *

@@ -24,7 +24,7 @@
  * `fuz_forge_token_policy_list` is the cheapest `rate_limit: 'account'` action
  * the forge mounts — read-only, session-only, admin-gated, no-arg — so the
  * budget can be spent without writing anything. The malformed probe reuses the
- * same method with an undeclared key: its input is a `z.strictObject`, so a
+ * same method with an undeclared key: its input is a strict `object`, so a
  * dispatcher that validated first would answer `invalid_params`.
  *
  * **Both transports, one bucket.** The method is mounted on HTTP RPC and on

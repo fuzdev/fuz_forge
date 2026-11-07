@@ -5,7 +5,6 @@ import * as admin_specs from '@fuzdev/fuz_app/auth/admin_action_specs.ts';
 import * as role_grant_offer_specs from '@fuzdev/fuz_app/auth/role_grant_offer_action_specs.ts';
 import * as account_specs from '@fuzdev/fuz_app/auth/account_action_specs.ts';
 import type { ActionSpecUnion } from '@fuzdev/fuz_app/actions/action_spec.ts';
-import { z } from 'zod';
 import type { Infer } from '@fuzdev/fuz_schema/schema.ts';
 import type {
 	ActionEventRemoteNotificationData,
@@ -169,23 +168,23 @@ export interface ActionInputs {
 	heartbeat: Infer<typeof fuz_forge_specs.heartbeat_action_spec.input>;
 	cancel: Infer<typeof fuz_forge_specs.cancel_action_spec.input>;
 	'peer/ping': Infer<typeof fuz_forge_specs.peer_ping_action_spec.input>;
-	fuz_forge_repo_updated: z.infer<typeof fuz_forge_specs.fuz_forge_repo_updated_action_spec.input>;
-	fuz_forge_repo_list: z.infer<typeof fuz_forge_specs.fuz_forge_repo_list_action_spec.input>;
-	fuz_forge_repo_get: z.infer<typeof fuz_forge_specs.fuz_forge_repo_get_action_spec.input>;
-	fuz_forge_repo_log: z.infer<typeof fuz_forge_specs.fuz_forge_repo_log_action_spec.input>;
-	fuz_forge_repo_commit: z.infer<typeof fuz_forge_specs.fuz_forge_repo_commit_action_spec.input>;
-	fuz_forge_repo_refs: z.infer<typeof fuz_forge_specs.fuz_forge_repo_refs_action_spec.input>;
-	fuz_forge_repo_tree: z.infer<typeof fuz_forge_specs.fuz_forge_repo_tree_action_spec.input>;
-	fuz_forge_repo_blob: z.infer<typeof fuz_forge_specs.fuz_forge_repo_blob_action_spec.input>;
-	fuz_forge_repo_create: z.infer<typeof fuz_forge_specs.fuz_forge_repo_create_action_spec.input>;
-	fuz_forge_repo_resync: z.infer<typeof fuz_forge_specs.fuz_forge_repo_resync_action_spec.input>;
-	fuz_forge_repo_rotate_secret: z.infer<
+	fuz_forge_repo_updated: Infer<typeof fuz_forge_specs.fuz_forge_repo_updated_action_spec.input>;
+	fuz_forge_repo_list: Infer<typeof fuz_forge_specs.fuz_forge_repo_list_action_spec.input>;
+	fuz_forge_repo_get: Infer<typeof fuz_forge_specs.fuz_forge_repo_get_action_spec.input>;
+	fuz_forge_repo_log: Infer<typeof fuz_forge_specs.fuz_forge_repo_log_action_spec.input>;
+	fuz_forge_repo_commit: Infer<typeof fuz_forge_specs.fuz_forge_repo_commit_action_spec.input>;
+	fuz_forge_repo_refs: Infer<typeof fuz_forge_specs.fuz_forge_repo_refs_action_spec.input>;
+	fuz_forge_repo_tree: Infer<typeof fuz_forge_specs.fuz_forge_repo_tree_action_spec.input>;
+	fuz_forge_repo_blob: Infer<typeof fuz_forge_specs.fuz_forge_repo_blob_action_spec.input>;
+	fuz_forge_repo_create: Infer<typeof fuz_forge_specs.fuz_forge_repo_create_action_spec.input>;
+	fuz_forge_repo_resync: Infer<typeof fuz_forge_specs.fuz_forge_repo_resync_action_spec.input>;
+	fuz_forge_repo_rotate_secret: Infer<
 		typeof fuz_forge_specs.fuz_forge_repo_rotate_secret_action_spec.input
 	>;
 	fuz_forge_token_create_scoped: Infer<
 		typeof fuz_forge_specs.fuz_forge_token_create_scoped_action_spec.input
 	>;
-	fuz_forge_token_policy_list: z.infer<
+	fuz_forge_token_policy_list: Infer<
 		typeof fuz_forge_specs.fuz_forge_token_policy_list_action_spec.input
 	>;
 	admin_account_list: Infer<typeof admin_specs.admin_account_list_action_spec.input>;
@@ -291,23 +290,23 @@ export interface ActionOutputs {
 	heartbeat: Infer<typeof fuz_forge_specs.heartbeat_action_spec.output>;
 	cancel: Infer<typeof fuz_forge_specs.cancel_action_spec.output>;
 	'peer/ping': Infer<typeof fuz_forge_specs.peer_ping_action_spec.output>;
-	fuz_forge_repo_updated: z.infer<typeof fuz_forge_specs.fuz_forge_repo_updated_action_spec.output>;
-	fuz_forge_repo_list: z.infer<typeof fuz_forge_specs.fuz_forge_repo_list_action_spec.output>;
-	fuz_forge_repo_get: z.infer<typeof fuz_forge_specs.fuz_forge_repo_get_action_spec.output>;
-	fuz_forge_repo_log: z.infer<typeof fuz_forge_specs.fuz_forge_repo_log_action_spec.output>;
-	fuz_forge_repo_commit: z.infer<typeof fuz_forge_specs.fuz_forge_repo_commit_action_spec.output>;
-	fuz_forge_repo_refs: z.infer<typeof fuz_forge_specs.fuz_forge_repo_refs_action_spec.output>;
-	fuz_forge_repo_tree: z.infer<typeof fuz_forge_specs.fuz_forge_repo_tree_action_spec.output>;
-	fuz_forge_repo_blob: z.infer<typeof fuz_forge_specs.fuz_forge_repo_blob_action_spec.output>;
-	fuz_forge_repo_create: z.infer<typeof fuz_forge_specs.fuz_forge_repo_create_action_spec.output>;
-	fuz_forge_repo_resync: z.infer<typeof fuz_forge_specs.fuz_forge_repo_resync_action_spec.output>;
-	fuz_forge_repo_rotate_secret: z.infer<
+	fuz_forge_repo_updated: Infer<typeof fuz_forge_specs.fuz_forge_repo_updated_action_spec.output>;
+	fuz_forge_repo_list: Infer<typeof fuz_forge_specs.fuz_forge_repo_list_action_spec.output>;
+	fuz_forge_repo_get: Infer<typeof fuz_forge_specs.fuz_forge_repo_get_action_spec.output>;
+	fuz_forge_repo_log: Infer<typeof fuz_forge_specs.fuz_forge_repo_log_action_spec.output>;
+	fuz_forge_repo_commit: Infer<typeof fuz_forge_specs.fuz_forge_repo_commit_action_spec.output>;
+	fuz_forge_repo_refs: Infer<typeof fuz_forge_specs.fuz_forge_repo_refs_action_spec.output>;
+	fuz_forge_repo_tree: Infer<typeof fuz_forge_specs.fuz_forge_repo_tree_action_spec.output>;
+	fuz_forge_repo_blob: Infer<typeof fuz_forge_specs.fuz_forge_repo_blob_action_spec.output>;
+	fuz_forge_repo_create: Infer<typeof fuz_forge_specs.fuz_forge_repo_create_action_spec.output>;
+	fuz_forge_repo_resync: Infer<typeof fuz_forge_specs.fuz_forge_repo_resync_action_spec.output>;
+	fuz_forge_repo_rotate_secret: Infer<
 		typeof fuz_forge_specs.fuz_forge_repo_rotate_secret_action_spec.output
 	>;
 	fuz_forge_token_create_scoped: Infer<
 		typeof fuz_forge_specs.fuz_forge_token_create_scoped_action_spec.output
 	>;
-	fuz_forge_token_policy_list: z.infer<
+	fuz_forge_token_policy_list: Infer<
 		typeof fuz_forge_specs.fuz_forge_token_policy_list_action_spec.output
 	>;
 	admin_account_list: Infer<typeof admin_specs.admin_account_list_action_spec.output>;

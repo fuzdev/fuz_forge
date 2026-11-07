@@ -25,7 +25,7 @@
  *   send them; browsers always do. Closes the cross-context replay
  *   window if a hook secret leaks.
  * - Input validation runs **inside the handler, after the connection-IP
- *   gate** — never before. The route specs declare `input: z.null()`
+ *   gate** — never before. The route specs declare `input: literal(null)`
  *   so the framework's pre-handler validation middleware is skipped;
  *   a malformed body from a non-loopback caller therefore looks
  *   identical (401 generic) to a well-formed body with bad auth, with
@@ -54,6 +54,7 @@
 import {
 	array,
 	check,
+	is,
 	literal,
 	min_length,
 	nullable,
@@ -156,7 +157,7 @@ const lookup_push_target_cell = async (
 	// `verify_repo_secret`'s `is_valid_repo_id` gate — so a malformed value
 	// returns null (auth failure) instead of erroring on the Postgres uuid
 	// cast.
-	if (!RepoId.safeParse(repo_id).success) return null;
+	if (!is(RepoId, repo_id)) return null;
 	const cell = await query_cell_get(deps.query_deps, repo_id as Uuid);
 	// Only a cell the forge serves as a repo: `kind = 'repo'` at a
 	// `repos/<slug>` path, the address git auth resolves, so a hook exists for
@@ -288,7 +289,7 @@ export const create_repo_internal_route_specs = (
 			auth: { account: 'none', actor: 'none' },
 			description:
 				'Post-receive hook callback: updates cell head_sha/last_pushed_* and broadcasts fuz_forge_repo_updated (in-handler auth, in-handler body validation)',
-			// `input: z.null()` skips the pre-handler validation middleware
+			// `input: literal(null)` skips the pre-handler validation middleware
 			// so a malformed body from a non-loopback caller returns the
 			// same generic 401 as everything else — no issues-listing 400
 			// enumerates the schema. The real schema is validated inside

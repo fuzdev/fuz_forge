@@ -9,7 +9,7 @@
  * an unvetted protocol from the daemon's network position. Both backends hold
  * the value to one grammar — an absolute `http`/`https` URL with a host and no
  * embedded credentials — at **input validation**, before any disk or DB work:
- * a `.refine()` on `FuzForgeRepoCreateInput` on TS, `require_seed_from_url`
+ * a `check` on `FuzForgeRepoCreateInput` on TS, `require_seed_from_url`
  * in `handlers::seed_from` on Rust. The shared accept/reject/canonicalized
  * case tables are unit-pinned literally on both sides
  * (`src/test/fuz_forge/repo/seed_from.test.ts` and the `seed_from` test
@@ -60,6 +60,7 @@
  */
 
 import { assert, test, describe, beforeAll, afterAll } from 'vitest';
+import { parse_or_throw } from '@fuzdev/fuz_schema/schema.ts';
 import { inject_backend_handle } from '@fuzdev/fuz_app/testing/cross_backend/provided_context.ts';
 import { default_cross_process_setup } from '@fuzdev/fuz_app/testing/cross_backend/setup.ts';
 import { rpc_call } from '@fuzdev/fuz_app/testing/rpc_helpers.ts';
@@ -238,7 +239,7 @@ describe('repo_create seed_from grammar (cross-process, both backends)', () => {
 				headers: fixture.create_session_headers()
 			});
 			assert.isTrue(created.ok, `seeded create failed: ${JSON.stringify(created)}`);
-			const repo = FuzForgeRepoOutput.parse((created.result as { repo: unknown }).repo);
+			const repo = parse_or_throw(FuzForgeRepoOutput, (created.result as { repo: unknown }).repo);
 			assert.strictEqual(repo.seed_from, upstream.url, 'the create response is canonical');
 			// Stamped at create time on both, in the canonical second-precision
 			// UTC wire shape (fuz_app's `assert_iso8601_seconds`) rather than merely "a string".
@@ -266,7 +267,7 @@ describe('repo_create seed_from grammar (cross-process, both backends)', () => {
 				headers: fixture.create_session_headers()
 			});
 			assert.isTrue(got.ok, `get failed: ${JSON.stringify(got)}`);
-			const stored = FuzForgeRepoOutput.parse((got.result as { repo: unknown }).repo);
+			const stored = parse_or_throw(FuzForgeRepoOutput, (got.result as { repo: unknown }).repo);
 			assert.strictEqual(stored.seed_from, upstream.url, 'the stored seed_from is canonical');
 			assert.strictEqual(stored.seed_completed_at, repo.seed_completed_at);
 			// The create builds its response in memory, and the seeded tip is a
@@ -297,7 +298,7 @@ describe('repo_create seed_from grammar (cross-process, both backends)', () => {
 				headers: fixture.create_session_headers()
 			});
 			assert.isTrue(log.ok, `log failed: ${JSON.stringify(log)}`);
-			const log_out = FuzForgeRepoLogOutput.parse(log.result);
+			const log_out = parse_or_throw(FuzForgeRepoLogOutput, log.result);
 			assert.deepEqual(
 				log_out.commits.map((c) => c.sha),
 				[upstream.head_sha],
@@ -315,7 +316,7 @@ describe('repo_create seed_from grammar (cross-process, both backends)', () => {
 				headers: fixture.create_session_headers()
 			});
 			assert.isTrue(resynced.ok, `resync failed: ${JSON.stringify(resynced)}`);
-			const resync_out = FuzForgeRepoResyncOutput.parse(resynced.result);
+			const resync_out = parse_or_throw(FuzForgeRepoResyncOutput, resynced.result);
 			assert.strictEqual(
 				resync_out.previous_head_sha,
 				upstream.head_sha,
@@ -377,7 +378,7 @@ describe('repo_create seed_from grammar (cross-process, both backends)', () => {
 				headers: fixture.create_session_headers()
 			});
 			assert.isTrue(created.ok, `create failed: ${JSON.stringify(created)}`);
-			const repo = FuzForgeRepoOutput.parse((created.result as { repo: unknown }).repo);
+			const repo = parse_or_throw(FuzForgeRepoOutput, (created.result as { repo: unknown }).repo);
 			assert.strictEqual(repo.seed_from, null);
 			assert.strictEqual(repo.seed_completed_at, null);
 			assert.strictEqual(repo.head_sha, null, 'an unseeded create has no tip');
@@ -390,7 +391,7 @@ describe('repo_create seed_from grammar (cross-process, both backends)', () => {
 				headers: fixture.create_session_headers()
 			});
 			assert.isTrue(log.ok, `log failed: ${JSON.stringify(log)}`);
-			assert.deepEqual(FuzForgeRepoLogOutput.parse(log.result).commits, []);
+			assert.deepEqual(parse_or_throw(FuzForgeRepoLogOutput, log.result).commits, []);
 		});
 	});
 });

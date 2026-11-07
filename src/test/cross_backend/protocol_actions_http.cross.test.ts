@@ -41,7 +41,7 @@
  * backend's domain code — the input schemas themselves are
  * `rpc_input_strictness.shape.cross.test.ts` and its bounds sibling.
  *
- * On the POST path, `JsonrpcRequest.params` is a `z.looseObject({}).optional()`:
+ * On the POST path, `JsonrpcRequest.params` is a an optional loose object:
  * a **present** non-object — array, scalar, or explicit `null` — is `-32600`
  * with HTTP 400 before dispatch on both backends, while an **absent** `params`
  * is the no-arg call and answers 200. Both shapes go over a hand-built
@@ -54,7 +54,7 @@
  *
  * The GET half reads its request off the query string, so no envelope is
  * parsed and none of those rules apply there. Four stand in their place: an
- * explicit `?params=null` reads as absent — a `z.void()` input takes it as the
+ * explicit `?params=null` reads as absent — a `void` input takes it as the
  * no-arg call and every non-void input as `{}` — a non-object
  * `?params=` reaches the input decode as `-32602` rather than the envelope's
  * `-32600`, a `side_effects: true` method is `-32600 has side effects and must
@@ -267,7 +267,7 @@ describe('RPC envelope params contract (cross-process, both backends)', () => {
 	// which before any dispatch happens.
 
 	test('a present non-object params is refused at the envelope — -32600', async () => {
-		// `params` is `z.looseObject({}).optional()` on `JsonrpcRequest`, so
+		// `params` is an optional loose object on `JsonrpcRequest`, so
 		// the envelope admits it absent or as an object and nothing else: an
 		// array, a scalar, and an explicit `null` all fail request validation
 		// before dispatch. The Rust twin refuses in the same layer
@@ -278,7 +278,7 @@ describe('RPC envelope params contract (cross-process, both backends)', () => {
 		// derived struct's named fields *by position*, a path
 		// `#[serde(deny_unknown_fields)]` does not guard, so a backend that
 		// deferred this to `parse_params` alone would build a valid
-		// `RepoGetInput` out of `['<id>']` — a shape `z.strictObject` never
+		// `RepoGetInput` out of `['<id>']` — a shape a strict `object` never
 		// admits.
 		const fixture = await setup_test();
 		const cases: Array<[string, unknown]> = [
@@ -312,7 +312,7 @@ describe('RPC envelope params contract (cross-process, both backends)', () => {
 
 	test('an absent params is the no-arg call — both backends answer the default list', async () => {
 		// The other half of the envelope contract, and the reason the refusal
-		// above cannot simply be "non-object → reject": `.optional()` admits
+		// above cannot simply be "non-object → reject": `optional` admits
 		// an **absent** key, which the dispatcher then reads as `{}`
 		// (`raw_params ?? {}` on TS, `parse_params`'s null→`{}` on Rust).
 		// `fuz_forge_repo_list` declares no required field, so a no-arg call
@@ -344,9 +344,9 @@ describe('GET /api/rpc transport contract (cross-process, both backends)', () =>
 
 	test('a void method reads an explicit ?params=null as the no-arg call', async () => {
 		// `JSON.parse('null')` is `null`, which no envelope refuses on the GET
-		// path. A `z.void()` input reads every empty shape — absent, `null`,
+		// path. A `void` input reads every empty shape — absent, `null`,
 		// `{}` — as the no-arg call on both spines: the TS dispatcher normalizes
-		// them before `z.void()` runs, and Rust's `InputShape::Void` check accepts
+		// them before `void` runs, and Rust's `InputShape::Void` check accepts
 		// the `{}` its GET path maps `null` to.
 		const fixture = await setup_test();
 		for (const params of ['null', '{}', undefined]) {

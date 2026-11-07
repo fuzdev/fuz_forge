@@ -32,10 +32,10 @@
  *   resolves *before* the role gate on both backends, so a foreign `acting`
  *   UUID is the 400 even for a caller the role gate would refuse, with the
  *   same account's no-`acting` 403 as the control. The same describe pins the
- *   *accept* half of `z.strictObject({acting})`: a duplicated `acting` key
+ *   *accept* half of a strict `{acting}` object: a duplicated `acting` key
  *   collapses to its first value rather than failing the parse — and the two
  *   grammar edges, a JSON-quoted and a hyphenless UUID, both of which the
- *   bare `Uuid.optional()` (`z.uuid()`) parse refuses on both sides.
+ *   bare `Uuid.optional()` (the UUID grammar) parse refuses on both sides.
  * - **the file cell's fact address** — a file cell whose `blake3` is off the
  *   strict fact-address grammar (uppercase hex, a `sha256:` hash, an SRI
  *   token) is a missing file on both backends: `?meta` and the download 404
@@ -582,7 +582,7 @@ describe('acting resolves before the role gate (cross-process, both backends)', 
 		const own = fixture.actor.id;
 		const bytes = new Uint8Array([1, 2, 3]);
 
-		// The other half of `z.strictObject({acting})`: an unknown key fails
+		// The other half of a strict `{acting}` object: an unknown key fails
 		// the parse (pinned in `files_scoped_token.cross.test.ts`), while a
 		// *known* key repeated collapses to its first value — that is the
 		// record Hono's `c.req.query()` hands the schema. Rust read the query
@@ -650,7 +650,7 @@ describe('acting resolves before the role gate (cross-process, both backends)', 
 		// duplicated-key case above already drives to a 200. The spine's
 		// `fuz_auth::acting::parse_acting_selector` used to JSON-parse the value
 		// with a raw fallback, so `"<uuid>"` resolved the actor on Rust and
-		// failed the Zod parse on TS, across every REST family that reads the
+		// failed the schema parse on TS, across every REST family that reads the
 		// selector.
 		const res = await fetch(
 			`${base_url}/api/fuz_forge/files/acting_quoted.bin?acting=${encodeURIComponent(`"${own}"`)}`,
@@ -665,7 +665,7 @@ describe('acting resolves before the role gate (cross-process, both backends)', 
 			}
 		);
 		assert.strictEqual(res.status, 400);
-		// `error` only: the TS route runner attaches the Zod `issues` under DEV,
+		// `error` only: the TS route runner attaches the schema `issues` under DEV,
 		// which the Rust body has no twin for.
 		const body = (await res.json()) as { error: string };
 		assert.strictEqual(body.error, 'invalid_query_params');
@@ -676,13 +676,13 @@ describe('acting resolves before the role gate (cross-process, both backends)', 
 		const bearer = keeper_bearer(fixture);
 		const bytes = new Uint8Array([1, 2, 3]);
 
-		// The other half of the selector's grammar. `z.uuid()` accepts only the
+		// The other half of the selector's grammar. the UUID grammar accepts only the
 		// hyphenated 8-4-4-4-12 form with an in-range version/variant nibble,
 		// while Rust's `Uuid::parse_str` (and Postgres) also take the
 		// hyphenless, braced and URN spellings — so the spine gates on
-		// `fuz_http::is_valid_uuid`, the twin of the Zod grammar, before
+		// `fuz_http::is_valid_uuid`, the twin of that grammar, before
 		// parsing. Without it this spelling resolved an actor on Rust and
-		// failed the Zod parse on TS.
+		// failed the schema parse on TS.
 		const res = await fetch(
 			`${base_url}/api/fuz_forge/files/acting_hyphenless.bin?acting=3f8a1c2e12344abc9def0123456789ab`,
 			{

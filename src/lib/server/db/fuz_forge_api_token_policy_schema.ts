@@ -24,7 +24,7 @@ import type { Db } from '@fuzdev/fuz_app/db/db.ts';
  * SQL for creating the fuz_forge_api_token_policy table.
  *
  * - `api_token_id` is both PK and FK — one policy per token.
- * - `policy` is a strict JSONB document validated by zod on write
+ * - `policy` is a strict JSONB document validated by the token policy schema on write
  *   (see `FuzForgeTokenPolicy`); the column stores the canonical
  *   shape.
  * - `policy_version` is a forward-compat hook — the doc carries its

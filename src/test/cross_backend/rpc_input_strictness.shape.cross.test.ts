@@ -31,7 +31,7 @@
  *     arm (the `admin` arm included, which declares no field of its own) →
  *     `-32602` (invalid params)
  *   - the **value** grammar on that same template arm — the mint's
- *     `filenames` selector is `z.union([z.literal('*'), z.array(...)])`, so a
+ *     `filenames` selector is `union([literal('*'), array(...)])`, so a
  *     bare string that isn't `'*'` is the `-32602`/400 of a dispatch failure
  *     and never the `-32005`/422 a handler-side `validation_error` would
  *     give, with `'*'` itself as the control that keeps the wildcard reachable
@@ -40,7 +40,7 @@
  *     so `.optional()` admits an absent key and nothing else
  *   - the spine's hand-decoded **`Uuid` param** (`admin_session_revoke_all`'s
  *     `account_id`) and the dispatcher's own **`acting` selector**, on any
- *     spec, held to the `z.uuid()` grammar — with the two orderings that go
+ *     spec, held to the UUID grammar — with the two orderings that go
  *     with the selector: a grammar-valid foreign one is the actor denial
  *     rather than the grammar one, and the authority gates answer before
  *     either
@@ -54,7 +54,7 @@
  *   - a `null` on a spine optional key — the same `.optional()`-refuses-null
  *     divergence the forge's own inputs carry, closed for both by
  *     `fuz_http::parse_strict_params`
- *   - a **`z.void()`-input** method (`account_session_list`) refusing a
+ *   - a **`void`-input** method (`account_session_list`) refusing a
  *     declared key, while an absent `params` and a `{}` are both the call
  *   - `peer/ping` refusing an **undeclared `acting` key**: the dispatcher's
  *     `acting` gate judges the value, so only the input's own strictness
@@ -64,7 +64,7 @@
  *     and read a present wrong-typed optional as absent, plus the one mounted
  *     key whose twin is `.optional()` rather than `.nullish()`
  *   - the spine's three **`acting`-only admin reads** (`admin_session_list` and
- *     its two siblings) — `z.strictObject({acting}).default({})` on the twin,
+ *     its two siblings) — `a strict `{acting}` object.default({})` on the twin,
  *     so an unknown key and a `null` selector are `-32602` while `{}` and an
  *     absent `params` are the call
  *   - the one **flat-REST** row, `POST /api/account/password` with an unknown
@@ -77,7 +77,7 @@
  *     and answers an honest-looking empty list for an address the twin
  *     refuses
  *
- * Only the code is pinned: TS answers `invalid params` with dev-only zod
+ * Only the code is pinned: TS answers `invalid params` with dev-only schema
  * issues, Rust names the offending field, the same latitude
  * `repo_id_grammar.cross.test.ts` takes.
  *
@@ -212,7 +212,7 @@ describe('rpc input strictness (cross-process, both backends)', () => {
 	});
 
 	test('a malformed filenames selector is invalid params, not a validation error', async () => {
-		// `z.union([z.literal('*'), z.array(...)])` lives inside the input
+		// `union([literal('*'), array(...)])` lives inside the input
 		// schema, so a bare string that isn't `'*'` fails at dispatch — the
 		// `-32602`/400 envelope, never the `-32005`/422 a handler-side
 		// `validation_error` would give. The value-shape half of the case
@@ -263,7 +263,7 @@ describe('rpc input strictness (cross-process, both backends)', () => {
 	});
 
 	test('a null on an optional key is rejected, not read as absent', async () => {
-		// No forge input field is `.nullable()`, so zod's `.optional()` refuses
+		// No forge input field is `.nullable()`, so an `optional` refuses
 		// `null` outright. Serde's `Option<T>` would map it to `None`, making
 		// `{ref: null}` read as "no ref" on Rust and answer 200 where TS 400s.
 		const fixture = await setup_test();
@@ -320,9 +320,9 @@ describe('rpc input strictness (cross-process, both backends)', () => {
 		}
 	});
 
-	test('a spine UUID param takes only the z.uuid() grammar', async () => {
+	test('a spine UUID param takes only the UUID grammar', async () => {
 		// The spine's own decoders, one layer below the forge's inputs. TS
-		// declares `account_id: Uuid` (`z.uuid()`); Rust reads it through
+		// declares `account_id: Uuid` (the UUID grammar); Rust reads it through
 		// `fuz_http::parse_uuid_param`, which gates on the grammar twin
 		// `fuz_http::is_valid_uuid` before handing the string to
 		// `Uuid::parse_str`. Without that gate the permissive Rust parser took
@@ -338,7 +338,7 @@ describe('rpc input strictness (cross-process, both backends)', () => {
 			`{${ABSENT_ID}}`,
 			`urn:uuid:${ABSENT_ID}`,
 			// Variant nibble `1` — the all-ones id fixtures reach for is not a
-			// `z.uuid()`, unlike the v4-shaped `FOREIGN_ACTOR_UUID`.
+			// the UUID grammar, unlike the v4-shaped `FOREIGN_ACTOR_UUID`.
 			'11111111-1111-1111-1111-111111111111'
 		]) {
 			const res = await rpc_call({
@@ -378,7 +378,7 @@ describe('rpc input strictness (cross-process, both backends)', () => {
 		assert.deepStrictEqual(control.error.data, { reason: 'account_not_found' });
 	});
 
-	test('the acting selector takes only the z.uuid() grammar, on any spec', async () => {
+	test('the acting selector takes only the UUID grammar, on any spec', async () => {
 		// `acting` is the one input the *dispatcher* owns, and the two spines
 		// reach the same refusal by different routes: TS reads a malformed
 		// selector as omitted and then its typed input schema (`ActingActor` =
@@ -652,7 +652,7 @@ describe('spine input strictness (cross-process, both backends)', () => {
 	// one the decode gives away for free.
 
 	test('a null on a spine optional key is rejected, not read as absent', async () => {
-		// Zod's `.optional()` admits an absent key and nothing else; serde maps
+		// An `optional` admits an absent key and nothing else; serde maps
 		// `null` onto `None`, so without the walk each of these reads as "no
 		// filter" on Rust and answers a 200 page for a request the twin
 		// refuses.
@@ -691,7 +691,7 @@ describe('spine input strictness (cross-process, both backends)', () => {
 	});
 
 	test('a void-input method reads absent and {} params as the call and refuses a declared key', async () => {
-		// `account_session_list`'s input is `z.void()`. An absent `params` and
+		// `account_session_list`'s input is `void`. An absent `params` and
 		// a `{}` both carry no parameters — JSON-RPC 2.0 lets `params` be
 		// omitted, and fuz_app's socket client sends `{}` for a parameterless
 		// request — so both spines read either as the no-arg call. Rust's
@@ -738,7 +738,7 @@ describe('spine input strictness (cross-process, both backends)', () => {
 	});
 
 	test('peer/ping refuses an undeclared acting key', async () => {
-		// `PingActionInput` is `z.strictObject({nonce?, timeout_ms?})` — no
+		// `PingActionInput` is a strict `{nonce?, timeout_ms?}` object — no
 		// `acting`, because the spec is `auth: public` and has no actor axis.
 		// The dispatcher's `acting` gate judges only the *value*, so a
 		// well-formed v4 passes it and only the input's own strictness refuses
@@ -883,7 +883,7 @@ describe('spine hand-decoded input strictness (cross-process, both backends)', (
 		// `and_then(Value::as_str)` / `as_bool` / `as_i64` return `None` for a
 		// present wrong type exactly as they do for a missing key, so an
 		// ungated backend answers a 200 page with the filter silently dropped
-		// where the twin's `z.string()` / `z.boolean()` / `z.number().int()`
+		// where the twin's `string` / `boolean` / `integer` schemas
 		// answers `-32602`. Reads only, so a passing row can't leave state
 		// behind.
 		const fixture = await setup_test();
@@ -936,7 +936,7 @@ describe('spine hand-decoded input strictness (cross-process, both backends)', (
 	});
 
 	test('a null on a hand-decoded key the twin declares .optional() is refused', async () => {
-		// `account_token_create.name` is `z.string().default('CLI token')`, and
+		// `account_token_create.name` is `with_default(string, 'CLI token')`, and
 		// a default fills an **absent** key only — so an explicit `null` is
 		// `-32602` on the twin where an ungated backend mints a token under the
 		// default name. The mint is the control, so the case also proves the
@@ -975,7 +975,7 @@ describe('spine hand-decoded input strictness (cross-process, both backends)', (
 
 describe('spine acting-only admin inputs (cross-process, both backends)', () => {
 	// `admin_session_list` / `invite_list` / `app_settings_get` are
-	// `z.strictObject({acting: ActingActor}).default({})` on the twin — a
+	// `with_default_fn(object({acting: ActingActor}), () => ({}))` on the twin — a
 	// declared shape with no field the handler reads. A Rust handler taking no
 	// `params` at all answers 200 to anything at all, so the shape is declared
 	// as a struct and decoded even though nothing reads it.

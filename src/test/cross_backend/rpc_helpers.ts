@@ -24,7 +24,7 @@ export const ABSENT_ID = '3f8a1c2e-1234-4abc-9def-0123456789ab';
 
 /**
  * `ABSENT_ID` without its hyphens — a spelling Rust's `Uuid::parse_str` and
- * Postgres both accept and `z.uuid()` refuses, so it is the discriminating
+ * Postgres both accept and the UUID grammar refuses, so it is the discriminating
  * input for every UUID grammar gate.
  */
 export const HYPHENLESS_UUID = '3f8a1c2e12344abc9def0123456789ab';

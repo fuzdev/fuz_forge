@@ -75,7 +75,7 @@
  * @module
  */
 
-import { literal, unknown } from '@fuzdev/fuz_schema/schema.ts';
+import { is, literal, unknown } from '@fuzdev/fuz_schema/schema.ts';
 import type { Context } from 'hono';
 import { define_route, type RouteSpec } from '@fuzdev/fuz_app/http/route_spec.ts';
 import { route_raw, type RouteRaw } from '@fuzdev/fuz_app/http/route_result.ts';
@@ -190,7 +190,7 @@ const extract_slug = (slug_with_git: string): string =>
  * per-spelling fixtures live in `repo_git_routing.cross.test.ts`.
  *
  * The parsed slug is discarded in favor of the raw one: `RepoSlug`'s
- * `.transform()` lowercases, and the case fold belongs to the cell lookup
+ * `to_lower_case` lowercases, and the case fold belongs to the cell lookup
  * (`repo_git_auth.ts`), which is where the Rust twin does it too.
  *
  * The refusal *status* is deliberately not a cross-backend contract (see the
@@ -201,7 +201,7 @@ const resolve_slug = (c: Context): string => {
 	if (!slug_with_git) return '';
 	if (path_has_encoded_slash(c.req.raw.url)) return '';
 	const slug = extract_slug(slug_with_git);
-	return RepoSlug.safeParse(slug).success ? slug : '';
+	return is(RepoSlug, slug) ? slug : '';
 };
 
 /**

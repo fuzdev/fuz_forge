@@ -28,6 +28,7 @@
 import { rm } from 'node:fs/promises';
 
 import { assert, describe, afterEach } from 'vitest';
+import { parse_or_throw } from '@fuzdev/fuz_schema/schema.ts';
 import { inject_backend_handle } from '@fuzdev/fuz_app/testing/cross_backend/provided_context.ts';
 import { default_cross_process_setup } from '@fuzdev/fuz_app/testing/cross_backend/setup.ts';
 import { rpc_call } from '@fuzdev/fuz_app/testing/rpc_helpers.ts';
@@ -120,7 +121,7 @@ describe('fuz_forge_repo_updated WS broadcast (cross-process, both backends)', (
 
 			// 5) The params validate against the wire spec, and `head_sha` is the
 			// pushed HEAD (the push touched the cell's default branch).
-			const params = fuz_forge_repo_updated_action_spec.input.parse(frame.params);
+			const params = parse_or_throw(fuz_forge_repo_updated_action_spec.input, frame.params);
 			assert.strictEqual(params.repo_id, repo_id);
 			assert.strictEqual(params.head_sha, head, 'head_sha should be the pushed HEAD');
 			assert.ok(params.last_pushed_at, 'last_pushed_at should be set');

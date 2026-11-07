@@ -3,7 +3,7 @@
 //!
 //! This module owns the string grammars. The canonical `RepoSlug`
 //! (`<segment>/<segment>`) and the canonical repo cell-id
-//! ([`is_valid_repo_id`]) are held to parity with the TS zod schemas in
+//! ([`is_valid_repo_id`]) are held to parity with the TS schemas in
 //! `src/lib/fuz_forge/repo/repo_id.ts` (`RepoSlug`, `RepoId`) — the slug
 //! grammar called from both the `fuzf` client and the `fuzfd` server, the id
 //! validator from the server's ingresses. [`looks_like_uuid`] is the client's
@@ -115,15 +115,14 @@ pub fn validate_repo_slug(input: &str) -> Result<String, RepoSlugError> {
 /// Whether `s` is a valid repo cell-id — the canonical wire grammar for a
 /// forge repo `id`, shared by every server ingress on both backends.
 ///
-/// Twin of the TS `RepoId` schema (`z.uuid()` with `fuz_app`'s `Uuid`
-/// pattern, in `src/lib/fuz_forge/repo/repo_id.ts`), mirroring its regex
-/// exactly so the two backends accept and reject the same strings:
+/// Twin of the TS `RepoId` schema (fuz_schema's `uuid`, the grammar of
+/// `fuz_app`'s `Uuid`, in `src/lib/fuz_forge/repo/repo_id.ts`), mirroring its
+/// grammar exactly so the two backends accept and reject the same strings:
 /// hyphenated 8-4-4-4-12 hex (case-insensitive) with the RFC 9562 version
 /// nibble in `1..=8` and the variant nibble in `[89abAB]`, plus the two
 /// special values admitted alongside the versioned grammar — nil (all zeros)
 /// and max (all `f`s, in any case, as RFC 9562 §4 reads a UUID
-/// case-insensitively; a bare `z.uuid()` would take the max in lowercase
-/// only). Non-hyphenated, braced, and URN forms are rejected — Postgres and
+/// case-insensitively). Non-hyphenated, braced, and URN forms are rejected — Postgres and
 /// Rust's `Uuid::parse_str` would accept them, the TS backend would not.
 ///
 /// Every real repo cell id is a Postgres `gen_random_uuid()` v4, so the
@@ -135,7 +134,7 @@ pub fn validate_repo_slug(input: &str) -> Result<String, RepoSlugError> {
 ///
 /// The spine carries the same grammar as `fuz_http`'s `is_valid_uuid`,
 /// guarding every UUID it decodes off the wire, and `fuz_app`'s `Uuid` and
-/// its `fuz_schema` twin carry it on the TS side: one UUID grammar across the
+/// `fuz_schema`'s `uuid` carry it on the TS side: one UUID grammar across the
 /// stack. This crate is spine-free by design and so cannot call
 /// `is_valid_uuid`. The two are **behaviorally** identical, not textually —
 /// this one delegates its shape check to [`looks_like_uuid`], which the spine

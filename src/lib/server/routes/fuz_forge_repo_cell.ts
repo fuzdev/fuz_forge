@@ -45,6 +45,7 @@ import {
 	narrow_repo_cell_data,
 	type RepoCellData
 } from '../../fuz_forge/repo/plan_repo.ts';
+import { is } from '@fuzdev/fuz_schema/schema.ts';
 import { RepoId } from '../../fuz_forge/repo/repo_id.ts';
 import { repo_path } from '../../fuz_forge/repo/storage.ts';
 import type { SpawnCollect } from '../subprocess.ts';
@@ -107,7 +108,7 @@ export const lookup_repo_cell = async (
 ): Promise<CellRow> => {
 	let cell: CellRow | null = null;
 	if (input.id !== undefined) {
-		if (!RepoId.safeParse(input.id).success) throw jsonrpc_errors.not_found('repo');
+		if (!is(RepoId, input.id)) throw jsonrpc_errors.not_found('repo');
 		cell = await query_cell_get(query_deps, input.id as Uuid);
 	} else if (input.slug !== undefined) {
 		cell = await query_cell_get_by_path(query_deps, repo_cell_path(input.slug));

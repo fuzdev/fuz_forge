@@ -46,6 +46,7 @@ import { rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { assert, test, describe, afterEach } from 'vitest';
+import { parse_or_throw } from '@fuzdev/fuz_schema/schema.ts';
 import { inject_backend_handle } from '@fuzdev/fuz_app/testing/cross_backend/provided_context.ts';
 import { assert_rejects } from '@fuzdev/fuz_util/testing.ts';
 import { default_cross_process_setup } from '@fuzdev/fuz_app/testing/cross_backend/setup.ts';
@@ -102,7 +103,10 @@ describe('repo push (cross-process, both backends)', () => {
 		});
 		assert.isTrue(created.ok, `create failed: ${JSON.stringify(created)}`);
 		// Strict-schema validation catches a dropped `seed_from`/`seed_completed_at`.
-		const created_repo = FuzForgeRepoOutput.parse((created.result as { repo: unknown }).repo);
+		const created_repo = parse_or_throw(
+			FuzForgeRepoOutput,
+			(created.result as { repo: unknown }).repo
+		);
 		// The timestamp *shape*, which no schema check can see: both backends
 		// serialize second-precision UTC. Rust gets it from the spine
 		// (`iso8601_timestamp_column` / `rfc3339_now`), TS from the cell
@@ -130,7 +134,7 @@ describe('repo push (cross-process, both backends)', () => {
 			headers: fixture.create_session_headers()
 		});
 		assert.isTrue(got.ok, `get failed: ${JSON.stringify(got)}`);
-		const repo = FuzForgeRepoOutput.parse((got.result as { repo: unknown }).repo);
+		const repo = parse_or_throw(FuzForgeRepoOutput, (got.result as { repo: unknown }).repo);
 		assert.strictEqual(repo.head_sha, head, 'head_sha should match the pushed commit');
 		assert.ok(repo.last_pushed_at, 'last_pushed_at should be set by the callback');
 		// The same shape on the read path and on the value the post-receive
@@ -149,7 +153,7 @@ describe('repo push (cross-process, both backends)', () => {
 			headers: fixture.create_session_headers()
 		});
 		assert.isTrue(log.ok, `log failed: ${JSON.stringify(log)}`);
-		const log_out = FuzForgeRepoLogOutput.parse(log.result);
+		const log_out = parse_or_throw(FuzForgeRepoLogOutput, log.result);
 		assert.strictEqual(log_out.commits.length, 1);
 		assert.strictEqual(log_out.commits[0]!.sha, head);
 		assert.strictEqual(log_out.commits[0]!.subject, 'initial commit');
@@ -164,7 +168,7 @@ describe('repo push (cross-process, both backends)', () => {
 			headers: fixture.create_session_headers()
 		});
 		assert.isTrue(commit.ok, `commit failed: ${JSON.stringify(commit)}`);
-		const commit_out = FuzForgeRepoCommitOutput.parse(commit.result);
+		const commit_out = parse_or_throw(FuzForgeRepoCommitOutput, commit.result);
 		assert.strictEqual(commit_out.commit.sha, head);
 		assert.strictEqual(commit_out.commit.committer_email, 'test@fuz.dev');
 
@@ -177,7 +181,7 @@ describe('repo push (cross-process, both backends)', () => {
 			headers: fixture.create_session_headers()
 		});
 		assert.isTrue(refs.ok, `refs failed: ${JSON.stringify(refs)}`);
-		const refs_out = FuzForgeRepoRefsOutput.parse(refs.result);
+		const refs_out = parse_or_throw(FuzForgeRepoRefsOutput, refs.result);
 		assert.ok(
 			refs_out.refs.some((r) => r.name === 'refs/heads/main'),
 			'refs should include refs/heads/main'
@@ -192,7 +196,7 @@ describe('repo push (cross-process, both backends)', () => {
 			headers: fixture.create_session_headers()
 		});
 		assert.isTrue(tree.ok, `tree failed: ${JSON.stringify(tree)}`);
-		const tree_out = FuzForgeRepoTreeOutput.parse(tree.result);
+		const tree_out = parse_or_throw(FuzForgeRepoTreeOutput, tree.result);
 		assert.ok(tree_out.resolved_sha, 'tree resolved_sha should be set');
 		const readme_entry = tree_out.entries.find((e) => e.name === 'README.md');
 		assert.ok(readme_entry, 'tree should include README.md');
@@ -238,7 +242,7 @@ describe('repo push (cross-process, both backends)', () => {
 			headers: fixture.create_session_headers()
 		});
 		assert.isTrue(blob.ok, `blob failed: ${JSON.stringify(blob)}`);
-		const blob_out = FuzForgeRepoBlobOutput.parse(blob.result);
+		const blob_out = parse_or_throw(FuzForgeRepoBlobOutput, blob.result);
 		assert.strictEqual(blob_out.body.kind, 'text', 'README.md should be a text blob');
 		assert.strictEqual(
 			blob_out.body.kind === 'text' ? blob_out.body.text : null,
@@ -323,7 +327,7 @@ describe('repo push (cross-process, both backends)', () => {
 			headers: fixture.create_session_headers()
 		});
 		assert.isTrue(tag_refs.ok, `refs after tag push failed: ${JSON.stringify(tag_refs)}`);
-		const tag_refs_out = FuzForgeRepoRefsOutput.parse(tag_refs.result);
+		const tag_refs_out = parse_or_throw(FuzForgeRepoRefsOutput, tag_refs.result);
 		const tag_ref = tag_refs_out.refs.find((r) => r.name === 'refs/tags/v1');
 		assert.ok(tag_ref, 'refs should include the pushed refs/tags/v1');
 		assert.strictEqual(
@@ -365,7 +369,7 @@ describe('repo push (cross-process, both backends)', () => {
 			headers: fixture.create_session_headers()
 		});
 		assert.isTrue(resync.ok, `resync failed: ${JSON.stringify(resync)}`);
-		const resync_out = FuzForgeRepoResyncOutput.parse(resync.result);
+		const resync_out = parse_or_throw(FuzForgeRepoResyncOutput, resync.result);
 		assert.strictEqual(resync_out.head_sha, head, 'resync should read the on-disk tip');
 		assert.strictEqual(
 			resync_out.head_sha,
@@ -384,7 +388,7 @@ describe('repo push (cross-process, both backends)', () => {
 			headers: fixture.create_session_headers()
 		});
 		assert.isTrue(rotate.ok, `rotate_secret failed: ${JSON.stringify(rotate)}`);
-		const rotate_out = FuzForgeRepoRotateSecretOutput.parse(rotate.result);
+		const rotate_out = parse_or_throw(FuzForgeRepoRotateSecretOutput, rotate.result);
 		assert.strictEqual(rotate_out.ok, true);
 
 		// 12) repo_recent_commits — the legacy method was folded into repo_log
@@ -430,7 +434,7 @@ describe('repo push (cross-process, both backends)', () => {
 				headers: fixture.create_session_headers()
 			});
 			assert.isTrue(res.ok, `resync failed: ${JSON.stringify(res)}`);
-			return FuzForgeRepoResyncOutput.parse(res.result);
+			return parse_or_throw(FuzForgeRepoResyncOutput, res.result);
 		};
 
 		const create = async (slug: string): Promise<string> => {
@@ -442,7 +446,7 @@ describe('repo push (cross-process, both backends)', () => {
 				headers: fixture.create_session_headers()
 			});
 			assert.isTrue(created.ok, `create ${slug} failed: ${JSON.stringify(created)}`);
-			return FuzForgeRepoOutput.parse((created.result as { repo: unknown }).repo).id;
+			return parse_or_throw(FuzForgeRepoOutput, (created.result as { repo: unknown }).repo).id;
 		};
 
 		// 1) A never-pushed repo: the bare repo exists but has no refs at all.
@@ -475,7 +479,7 @@ describe('repo push (cross-process, both backends)', () => {
 			headers: fixture.create_session_headers()
 		});
 		assert.isTrue(refs.ok, `refs failed: ${JSON.stringify(refs)}`);
-		const refs_out = FuzForgeRepoRefsOutput.parse(refs.result);
+		const refs_out = parse_or_throw(FuzForgeRepoRefsOutput, refs.result);
 		assert.deepEqual(
 			refs_out.refs.map((r) => r.name),
 			['refs/heads/feature'],
@@ -512,7 +516,7 @@ describe('repo push (cross-process, both backends)', () => {
 			headers: fixture.create_session_headers()
 		});
 		assert.isTrue(created.ok, `create failed: ${JSON.stringify(created)}`);
-		const repo = FuzForgeRepoOutput.parse((created.result as { repo: unknown }).repo);
+		const repo = parse_or_throw(FuzForgeRepoOutput, (created.result as { repo: unknown }).repo);
 
 		const work = await create_work_repo('bigpush');
 		cleanup_dirs.push(work);
@@ -541,7 +545,7 @@ describe('repo push (cross-process, both backends)', () => {
 			headers: fixture.create_session_headers()
 		});
 		assert.isTrue(got.ok, `get failed: ${JSON.stringify(got)}`);
-		const updated = FuzForgeRepoOutput.parse((got.result as { repo: unknown }).repo);
+		const updated = parse_or_throw(FuzForgeRepoOutput, (got.result as { repo: unknown }).repo);
 		assert.strictEqual(updated.head_sha, head, 'head_sha should match the pushed >1 MiB commit');
 	});
 
@@ -592,7 +596,7 @@ describe('repo push (cross-process, both backends)', () => {
 		await git(work, ['push', '--force', url, 'HEAD:refs/heads/feature']);
 
 		// Confirm via RPC that the feature ref landed.
-		const repo = FuzForgeRepoOutput.parse((created.result as { repo: unknown }).repo);
+		const repo = parse_or_throw(FuzForgeRepoOutput, (created.result as { repo: unknown }).repo);
 		const refs = await rpc_call({
 			app: fixture.transport,
 			path: SPINE_RPC_PATH,
@@ -601,7 +605,7 @@ describe('repo push (cross-process, both backends)', () => {
 			headers: fixture.create_session_headers()
 		});
 		assert.isTrue(refs.ok, `refs failed: ${JSON.stringify(refs)}`);
-		const refs_out = FuzForgeRepoRefsOutput.parse(refs.result);
+		const refs_out = parse_or_throw(FuzForgeRepoRefsOutput, refs.result);
 		assert.ok(
 			refs_out.refs.some((r) => r.name === 'refs/heads/feature'),
 			'refs should include the force-pushed refs/heads/feature'

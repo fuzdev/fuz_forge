@@ -142,7 +142,10 @@ describe('FuzForgeTokenPolicy schema', () => {
 		assert.deepStrictEqual(parsed, { version: 1 });
 	});
 	test('accepts the canonical forge_push template output', () => {
-		parse_or_throw(FuzForgeTokenPolicy, { version: 1, forge: { push: { alpha: true, beta: true } } });
+		parse_or_throw(FuzForgeTokenPolicy, {
+			version: 1,
+			forge: { push: { alpha: true, beta: true } }
+		});
 		parse_or_throw(FuzForgeTokenPolicy, { version: 1, forge: { push: '*' } });
 	});
 	test('rejects unknown top-level keys (strict)', () => {

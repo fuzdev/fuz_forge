@@ -14,12 +14,12 @@
  * other, with no error on either side to reveal it. One grammar in front of
  * both stores makes the divergence unreachable rather than documented.
  *
- * **Two bounds sit outside `z.iso.datetime()`**, and both exist because zod's
+ * **Two bounds sit outside the datetime regex**, and both exist because its
  * grammar is *wider* than what Postgres will parse — a value that passes the
  * schema but not the cast is a `-32603`/500 on the Rust backend against a
  * `200` here, which is the same class of split the grammar was added to close:
  *
- * - **Year zero.** Zod's regex is `\d{4}`, so `0000-01-01T00:00:00Z` passes
+ * - **Year zero.** The regex's year is `\d{4}`, so `0000-01-01T00:00:00Z` passes
  *   (and `0000-02-29T00:00:00Z` too — year 0 is a leap year by the Gregorian
  *   rule). Postgres has no year zero and answers `date/time field value out of
  *   range`; `0000` is the only 4-digit year it refuses. Hence
@@ -30,10 +30,9 @@
  *   fractional digits), which is cheaper and more legible than bounding the
  *   fraction alone.
  *
- * **The seconds-optional form is spelled out.** `z.iso.datetime()` requires
- * seconds before a `Z` (RFC 3339 does), so `YYYY-MM-DDTHH:MMZ` is admitted by a
- * second, minute-precision member rather than the default one. The grammar
- * predates that and both backends still take it.
+ * **The seconds-optional form is spelled out.** RFC 3339 requires seconds before
+ * a `Z`, but `YYYY-MM-DDTHH:MMZ` predates that and both backends still take it,
+ * so the one regex makes the seconds (and then the fraction) optional.
  *
  * The Rust twin is `require_iso8601_datetime` in
  * `crates/fuz_forge_server/src/handlers/repo_list_since.rs`, which applies the
@@ -49,7 +48,15 @@
  * @module
  */
 
-import { z } from 'zod';
+import {
+	check,
+	max_length,
+	message,
+	pipe,
+	regex,
+	string,
+	type Infer
+} from '@fuzdev/fuz_schema/schema.ts';
 
 /**
  * The one rejection message both sides raise for an off-grammar `since`.
@@ -65,7 +72,7 @@ export const SINCE_DATETIME_MESSAGE =
 /**
  * Lowest year the grammar admits. Postgres has no year zero, and `0000` is the
  * only 4-digit year its `timestamptz` parser refuses — so this is the whole
- * calendar gap between zod's `\d{4}` and what the Rust backend can store.
+ * calendar gap between the regex's `\d{4}` and what the Rust backend can store.
  */
 export const MIN_ISO8601_YEAR = 1;
 
@@ -76,23 +83,28 @@ export const MIN_ISO8601_YEAR = 1;
  */
 export const SINCE_MAX_LENGTH = 64;
 
+// the datetime regex: a leap-aware date, `THH:MM`, optional `:SS`, an optional unbounded `\.\d+` fraction (the length cap is `SINCE_MAX_LENGTH`)
+const DATE_SOURCE =
+	'(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))';
+const SINCE_REGEX = new RegExp(
+	`^${DATE_SOURCE}T(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?Z$`
+);
+
 /**
  * `fuz_forge_repo_list`'s `since` — a UTC ISO 8601 datetime both backends
  * parse to the same instant. See the module docs for the two bounds layered
- * over `z.iso.datetime()` and the minute-precision member.
+ * over the datetime regex.
  *
- * Forge-local rather than fuz_app's `Datetime` brand: that one is
- * `z.iso.datetime()` exactly, and cannot express either bound.
+ * Forge-local rather than fuz_app's `Datetime` brand, which is an unbounded
+ * datetime regex and cannot express either bound.
  */
-export const RepoListSince = z
-	.union([
-		z.iso.datetime().max(SINCE_MAX_LENGTH),
-		// fixed-width (`YYYY-MM-DDTHH:MMZ`), so no length bound
-		z.iso.datetime({ precision: -1 })
-	])
-	// The year is the first four characters of a value the regex has already
-	// admitted, so a slice is the whole parse.
-	.refine((value) => Number(value.slice(0, 4)) >= MIN_ISO8601_YEAR, {
-		message: SINCE_DATETIME_MESSAGE
-	});
-export type RepoListSince = z.infer<typeof RepoListSince>;
+export const RepoListSince = pipe(
+	string,
+	max_length(SINCE_MAX_LENGTH),
+	message(regex(SINCE_REGEX), SINCE_DATETIME_MESSAGE),
+	message(
+		check((value: string) => Number(value.slice(0, 4)) >= MIN_ISO8601_YEAR),
+		SINCE_DATETIME_MESSAGE
+	)
+);
+export type RepoListSince = Infer<typeof RepoListSince>;

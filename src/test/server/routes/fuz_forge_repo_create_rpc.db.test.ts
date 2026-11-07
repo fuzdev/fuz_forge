@@ -321,10 +321,10 @@ describe_db('fuz_forge_repo_create', (get_db) => {
 	});
 
 	test('an off-grammar seed_from is refused before any disk or DB work', async () => {
-		// The grammar is a `.refine()` on the input schema, so the dispatcher
+		// The grammar is a `check` on the input schema, so the dispatcher
 		// rejects it — nothing reaches `clone_bare_repo`, and no cell is
 		// written. A `file://` seed is the load-bearing case: without the
-		// refine it would import `__upstream.git` (any bare repo on the host's
+		// check it would import `__upstream.git` (any bare repo on the host's
 		// disk) into a served repo.
 		for (const seed_from of [
 			`file://${upstream.path}`,

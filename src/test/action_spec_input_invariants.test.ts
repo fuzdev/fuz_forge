@@ -12,9 +12,9 @@
  *
  * Two principled fixes; this test passes when either applies:
  *
- * - `.default({})` at the schema root — when `{}` is a meaningful call
+ * - a default of `{}` at the schema root — when `{}` is a meaningful call
  *   (no-arg list/get). Parsing `undefined` then succeeds.
- * - `.refine(...)` to reject `{}` — when empty is meaningless and the
+ * - a `check` to reject `{}` — when empty is meaningless and the
  *   caller must supply data. The typed surface correctly reports
  *   `input:` required.
  *
@@ -35,7 +35,7 @@ describe('action spec input invariants', () => {
 			const accepts_undefined = parse_any(spec.input, undefined).ok;
 			assert.ok(
 				accepts_undefined,
-				`${spec.method}: input accepts {} but rejects undefined — apply .default({}) at the schema root (or .refine() if {} should be rejected too)`
+				`${spec.method}: input accepts {} but rejects undefined — give the schema root a default of {} (or a check if {} should be rejected too)`
 			);
 		}
 	});

@@ -43,14 +43,7 @@
  * @module
  */
 
-import {
-	literal,
-	object,
-	optional,
-	record,
-	union,
-	type Infer
-} from '@fuzdev/fuz_schema/schema.ts';
+import { literal, object, optional, record, union, type Infer } from '@fuzdev/fuz_schema/schema.ts';
 
 /**
  * Per-resource allowlist: either `'*'` (any) or a record from

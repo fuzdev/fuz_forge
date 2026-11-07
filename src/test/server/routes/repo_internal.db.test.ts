@@ -413,7 +413,7 @@ describe_db('repo internal callback routes', (get_db) => {
 		test('malformed JSON body from non-loopback returns 401, not 400', async () => {
 			// Body validation must NOT run before the connection-IP gate.
 			// Otherwise a non-loopback caller posting `{}` would receive a
-			// 400 with Zod issues enumerating the schema shape — a leak
+			// 400 with schema issues enumerating the schema shape — a leak
 			// the locked-down posture forbids.
 			const { test_app, broadcast } = await build_test_app(get_db, {
 				connection_ip: '203.0.113.5'
@@ -505,8 +505,8 @@ describe_db('repo internal callback routes', (get_db) => {
 			assert.strictEqual(broadcast.calls.length, 0);
 		});
 
-		test('extra key in the callback body rejected with 401 (strictObject)', async () => {
-			// `RepoReceiveCallbackBody` is a `z.strictObject`, so an unknown key
+		test('extra key in the callback body rejected with 401 (strict object)', async () => {
+			// `RepoReceiveCallbackBody` is a strict `object` (unknown keys refused), so an unknown key
 			// is a parse failure → the bare 401, never a 400 that would confirm
 			// the schema. Twin of the Rust `#[serde(deny_unknown_fields)]` on
 			// `RepoReceiveCallbackBody` / `RefUpdate` (`internal_routes.rs`).
@@ -596,6 +596,18 @@ describe_db('repo internal callback routes', (get_db) => {
 
 			const res = await post_callback(test_app, sample_body(ABSENT_UUID));
 			assert.strictEqual(res.status, 401);
+			assert.strictEqual(broadcast.calls.length, 0);
+		});
+
+		test('an off-grammar repo_id rejected with 401 before the uuid cast', async () => {
+			// the body admits any non-empty string; the `RepoId` guard turns the rest
+			// into the bare 401 rather than a Postgres uuid-cast error
+			const { test_app, broadcast } = await build_test_app(get_db);
+			await seed_repo_cell(get_db());
+			for (const repo_id of ['not-a-uuid', 'org/repo', ABSENT_UUID.replaceAll('-', '')]) {
+				const res = await post_callback(test_app, sample_body(repo_id));
+				assert.strictEqual(res.status, 401, JSON.stringify(repo_id));
+			}
 			assert.strictEqual(broadcast.calls.length, 0);
 		});
 	});

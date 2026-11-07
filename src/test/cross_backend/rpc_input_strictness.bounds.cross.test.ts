@@ -12,7 +12,7 @@
  * hands the query an unbounded cursor, answers a 200 page the twin never
  * would.
  *
- * Every forge action input declares its bounds in zod
+ * Every forge action input declares its bounds in its schema
  * (`src/lib/action_specs.ts`) and the TS dispatcher enforces them before the
  * handler runs. The Rust backend has no schema layer: its bounds are the
  * `handlers::input_bounds` checks run right after `fuz_http::parse_strict_params`,
@@ -55,7 +55,7 @@
  * (`REPO_CREATE_SEED_FAILED_MESSAGE`) rather than a rendered validation
  * complaint.
  *
- * Integral floats (`limit: 50.0`, which `z.number().int()` accepts) are not
+ * Integral floats (`limit: 50.0`, which an `integer` schema accepts) are not
  * reachable from here — JSON's one number type means a JS client cannot spell
  * `50.0` differently from `50`. That parity is unit-pinned on the Rust side in
  * `handlers::input_bounds`.
@@ -190,7 +190,7 @@ describe('rpc input bounds (cross-process, both backends)', () => {
 
 	test('the mint bounds the rpc_subset method list', async () => {
 		const fixture = await setup_test();
-		// `z.array(z.string().min(1)).min(1).max(64)` — an empty list would
+		// `array(pipe(string, min_length(1)))` capped at 1..=64 — an empty list would
 		// mint a token that grants nothing while reading as scoped. The 65-entry
 		// row repeats one method on purpose: neither backend dedupes before it
 		// counts (the policy doc's `new Set` and the spine scope's `BTreeSet`
@@ -250,7 +250,7 @@ describe('rpc input bounds (cross-process, both backends)', () => {
 
 	test('the mint bounds the files_read filename list', async () => {
 		const fixture = await setup_test();
-		// `'*' | z.array(z.string().min(1)).min(1).max(256)` — the wildcard is
+		// `'*' | array(pipe(string, min_length(1)))` capped at 1..=256 — the wildcard is
 		// unbounded, an explicit list is not.
 		for (const filenames of [[], [''], Array.from({ length: 257 }, () => 'a.txt')]) {
 			const res = await rpc_call({
@@ -405,7 +405,7 @@ describe('spine hand-decoded input bounds (cross-process, both backends)', () =>
 			// out-of-range page is refused rather than clamped into one.
 			['role_grant_offer_history', { limit: 9999 }],
 			['role_grant_offer_history', { offset: -1 }],
-			// `audit_log_list.since_seq` is `z.number().int().min(0)`, so a
+			// `audit_log_list.since_seq` is an integer with a floor of 0, so a
 			// negative cursor is `-32602` where an unbounded read hands the
 			// query a predicate every row satisfies — a full page.
 			['audit_log_list', { since_seq: -1 }]

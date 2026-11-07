@@ -19,8 +19,7 @@
       "npm:@hono/deno@^1.0.3",
       "npm:@node-rs/argon2@^2.2.1",
       "npm:hono@^4.13.16",
-      "npm:pg@^8.23.0",
-      "npm:zod@^4.6.7"
+      "npm:pg@^8.23.0"
     ],
     "packageJson": {
       "dependencies": [
@@ -60,8 +59,7 @@
         "npm:typescript@^6.0.3",
         "npm:vite@^8.3.4",
         "npm:vitest@^5.0.5",
-        "npm:ws@^8.22.0",
-        "npm:zod@^4.6.7"
+        "npm:ws@^8.22.0"
       ]
     }
   }

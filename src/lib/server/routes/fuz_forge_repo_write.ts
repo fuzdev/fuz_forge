@@ -38,6 +38,7 @@ import {
 } from '@fuzdev/fuz_app/db/cell_queries.ts';
 
 import { repo_cell_path, type RepoCellData } from '../../fuz_forge/repo/plan_repo.ts';
+import { format_issue, parse } from '@fuzdev/fuz_schema/schema.ts';
 import { RepoSlug, repo_name_from_slug } from '../../fuz_forge/repo/repo_id.ts';
 import {
 	seed_from_host_is_private,
@@ -270,9 +271,9 @@ export const create_fuz_forge_repo_write_rpc_actions = (
 				// DB calls through `ctx.db` so a single-connection driver doesn't
 				// deadlock against the held connection.
 				const tx_deps: QueryDeps = { db: ctx.db };
-				// The input schema's `.refine()` admitted the seed URL but left
-				// it verbatim (a `.transform()` there would blank the schema out
-				// of the generated attack surface). Re-serialize it here, before
+				// The input schema's check admitted the seed URL but left it
+				// verbatim (the schema stays a plain string in the generated
+				// attack surface). Re-serialize it here, before
 				// anything reads it: the WHATWG parser and git disagree on
 				// spellings like `https://host\user:pw@evil/x`, so only the
 				// canonical form guarantees the host validated is the host git
@@ -307,13 +308,13 @@ export const create_fuz_forge_repo_write_rpc_actions = (
 				const { default_branch } = input;
 				// The spec types `slug` as a bounded string; enforce the real
 				// `org/repo` shape here (lowercase-canonicalized on success).
-				const slug_parsed = RepoSlug.safeParse(input.slug);
-				if (!slug_parsed.success) {
+				const slug_parsed = parse(RepoSlug, input.slug);
+				if (!slug_parsed.ok) {
 					throw jsonrpc_errors.validation_error(
-						`invalid slug: ${slug_parsed.error.issues.map((i) => i.message).join('; ')}`
+						`invalid slug: ${slug_parsed.issues.map((i) => i.message ?? format_issue(i)).join('; ')}`
 					);
 				}
-				const slug = slug_parsed.data;
+				const slug = slug_parsed.value;
 				const name = repo_name_from_slug(slug);
 
 				// Friendly duplicate error. The `repos/<slug>` unique path index

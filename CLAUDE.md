@@ -6,10 +6,9 @@ The forge has a web dashboard and delegates its own provisioning and deployment
 to the standalone `zap` CLI.
 
 See the [fuz-stack skill](https://docs.fuz.dev/skills/fuz-stack) for shared @fuzdev coding conventions (snake_case,
-Zod, testing, Gro). This file covers fuz_forge-specific context only.
-The action specs are Zod but for `fuz_forge_token_create_scoped`'s, which are
-`@fuzdev/fuz_schema`; a fuz_schema twin of a Zod schema lives in a `*_fuz.ts`
-module beside it under the same name, `@nodocs` (`fuz_forge/repo/repo_id_fuz.ts`).
+schemas, testing, Gro). This file covers fuz_forge-specific context only.
+The app's own schemas (action specs, route specs, the token policy, `RepoId`,
+`RepoSlug`) are `@fuzdev/fuz_schema`; no zod import remains in the forge.
 
 ## Overview
 

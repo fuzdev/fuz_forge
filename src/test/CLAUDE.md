@@ -6,7 +6,8 @@ The TS reference server runs in **Deno**; its tests run in **vitest**
 (Node.js), with `RuntimeDeps` (from `@fuzdev/fuz_app`) mocked by
 `runtime_mock.ts`. The `fuzf` client is Rust, tested in `crates/fuz_forge/`.
 
-Tests mirror `src/lib/` (per the [fuz-stack skill](https://docs.fuz.dev/skills/fuz-stack)); vitest auto-discovers new
+Tests mirror `src/lib/` (per the
+[fuz-stack skill](https://docs.fuz.dev/skills/fuz-stack)); vitest auto-discovers new
 files. A shared fixture or helper sits where what it *is* belongs, not where
 its readers are (§ Route / RPC Integration Tests).
 
@@ -259,31 +260,29 @@ identical by construction, much wider, never an error. The reasons:
 
 ### UUID wire grammar
 
-`z.uuid()` is stricter than every Rust-side UUID parser: Zod 4 admits only the
-hyphenated 8-4-4-4-12 hex form (case-insensitive) with an RFC 9562 version
+fuz_schema's `uuid` is stricter than every Rust-side UUID parser: it admits only
+the hyphenated 8-4-4-4-12 hex form (case-insensitive) with an RFC 9562 version
 nibble in `1..=8` and a variant nibble in `[89abAB]`, plus the nil UUID and
-the **lowercase** max. `Uuid::parse_str` (and Postgres) also take hyphenless,
+the max in any case. `Uuid::parse_str` (and Postgres) also take hyphenless,
 braced and `urn:uuid:` spellings with any nibbles — so a synthetic id could be
 `-32602`/400 on TS and a live lookup on Rust. Every hand-decoding ingress
 therefore gates on a canonical validator first: `fuz_http::is_valid_uuid` or
 `fuz_forge_wire::is_valid_repo_id`.
 
-The max UUID is the one string the two parser families read apart: a bare
-`z.uuid()` takes it in lowercase only, where `is_valid_uuid` takes it in any
-case (RFC 9562 §4). fuz_app's `Uuid` closes the gap with a `pattern` on
-`z.uuid()` taking the max in any case, the grammar of its `@fuzdev/fuz_schema`
-twin, so on the `?acting=` query, hand-decoded params and spine RPC id field
+The max UUID is the string a lowercase-only grammar would read apart from
+`is_valid_uuid`, which takes it in any case (RFC 9562 §4). fuz_app's `Uuid` and
+fuz_schema's `uuid` take the max in any case too, so on the `?acting=` query, hand-decoded params and spine RPC id field
 rows below both backends read an uppercase or mixed-case max as an id naming
 nothing (a 401 or `actor_not_on_account` on a query route, a not-found such
 as `-32003` elsewhere); the differential's hand-written cases pin the spine
-RPC id field case (`cell_get`). `RepoId` carries the same `pattern` and
+RPC id field case (`cell_get`). `RepoId` is the same `uuid` and
 `is_valid_repo_id` the same any-case max (the `repo_id.json` max rows), so
 the forge RPC id fields agree too: one UUID grammar across the stack.
 
 | surface | Rust gate | TS gate |
 | --- | --- | --- |
 | `?acting=` query | `is_valid_uuid` | `Uuid` |
-| `acting` **value**, any spec | `check_acting_selector` | `Uuid.optional()` |
+| `acting` **value**, any spec | `check_acting_selector` | `optional(Uuid)` |
 | `acting` **key** on a field-less input | `deny_unknown_fields` | strict object |
 | hand-decoded RPC params | `is_valid_uuid` | `Uuid` |
 | forge RPC id fields | `is_valid_repo_id` | `RepoId` |

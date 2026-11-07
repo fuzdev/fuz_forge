@@ -17,7 +17,18 @@
  * @module
  */
 
-import { z } from 'zod';
+import {
+	check,
+	max_length,
+	message,
+	min_length,
+	pipe,
+	regex,
+	string,
+	to_lower_case,
+	uuid,
+	type Infer
+} from '@fuzdev/fuz_schema/schema.ts';
 
 /**
  * Min length for one segment of a `RepoSlug`. Single-char names are
@@ -39,39 +50,28 @@ export const REPO_SEGMENT_LENGTH_MAX = 64;
  *
  * Unanchored — callers anchor with `^` / `$` (or compose with `/`
  * between segments for the slug regex). Mixed-case input is allowed at
- * the schema level and canonicalized to lowercase via `.transform()`.
+ * the schema level and canonicalized to lowercase via `to_lower_case`.
  */
 const REPO_SEGMENT_PATTERN = '[a-zA-Z0-9](?:[a-zA-Z0-9]|[_-][a-zA-Z0-9])*';
 
 /**
- * The grammar of `RepoId`: `z.uuid()`'s own but for the max UUID, which it
- * takes in any case (RFC 9562 §4 reads a UUID case-insensitively) where a
- * bare `z.uuid()` takes it in lowercase only. The grammar of
- * `@fuzdev/fuz_app`'s `Uuid` and the Rust spine's `is_valid_uuid`, so one
- * UUID grammar holds across the stack; fuz_app keeps its regex private, so
- * this mirrors it and a test holds the two rendered patterns equal.
- */
-const REPO_ID_REGEX =
-	/^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$/;
-
-/**
  * The wire/dir/URL handle for a forge repo: the cell's `id`, a UUID.
  *
- * Deliberately **unbranded** (`z.uuid()` infers a plain `string`) — the
- * id flows through frontend route params, the typed RPC client, and the
- * CLI as a bare string, so a nominal brand would force casts at every
- * boundary for no safety win. The server casts to the package's branded
- * `Uuid` only at the `query_cell_get` seam.
+ * Deliberately **unbranded** (it infers a plain `string`) — the id flows
+ * through frontend route params, the typed RPC client, and the CLI as a bare
+ * string, so a nominal brand would force casts at every boundary for no
+ * safety win. The server casts to the package's branded `Uuid` only at the
+ * `query_cell_get` seam.
  *
  * This schema **is the one repo-id wire grammar** on both backends:
- * `@fuzdev/fuz_app`'s `Uuid` grammar — hyphenated 8-4-4-4-12 hex with the
- * RFC 9562 version nibble in 1-8 and variant in `[89abAB]`, plus nil and
- * max as special cases, the max in any case. Every real repo cell id is a
- * Postgres `gen_random_uuid()` v4, so the strictness rejects nothing a
- * legitimate flow produces. The Rust twin is `fuz_forge_wire`'s
- * `is_valid_repo_id`, enforced at the Rust server's id ingresses so both
- * backends refuse the same strings with the same `-32602`; a
- * grammar-valid but absent id (including nil/max) is `-32003` on both.
+ * fuz_schema's `uuid`, the grammar of `@fuzdev/fuz_app`'s `Uuid` — hyphenated
+ * 8-4-4-4-12 hex with the RFC 9562 version nibble in 1-8 and variant in
+ * `[89abAB]`, plus nil and max as special cases, the max in any case. Every
+ * real repo cell id is a Postgres `gen_random_uuid()` v4, so the strictness
+ * rejects nothing a legitimate flow produces. The Rust twin is
+ * `fuz_forge_wire`'s `is_valid_repo_id`, enforced at the Rust server's id
+ * ingresses so both backends refuse the same strings with the same `-32602`;
+ * a grammar-valid but absent id (including nil/max) is `-32003` on both.
  * (`fuz_forge_wire`'s `looks_like_uuid` is looser on purpose — it is the
  * CLI's slug-vs-id disambiguator, not a validator.)
  *
@@ -79,15 +79,10 @@ const REPO_ID_REGEX =
  * lowercase is the form Postgres renders a `uuid` in, so a parsed id equals
  * the same id read back from the database — which matters wherever an id is
  * kept as a string rather than cast, as the token templates' `repo_ids`
- * become policy map keys matched against the cell's own id. `.toLowerCase()`
- * rather than `.transform()`, as there: an overwrite keeps the output type
- * and stays visible to `z.toJSONSchema`.
- *
- * `pattern` is a `$ZodUUIDDef` field that `z.uuid()` honors but whose public
- * params type omits it, hence the cast on the params, as on fuz_app's `Uuid`.
+ * become policy map keys matched against the cell's own id.
  */
-export const RepoId = z.uuid({ pattern: REPO_ID_REGEX } as z.core.$ZodUUIDParams).toLowerCase();
-export type RepoId = z.infer<typeof RepoId>;
+export const RepoId = pipe(string, uuid, to_lower_case);
+export type RepoId = Infer<typeof RepoId>;
 
 /**
  * Public path segment for a forge repo's clone URL (`<slug>.git`) and the
@@ -99,22 +94,28 @@ export type RepoId = z.infer<typeof RepoId>;
  *
  * `fuzdev/fuz_app` and `org_1/repo-2` are conforming slugs.
  */
-export const RepoSlug = z
-	.string()
-	.min(REPO_SEGMENT_LENGTH_MIN * 2 + 1)
-	.max(REPO_SEGMENT_LENGTH_MAX * 2 + 1)
-	.regex(new RegExp(`^${REPO_SEGMENT_PATTERN}/${REPO_SEGMENT_PATTERN}$`), {
-		message:
+export const RepoSlug = pipe(
+	pipe(
+		string,
+		min_length(REPO_SEGMENT_LENGTH_MIN * 2 + 1),
+		max_length(REPO_SEGMENT_LENGTH_MAX * 2 + 1),
+		message(
+			regex(new RegExp(`^${REPO_SEGMENT_PATTERN}/${REPO_SEGMENT_PATTERN}$`)),
 			'RepoSlug must be <segment>/<segment> with exactly one `/`; each segment is [a-zA-Z0-9] with optional single `-`/`_` between alphanumerics'
-	})
-	// The whole-slug `.max()` above admits one oversized segment paired with a
+		)
+	),
+	// The whole-slug `max_length` above admits one oversized segment paired with a
 	// short one (e.g. a 100-char half + a 1-char half is under 129); cap each
 	// segment to match the canonical Rust `fuz_forge_wire` rule.
-	.refine((s) => s.split('/').every((segment) => segment.length <= REPO_SEGMENT_LENGTH_MAX), {
-		message: `RepoSlug segment exceeds ${REPO_SEGMENT_LENGTH_MAX} chars`
-	})
-	.transform((s) => s.toLowerCase());
-export type RepoSlug = z.infer<typeof RepoSlug>;
+	message(
+		check((s: string) =>
+			s.split('/').every((segment) => segment.length <= REPO_SEGMENT_LENGTH_MAX)
+		),
+		`RepoSlug segment exceeds ${REPO_SEGMENT_LENGTH_MAX} chars`
+	),
+	to_lower_case
+);
+export type RepoSlug = Infer<typeof RepoSlug>;
 
 /**
  * Recover the repo-name segment (the part after the `/`) from a slug.

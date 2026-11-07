@@ -13,6 +13,7 @@
  */
 
 import { describe, test, assert } from 'vitest';
+import { parse } from '@fuzdev/fuz_schema/schema.ts';
 
 import {
 	seed_from_host_is_private,
@@ -62,17 +63,15 @@ describe('seed_from_url_canonical', () => {
 
 describe('FuzForgeRepoCreateInput seed_from', () => {
 	test('an absent seed_from is the unseeded create', () => {
-		const parsed = FuzForgeRepoCreateInput.safeParse({ slug: 'org/repo' });
-		assert.isTrue(parsed.success, JSON.stringify(parsed));
-		assert.isUndefined(parsed.data?.seed_from);
+		const parsed = parse(FuzForgeRepoCreateInput, { slug: 'org/repo' });
+		assert.isTrue(parsed.ok, JSON.stringify(parsed));
+		assert.isUndefined(parsed.ok ? parsed.value.seed_from : undefined);
 	});
 
-	// The refine is on the schema rather than in the handler so the dispatcher's
-	// `safeParse` refuses an off-grammar seed as `-32602` before any disk or DB
-	// work — matching the Rust `require_seed_from_url` call site. The refine only
-	// admits; it deliberately does not transform. A `.transform()` on this field
-	// would make it unrepresentable in JSON Schema and blank the whole input
-	// schema out of the generated attack surface, so the *handler* canonicalizes
+	// The check is on the schema rather than in the handler so the dispatcher's
+	// parse refuses an off-grammar seed as `-32602` before any disk or DB
+	// work — matching the Rust `require_seed_from_url` call site. The check only
+	// admits; it deliberately does not transform, so the *handler* canonicalizes
 	// right after parse (`fuz_forge_repo_create` in
 	// `server/routes/fuz_forge_repo_write.ts`)
 	// — which is what the cell records and what `git clone --bare` receives.
@@ -80,14 +79,14 @@ describe('FuzForgeRepoCreateInput seed_from', () => {
 		const seed_from = parity_string(row, 'input');
 		const accepted = parity_bool(row, 'accepted');
 		test(`the schema ${accepted ? 'admits' : 'refuses'}: ${JSON.stringify(seed_from)}`, () => {
-			const parsed = FuzForgeRepoCreateInput.safeParse({ slug: 'org/repo', seed_from });
-			assert.strictEqual(parsed.success, accepted);
-			if (accepted) {
-				assert.strictEqual(parsed.data?.seed_from, seed_from, 'admitted unnormalized');
+			const parsed = parse(FuzForgeRepoCreateInput, { slug: 'org/repo', seed_from });
+			assert.strictEqual(parsed.ok, accepted);
+			if (parsed.ok) {
+				assert.strictEqual(parsed.value.seed_from, seed_from, 'admitted unnormalized');
 			} else {
 				assert.ok(
-					parsed.error?.issues.some((issue) => issue.message === SEED_FROM_URL_MESSAGE),
-					`must fail with the shared message, got ${JSON.stringify(parsed.error?.issues)}`
+					parsed.issues.some((issue) => issue.message === SEED_FROM_URL_MESSAGE),
+					`must fail with the shared message, got ${JSON.stringify(parsed.issues)}`
 				);
 			}
 		});
@@ -99,10 +98,10 @@ describe('FuzForgeRepoCreateInput seed_from', () => {
 	for (const row of canonicalized) {
 		const raw = parity_string(row, 'input');
 		test(`the handler stores the canonical form of: ${JSON.stringify(raw)}`, () => {
-			const parsed = FuzForgeRepoCreateInput.safeParse({ slug: 'org/repo', seed_from: raw });
-			assert.isTrue(parsed.success, `${raw} must pass the input schema`);
+			const parsed = parse(FuzForgeRepoCreateInput, { slug: 'org/repo', seed_from: raw });
+			assert.isTrue(parsed.ok, `${raw} must pass the input schema`);
 			assert.strictEqual(
-				seed_from_url_canonical(parsed.data?.seed_from ?? ''),
+				seed_from_url_canonical(parsed.ok ? (parsed.value.seed_from ?? '') : ''),
 				parity_string(row, 'expected')
 			);
 		});

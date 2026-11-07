@@ -490,7 +490,7 @@ describe('file metadata wire shape (cross-process, both backends)', () => {
 });
 
 describe('strict query params on file mutations (cross-process, both backends)', () => {
-	// The POST/DELETE file routes declare `query: z.strictObject({acting})` in
+	// The POST/DELETE file routes declare a strict `{acting}` query in
 	// TS; the Rust twins read the same rule off the raw query
 	// (`parse_acting_strict_query` over `has_unknown_query_key`). An
 	// unrecognized query key is a 400 `invalid_query_params` on BOTH backends,

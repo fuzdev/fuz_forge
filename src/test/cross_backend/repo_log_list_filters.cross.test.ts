@@ -30,6 +30,7 @@
 import { rm } from 'node:fs/promises';
 
 import { assert, test, describe, afterEach } from 'vitest';
+import { parse_or_throw } from '@fuzdev/fuz_schema/schema.ts';
 import { inject_backend_handle } from '@fuzdev/fuz_app/testing/cross_backend/provided_context.ts';
 import { default_cross_process_setup } from '@fuzdev/fuz_app/testing/cross_backend/setup.ts';
 import { rpc_call } from '@fuzdev/fuz_app/testing/rpc_helpers.ts';
@@ -74,7 +75,7 @@ describe('repo log + list filters (cross-process, both backends)', () => {
 			headers: fixture.create_session_headers()
 		});
 		assert.isTrue(created.ok, `create failed: ${JSON.stringify(created)}`);
-		const repo = FuzForgeRepoOutput.parse((created.result as { repo: unknown }).repo);
+		const repo = parse_or_throw(FuzForgeRepoOutput, (created.result as { repo: unknown }).repo);
 
 		// Build three commits: an old commit by Alice touching alpha.txt, then
 		// two recent commits — Alice touches beta.txt, Bob touches gamma.txt.
@@ -98,7 +99,7 @@ describe('repo log + list filters (cross-process, both backends)', () => {
 				headers: fixture.create_session_headers()
 			});
 			assert.isTrue(res.ok, `log failed: ${JSON.stringify(res)}`);
-			return FuzForgeRepoLogOutput.parse(res.result);
+			return parse_or_throw(FuzForgeRepoLogOutput, res.result);
 		};
 
 		// Baseline: all three commits, newest-first.
@@ -200,7 +201,7 @@ describe('repo log + list filters (cross-process, both backends)', () => {
 			headers: fixture.create_session_headers()
 		});
 		assert.isTrue(created.ok, `create failed: ${JSON.stringify(created)}`);
-		const repo = FuzForgeRepoOutput.parse((created.result as { repo: unknown }).repo);
+		const repo = parse_or_throw(FuzForgeRepoOutput, (created.result as { repo: unknown }).repo);
 
 		// Push real history so `head_sha` is set — otherwise the handlers take
 		// the never-pushed shortcut and the git-layer behavior under test never
@@ -225,7 +226,7 @@ describe('repo log + list filters (cross-process, both backends)', () => {
 				headers: fixture.create_session_headers()
 			});
 			assert.isTrue(res.ok, `log failed: ${JSON.stringify(res)}`);
-			return FuzForgeRepoLogOutput.parse(res.result);
+			return parse_or_throw(FuzForgeRepoLogOutput, res.result);
 		};
 
 		// Baseline: the seeded commit is readable, so an empty page below is
@@ -291,7 +292,7 @@ describe('repo log + list filters (cross-process, both backends)', () => {
 				headers: fixture.create_session_headers()
 			});
 			assert.isTrue(created.ok, `create ${slug} failed: ${JSON.stringify(created)}`);
-			ids[slug] = FuzForgeRepoOutput.parse((created.result as { repo: unknown }).repo).id;
+			ids[slug] = parse_or_throw(FuzForgeRepoOutput, (created.result as { repo: unknown }).repo).id;
 		}
 
 		const token = keeper_token(fixture.create_bearer_headers());
@@ -317,7 +318,7 @@ describe('repo log + list filters (cross-process, both backends)', () => {
 			});
 			assert.isTrue(res.ok, `list failed: ${JSON.stringify(res)}`);
 			const repos = (res.result as { repos: Array<unknown> }).repos.map((r) =>
-				FuzForgeRepoOutput.parse(r)
+				parse_or_throw(FuzForgeRepoOutput, r)
 			);
 			return repos.map((r) => r.slug).sort();
 		};
@@ -406,7 +407,7 @@ describe('repo log + list filters (cross-process, both backends)', () => {
 			headers: fixture.create_session_headers()
 		});
 		assert.isTrue(created.ok, `create failed: ${JSON.stringify(created)}`);
-		const repo = FuzForgeRepoOutput.parse((created.result as { repo: unknown }).repo);
+		const repo = parse_or_throw(FuzForgeRepoOutput, (created.result as { repo: unknown }).repo);
 
 		const token = keeper_token(fixture.create_bearer_headers());
 		const work = await create_work_repo('sincegrammar');

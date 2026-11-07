@@ -31,6 +31,7 @@
  */
 
 import { assert, test, describe } from 'vitest';
+import { parse_or_throw } from '@fuzdev/fuz_schema/schema.ts';
 import { inject_backend_handle } from '@fuzdev/fuz_app/testing/cross_backend/provided_context.ts';
 import { default_cross_process_setup } from '@fuzdev/fuz_app/testing/cross_backend/setup.ts';
 import { rpc_call } from '@fuzdev/fuz_app/testing/rpc_helpers.ts';
@@ -137,7 +138,7 @@ describe('rpc_subset scoped-token method gate (cross-process, both backends)', (
 			headers: fixture.create_session_headers()
 		});
 		assert.isTrue(listed.ok, `policy_list failed: ${JSON.stringify(listed)}`);
-		const out = FuzForgeTokenPolicyListOutput.parse(listed.result);
+		const out = parse_or_throw(FuzForgeTokenPolicyListOutput, listed.result);
 		const entry = out.policies.find((p) => p.api_token_id === minted_id);
 		assert.ok(entry, `minted token ${minted_id} should appear in the keeper's policy list`);
 		assert.strictEqual(entry.template, 'rpc_subset');
@@ -160,7 +161,7 @@ describe('rpc_subset scoped-token method gate (cross-process, both backends)', (
 			secondary_listed.ok,
 			`secondary policy_list failed: ${JSON.stringify(secondary_listed)}`
 		);
-		const secondary_out = FuzForgeTokenPolicyListOutput.parse(secondary_listed.result);
+		const secondary_out = parse_or_throw(FuzForgeTokenPolicyListOutput, secondary_listed.result);
 		assert.strictEqual(
 			secondary_out.policies.length,
 			0,

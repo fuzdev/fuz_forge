@@ -20,9 +20,9 @@
  * and list *everything* on the TS one, and `{since: 'infinity'}` answered zero
  * repos there and every repo here. Those five head the reject table.
  *
- * The other direction is why the schema carries a `.max()` and a year floor on
- * top of `z.iso.datetime()`: year `0000` and an unbounded fractional part both
- * pass zod's shape and are refused by the Postgres cast, so they answered
+ * The other direction is why the schema carries a length cap and a year floor on
+ * top of the datetime regex: year `0000` and an unbounded fractional part both
+ * pass its shape and are refused by the Postgres cast, so they answered
  * `-32603` on Rust against a `200` here. Those three close the reject table.
  *
  * `fuz_forge_repo_log`'s `since` is deliberately a different grammar — git's
@@ -33,6 +33,7 @@
  */
 
 import { describe, test, assert } from 'vitest';
+import { parse } from '@fuzdev/fuz_schema/schema.ts';
 
 import { FuzForgeRepoListInput } from '#lib/action_specs.ts';
 import { SINCE_MAX_LENGTH } from '#lib/fuz_forge/repo/repo_list_since.ts';
@@ -47,21 +48,21 @@ const fixture = load_parity_fixture('repo_list_since');
 
 describe('FuzForgeRepoListInput since', () => {
 	test('an absent since is the unfiltered list', () => {
-		const parsed = FuzForgeRepoListInput.safeParse({});
-		assert.isTrue(parsed.success, JSON.stringify(parsed));
-		assert.isUndefined(parsed.data?.since);
+		const parsed = parse(FuzForgeRepoListInput, {});
+		assert.isTrue(parsed.ok, JSON.stringify(parsed));
+		assert.isUndefined(parsed.ok ? parsed.value.since : undefined);
 	});
 
 	for (const row of parity_rows(fixture, 'since')) {
 		const since = parity_string(row, 'input');
 		const accepted = parity_bool(row, 'accepted');
 		test(`${accepted ? 'accepts' : 'rejects'}: ${JSON.stringify(since)}`, () => {
-			const parsed = FuzForgeRepoListInput.safeParse({ since });
-			assert.strictEqual(parsed.success, accepted);
-			if (accepted) {
+			const parsed = parse(FuzForgeRepoListInput, { since });
+			assert.strictEqual(parsed.ok, accepted);
+			if (parsed.ok) {
 				// The schema admits without normalizing, so the handler filters on
 				// the caller's own bytes — the same string the Rust twin binds.
-				assert.strictEqual(parsed.data?.since, since);
+				assert.strictEqual(parsed.value.since, since);
 				// The property the grammar buys: past the schema, `Date.parse` cannot
 				// answer `NaN`, so the handler's filter always runs. That is what
 				// makes the TS reading of a value equal to the Rust one — without the
@@ -91,13 +92,13 @@ describe('FuzForgeRepoListInput since', () => {
 		const at_cap = `2020-01-01T00:00:00.${'1'.repeat(SINCE_MAX_LENGTH - 21)}Z`;
 		assert.strictEqual(at_cap.length, SINCE_MAX_LENGTH);
 		assert.isTrue(
-			FuzForgeRepoListInput.safeParse({ since: at_cap }).success,
+			parse(FuzForgeRepoListInput, { since: at_cap }).ok,
 			'a value exactly at the cap is admitted'
 		);
 		const over_cap = `2020-01-01T00:00:00.${'1'.repeat(SINCE_MAX_LENGTH - 20)}Z`;
 		assert.strictEqual(over_cap.length, SINCE_MAX_LENGTH + 1);
 		assert.isFalse(
-			FuzForgeRepoListInput.safeParse({ since: over_cap }).success,
+			parse(FuzForgeRepoListInput, { since: over_cap }).ok,
 			'one character past the cap is refused'
 		);
 	});

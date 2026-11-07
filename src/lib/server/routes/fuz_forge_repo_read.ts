@@ -88,8 +88,8 @@ export const create_fuz_forge_repo_read_rpc_actions = (
 			// and each is identical across the backends.
 			//
 			// `fuz_forge_repo_list`'s is the shared UTC ISO 8601 datetime —
-			// `RepoListSince` (`z.iso.datetime()` plus the year ≥ 1 and 64-char
-			// bounds Postgres needs) on the input schema here,
+			// `RepoListSince` (the UTC ISO 8601 regex plus the year ≥ 1 and
+			// 64-char bounds Postgres needs) on the input schema here,
 			// `require_iso8601_datetime` on Rust — so an off-grammar value is
 			// `-32602` on both before any store sees it. It has to be: the
 			// filter is then resolved by each backend's own parser

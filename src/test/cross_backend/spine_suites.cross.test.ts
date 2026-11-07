@@ -41,7 +41,7 @@ const round_trip_skip_routes = [
 	'GET /internal/repo-config/:id',
 	'POST /internal/repo-receive-callback',
 	// File store upload/delete: `actor: 'required'` + raw-bytes (`input:
-	// z.null()`) admin routes — no acting-actor input path for the generic
+	// literal(null)`) admin routes — no acting-actor input path for the generic
 	// validator to supply, so authorization yields `actor_required` rather
 	// than a declared response. Driven by fuz_forge's own file route tests.
 	'POST /api/fuz_forge/files/:filename{.+}',

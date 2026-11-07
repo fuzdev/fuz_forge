@@ -48,6 +48,7 @@ import { randomBytes } from 'node:crypto';
 import { rm } from 'node:fs/promises';
 
 import { assert, test, describe, afterEach, afterAll, beforeAll } from 'vitest';
+import { parse_or_throw } from '@fuzdev/fuz_schema/schema.ts';
 import { inject_backend_handle } from '@fuzdev/fuz_app/testing/cross_backend/provided_context.ts';
 import { default_cross_process_setup } from '@fuzdev/fuz_app/testing/cross_backend/setup.ts';
 import { rpc_call } from '@fuzdev/fuz_app/testing/rpc_helpers.ts';
@@ -97,7 +98,7 @@ describe('repo read shapes (cross-process, both backends)', () => {
 			headers: fixture.create_session_headers()
 		});
 		assert.isTrue(created.ok, `create failed: ${JSON.stringify(created)}`);
-		const repo = FuzForgeRepoOutput.parse((created.result as { repo: unknown }).repo);
+		const repo = parse_or_throw(FuzForgeRepoOutput, (created.result as { repo: unknown }).repo);
 
 		// base → (side | main) → merge. `--no-ff` forces a real merge commit
 		// even though the side branch could fast-forward.
@@ -125,7 +126,7 @@ describe('repo read shapes (cross-process, both backends)', () => {
 				headers: fixture.create_session_headers()
 			});
 			assert.isTrue(res.ok, `log failed: ${JSON.stringify(res)}`);
-			return FuzForgeRepoLogOutput.parse(res.result);
+			return parse_or_throw(FuzForgeRepoLogOutput, res.result);
 		};
 
 		// git's own `%P` order is the contract, not "sorted" or "reversed": the
@@ -148,7 +149,7 @@ describe('repo read shapes (cross-process, both backends)', () => {
 			headers: fixture.create_session_headers()
 		});
 		assert.isTrue(commit.ok, `commit failed: ${JSON.stringify(commit)}`);
-		const commit_out = FuzForgeRepoCommitOutput.parse(commit.result);
+		const commit_out = parse_or_throw(FuzForgeRepoCommitOutput, commit.result);
 		assert.deepEqual(commit_out.commit.parents, parents_from_git, 'commit parents match git');
 		// `git show -p <merge>` emits the *combined* diff, which is empty for a
 		// conflict-free merge (nothing changed relative to both parents). Both
@@ -187,7 +188,7 @@ describe('repo read shapes (cross-process, both backends)', () => {
 			headers: fixture.create_session_headers()
 		});
 		assert.isTrue(created.ok, `create failed: ${JSON.stringify(created)}`);
-		const repo = FuzForgeRepoOutput.parse((created.result as { repo: unknown }).repo);
+		const repo = parse_or_throw(FuzForgeRepoOutput, (created.result as { repo: unknown }).repo);
 
 		const work = await create_work_repo('readcaps');
 		cleanup_dirs.push(work);
@@ -213,7 +214,7 @@ describe('repo read shapes (cross-process, both backends)', () => {
 			headers: fixture.create_session_headers()
 		});
 		assert.isTrue(commit.ok, `commit failed: ${JSON.stringify(commit)}`);
-		const commit_out = FuzForgeRepoCommitOutput.parse(commit.result);
+		const commit_out = parse_or_throw(FuzForgeRepoCommitOutput, commit.result);
 		// The metadata survives the oversized diff — that split (two `git show`
 		// calls with independent caps) is the whole reason the cap degrades
 		// instead of failing the response.
@@ -230,7 +231,7 @@ describe('repo read shapes (cross-process, both backends)', () => {
 			headers: fixture.create_session_headers()
 		});
 		assert.isTrue(blob.ok, `blob failed: ${JSON.stringify(blob)}`);
-		const blob_out = FuzForgeRepoBlobOutput.parse(blob.result);
+		const blob_out = parse_or_throw(FuzForgeRepoBlobOutput, blob.result);
 		assert.strictEqual(blob_out.body.kind, 'truncated', 'a >5 MB blob is truncated');
 		// The size comes from `cat-file -s`, not from the bytes — the point of
 		// probing size before body is that the oversize blob is never read.
@@ -268,7 +269,7 @@ describe('repo read shapes (cross-process, both backends)', () => {
 				headers: fixture.create_session_headers()
 			});
 			assert.isTrue(created.ok, `create failed: ${JSON.stringify(created)}`);
-			repo = FuzForgeRepoOutput.parse((created.result as { repo: unknown }).repo);
+			repo = parse_or_throw(FuzForgeRepoOutput, (created.result as { repo: unknown }).repo);
 
 			const work = await create_work_repo('readshapes');
 			shared_work = work;
@@ -324,7 +325,7 @@ describe('repo read shapes (cross-process, both backends)', () => {
 		test('a binary blob is {kind: binary} with the real size', async () => {
 			const res = await read('fuz_forge_repo_blob', { ref: 'main', path: 'blob.bin' });
 			assert.isTrue(res.ok, `blob failed: ${JSON.stringify(res)}`);
-			const blob = FuzForgeRepoBlobOutput.parse(res.result);
+			const blob = parse_or_throw(FuzForgeRepoBlobOutput, res.result);
 			// The NUL sniff runs over the first 8 KB on both backends, so a
 			// megabyte of random bytes is binary with overwhelming probability
 			// — and the body carries no bytes, only the kind.
@@ -373,7 +374,7 @@ describe('repo read shapes (cross-process, both backends)', () => {
 		test('an annotated tag has an empty committer_date; a lightweight tag is a commit', async () => {
 			const res = await read('fuz_forge_repo_refs', {});
 			assert.isTrue(res.ok, `refs failed: ${JSON.stringify(res)}`);
-			const refs = FuzForgeRepoRefsOutput.parse(res.result);
+			const refs = parse_or_throw(FuzForgeRepoRefsOutput, res.result);
 
 			const annotated = refs.refs.find((r) => r.name === 'refs/tags/v-annotated');
 			assert.ok(annotated, 'refs should include the annotated tag');
@@ -407,7 +408,7 @@ describe('repo read shapes (cross-process, both backends)', () => {
 			// "the filter found nothing".
 			const control = await read('fuz_forge_repo_log', { author: 'nobody@example.invalid' });
 			assert.isTrue(control.ok, `author control failed: ${JSON.stringify(control)}`);
-			assert.deepEqual(FuzForgeRepoLogOutput.parse(control.result).commits, []);
+			assert.deepEqual(parse_or_throw(FuzForgeRepoLogOutput, control.result).commits, []);
 
 			// `--author` is a regex handed to git unmodified, so `[` exits 128
 			// with `fatal: header, '[': <regcomp message>`. Both backends

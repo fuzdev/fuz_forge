@@ -5,7 +5,7 @@
  * `cross_backend_*` mechanism. It pins the anti-enumeration failure posture of
  * the post-receive hook callback: every reachable rejection is the *same* bare
  * 401 — same status, same plain-text body, NO `WWW-Authenticate`, no JSON
- * envelope and no Zod/serde issue list that would leak the schema shape.
+ * envelope and no schema/serde issue list that would leak the schema shape.
  *
  * **Why this is a parity probe (not duplicated coverage).** `repo_push.cross`
  * drives the *success* callback (default-branch push → `head_sha` update); it
@@ -13,7 +13,7 @@
  * defense-in-depth seam — it accepts no account credential, only a same-host
  * connection + a per-repo shared secret — so its failure shape is the whole
  * security contract, and it must be byte-identical across backends. A divergence
- * (one backend 400ing a malformed body with serde/Zod issues while the other
+ * (one backend 400ing a malformed body with serde/schema issues while the other
  * 401s) would let an attacker who reached the endpoint enumerate the body schema
  * against the leakier backend. Both render the rejection from one helper — TS
  * `unauthorized` (`repo_internal.ts` → `inhandler_auth.ts`), Rust `unauthorized`
@@ -21,8 +21,8 @@
  *
  * **The malformed-body case is the load-bearing assertion.** Both backends set
  * the route's pre-handler input schema to "none" and validate the body *inside*
- * the handler, *after* the loopback + secret-header gate (TS `input: z.null()`
- * → in-handler `RepoReceiveCallbackBody.safeParse`; Rust `serde_json::from_slice`
+ * the handler, *after* the loopback + secret-header gate (TS `input: literal(null)`
+ * → in-handler `parse` of `RepoReceiveCallbackBody`; Rust `serde_json::from_slice`
  * after `pre_auth_ok`). So a malformed JSON body returns the bare 401 — NOT a
  * 400 with a validation-issue list — closing the schema-enumeration window.
  *
@@ -46,9 +46,9 @@
  * writes that secret's digest onto the cell through `cell_update` (the same
  * move the id-spelling probe makes) and pairs each rejection with a
  * known-secret positive control that returns `{ok: true}` — so the 401 can only
- * be the body schema. It pins the `z.strictObject` /
+ * be the body schema. It pins the strict `object` /
  * `#[serde(deny_unknown_fields)]` twin (an unknown key at either level), the
- * `.nullable()`-is-not-`.optional()` twin (an absent `pushed_by` /
+ * `nullable`-is-not-`optional` twin (an absent `pushed_by` /
  * `push_username`), and the full-sha grammar on an update's `new` (the TS
  * `is_full_sha` refinement, the Rust `updates_are_valid`). The same move gives
  * a cell the empty string's digest, to pin that an empty secret header is read
@@ -254,7 +254,7 @@ describe('internal callback 401 negatives (cross-process, both backends)', () =>
 
 		// Secret header present (passes the loopback phase) + a body that isn't
 		// valid JSON. Both backends validate the body in-handler AFTER the gate, so
-		// the parse failure returns the bare 401 — NOT a 400 with a serde/Zod issue
+		// the parse failure returns the bare 401 — NOT a 400 with a serde/schema issue
 		// list. This is the schema-enumeration-closing assertion.
 		const res = await fetch(`${base_url}${CALLBACK_PATH}`, {
 			method: 'POST',
@@ -304,7 +304,7 @@ describe('internal callback 401 negatives (cross-process, both backends)', () =>
 			push_username: null
 		};
 
-		// Unknown key at the top level and inside an update — `z.strictObject`
+		// Unknown key at the top level and inside an update — a strict `object`
 		// on TS, `#[serde(deny_unknown_fields)]` on Rust.
 		await assert_bare_401(await post({ ...well_formed, surprise: 1 }), 'extra top-level key');
 		await assert_bare_401(
@@ -315,7 +315,7 @@ describe('internal callback 401 negatives (cross-process, both backends)', () =>
 			'extra key inside an update'
 		);
 
-		// `.nullable()` is not `.optional()`: the hooks always send both push
+		// `nullable` is not `optional`: the hooks always send both push
 		// attribution keys, `null` when the push carried no endpoint context.
 		for (const key of ['pushed_by', 'push_username'] as const) {
 			const body: Record<string, unknown> = { ...well_formed };

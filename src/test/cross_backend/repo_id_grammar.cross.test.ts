@@ -12,7 +12,7 @@
  * envelopes, and every real repo cell id is a Postgres `gen_random_uuid()`
  * v4 that passes any grammar. The probes here are the synthetic strings the
  * old grammars disagreed on — a version-0 near-nil id (Rust's
- * `Uuid::parse_str` accepted it, `z.uuid()` 400'd) and the
+ * `Uuid::parse_str` accepted it, the schema 400'd) and the
  * non-hyphenated/braced/URN spellings `parse_str` admits.
  *
  * The contract, asserted identically on both backends:
@@ -26,14 +26,14 @@
  *     `validate_repo_ids` twin) → `-32602`
  *
  * The second describe holds the **spine's** serde-typed UUID fields to the
- * same `z.uuid()` grammar — `cell_get.id` and every element of
+ * same UUID grammar — `cell_get.id` and every element of
  * `cell_list.ids` — which is the identical class one layer down: a Rust input
  * struct declaring a `uuid::Uuid` decodes through the permissive
  * `Uuid::parse_str` unless the field says otherwise, so an off-grammar id
  * reaches the lookup and answers `-32003` on an ungated backend where the
  * twin answers `-32602`. They are mounted here rather than with the input
  * strictness suites because the grammar, not the input shape, is what they
- * pin. Their grammar is the repo id's: fuz_app's `Uuid`, `z.uuid()` but for
+ * pin. Their grammar is the repo id's: fuz_app's `Uuid`, the UUID grammar but for
  * the max UUID, which it takes in any case, as the spine's grammar and the
  * fuz_schema twin do.
  *
@@ -86,7 +86,7 @@ const REJECTED_IDS = [
 const ABSENT_IDS = [
 	'00000000-0000-0000-0000-000000000000',
 	'ffffffff-ffff-ffff-ffff-ffffffffffff',
-	// the max in any case, where a bare z.uuid() takes it in lowercase only
+	// the max in any case, where a bare lowercase-only UUID grammar would refuse an uppercase one
 	'FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF',
 	'ffffffff-FFFF-ffff-FFFF-ffffffffffff',
 	ABSENT_ID,
@@ -272,14 +272,14 @@ describe('spine UUID id fields (cross-process, both backends)', () => {
 	// serde, i.e. `Uuid::parse_str`, which also takes the hyphenless / braced /
 	// `urn:uuid:` spellings and any version+variant nibbles — so each field
 	// carries `#[serde(deserialize_with = "fuz_http::deserialize_wire_uuid")]`
-	// to hold it to the twin's grammar: `z.uuid()`, but the max UUID in any
+	// to hold it to the twin's grammar: the UUID grammar, but the max UUID in any
 	// case, on both backends. The rejected spellings
 	// overlap `REJECTED_IDS` above without being the same table: these rows are
 	// the spine's, and they add the injection string the repo-id table has no
 	// need for.
 
-	test('a spine UUID input field takes only the z.uuid() grammar, but the max UUID in any case', async () => {
-		// `cell_get.id` is `Uuid.optional()` on the twin. On Rust it decodes
+	test('a spine UUID input field takes only the UUID grammar, but the max UUID in any case', async () => {
+		// `cell_get.id` is `optional(Uuid)` on the twin. On Rust it decodes
 		// through `uuid::Uuid`'s own `Deserialize`, i.e. `Uuid::parse_str`,
 		// which also takes the hyphenless / braced / `urn:uuid:` spellings and
 		// any version+variant nibbles — so without a grammar in front of it
@@ -313,7 +313,7 @@ describe('spine UUID id fields (cross-process, both backends)', () => {
 		// The controls: a grammar-valid id naming no cell reaches the lookup and
 		// answers the 404, so the refusals above are the grammar's and not a
 		// blanket rejection of the method. The uppercase and mixed-case max
-		// are grammar-valid here, where a bare `z.uuid()` refuses them.
+		// are grammar-valid here, where a bare lowercase-only UUID grammar refuses them.
 		const absent = [
 			ABSENT_ID,
 			'FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF',
@@ -337,7 +337,7 @@ describe('spine UUID id fields (cross-process, both backends)', () => {
 	});
 
 	test('every element of a spine UUID list is held to the same grammar', async () => {
-		// `cell_list.ids` is `z.array(Uuid)` — the list shape, where a single
+		// `cell_list.ids` is `array(Uuid)` — the list shape, where a single
 		// off-grammar element among valid ones is the interesting case: the
 		// twin refuses the whole call, and a per-element-permissive backend
 		// would answer an honest-looking page for the rest.
