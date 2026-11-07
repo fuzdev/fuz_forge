@@ -7,7 +7,7 @@
 //! is no tree/blob/token command, and `delete_file` discards its body).
 //! Holding both sides to one definition is the parity guard — a renamed field,
 //! a dropped `null`, or a wrong type would be a wire regression caught by the
-//! strict TS Zod schemas in `src/lib/action_specs.ts` for the RPC bodies, and
+//! strict TS schemas in `src/lib/action_specs.ts` for the RPC bodies, and
 //! by `src/test/cross_backend/files.cross.test.ts` for the file-store bodies:
 //! `Object.keys(body).sort()` field-set assertions on the upload and `?meta`
 //! bodies, a whole-body `deepStrictEqual` on the delete body. No assertion pins
@@ -38,7 +38,7 @@
 //!   the client reaches, inside [`FileUploadOutput`]; [`BlobBody`] is
 //!   server-constructed only (the CLI has no blob command), so what its
 //!   closedness binds is the admin dashboard — `FuzForgeRepoBlobBody` in
-//!   `src/lib/action_specs.ts` is a strict `z.discriminatedUnion('kind', …)`,
+//!   `src/lib/action_specs.ts` is a strict `variant('kind', …)`,
 //!   and `src/lib/ui/RepoBlob.svelte` branches over exactly the three kinds, so
 //!   a fourth renders nothing there.
 //! - **Field order is declaration order on the struct, not always on the

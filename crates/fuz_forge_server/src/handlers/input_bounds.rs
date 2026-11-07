@@ -1,24 +1,24 @@
 //! Input bound checks shared by the forge RPC handlers.
 //!
-//! The twin of the zod bounds declared on the forge action inputs in
+//! The twin of the schema bounds declared on the forge action inputs in
 //! `src/lib/action_specs.ts`. The TS dispatcher enforces them *before* the
-//! handler runs (`spec.input.safeParse` → `-32602`), so the Rust handlers
+//! handler runs (the input parse → `-32602`), so the Rust handlers
 //! enforce them immediately after `fuz_http::parse_strict_params` and return
 //! the same [`invalid_params`] envelope.
 //!
-//! Serde covers the shape half of `z.strictObject` — required-vs-optional,
+//! Serde covers the shape half of a strict `object` — required-vs-optional,
 //! types, and (with `#[serde(deny_unknown_fields)]` on every input struct)
-//! unknown keys; the one place it is *more permissive* than zod, mapping a
-//! JSON `null` onto `Option::None` where `.optional()` refuses it, is closed
+//! unknown keys; the one place it is *more permissive* than the TS schema, mapping a
+//! JSON `null` onto `Option::None` where `optional` refuses it, is closed
 //! by the spine's `fuz_http::parse_strict_params`, which every handler
 //! decodes through. What neither expresses is the length/count half, which is
 //! what lives here.
 //!
 //! String lengths are measured in **UTF-16 code units**, not chars: the TS
-//! side is `z.string().min()/.max()`, which counts JavaScript `String.length`.
-//! The two agree on every ASCII input and would drift by a factor of two on
-//! astral-plane text, which is exactly the kind of silent divergence this
-//! module exists to prevent.
+//! side is `min_length` / `max_length`, which count JavaScript `String.length`
+//! (UTF-16 units). Counting chars or bytes would agree on every ASCII input and
+//! drift on astral-plane text, which is exactly the kind of silent divergence
+//! this module exists to prevent.
 
 use fuz_http::{JsonrpcError, as_integral_i64, invalid_params};
 use serde_json::Value;
@@ -75,7 +75,7 @@ pub(super) fn require_opt_len(
 }
 
 /// Bound a list field to `min..=max` entries and require every entry to be
-/// non-empty — the `z.array(z.string().min(1)).min(m).max(n)` twin.
+/// non-empty — the twin of `array(pipe(string, min_length(1)))` bounded to `m..=n` entries.
 ///
 /// # Errors
 ///
@@ -105,7 +105,7 @@ pub(super) fn require_nonempty_entries(
 }
 
 /// Bound an integer field to `min..=max`, taken from the raw JSON value so an
-/// integral float passes the way `z.number().int()` passes it.
+/// integral float passes the way the TS `integer` schema passes it.
 ///
 /// The field is `Option<Value>` on the input struct rather than
 /// `Option<usize>` on purpose: serde would refuse `50.0` outright, which is
@@ -128,7 +128,7 @@ pub(super) fn require_int_range(
         )
     };
     // `fuz_http::as_integral_i64` reads the integral-float spellings
-    // `z.number().int()` accepts (`50.0`, `5e1`) alongside a bare `50`
+    // the TS `integer` schema accepts (`50.0`, `5e1`) alongside a bare `50`
     let integer = as_integral_i64(value).ok_or_else(|| {
         if value.is_number() {
             // an integer that overflowed the `as_integral_i64` guard — still a

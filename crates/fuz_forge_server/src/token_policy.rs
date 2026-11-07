@@ -24,7 +24,7 @@
 //! or a per-id allowlist whose values are `true` or an empty `{}`
 //! qualifier object (reserved for v2). Anything not listed is denied;
 //! unscoped tokens (no policy row) pass every check. This is the exact
-//! wire shape of the TS `FuzForgeTokenPolicy` zod schema — both backends
+//! wire shape of the TS `FuzForgeTokenPolicy` schema — both backends
 //! read the same `fuz_forge_api_token_policy.policy` JSONB.
 //!
 //! Cap at 4 KiB serialized ([`MAX_POLICY_BYTES`]).

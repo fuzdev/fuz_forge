@@ -115,7 +115,7 @@ pub fn validate_repo_slug(input: &str) -> Result<String, RepoSlugError> {
 /// Whether `s` is a valid repo cell-id — the canonical wire grammar for a
 /// forge repo `id`, shared by every server ingress on both backends.
 ///
-/// Twin of the TS `RepoId` schema (fuz_schema's `uuid`, the grammar of
+/// Twin of the TS `RepoId` schema (`fuz_schema`'s `uuid`, the grammar of
 /// `fuz_app`'s `Uuid`, in `src/lib/fuz_forge/repo/repo_id.ts`), mirroring its
 /// grammar exactly so the two backends accept and reject the same strings:
 /// hyphenated 8-4-4-4-12 hex (case-insensitive) with the RFC 9562 version
@@ -299,7 +299,7 @@ mod tests {
     #[test]
     fn repo_id_rejects_bad_nibbles() {
         // Version nibble 0 — the synthetic near-nil id that exposed the
-        // grammar split (`Uuid::parse_str` accepted it, `z.uuid()` did not).
+        // grammar split (`Uuid::parse_str` accepted it, the TS grammar did not).
         assert!(!is_valid_repo_id("00000000-0000-0000-0000-000000000001"));
         // The all-ones id every hand-written fixture reaches for is itself
         // rejected: version nibble `1` is fine, variant nibble `1` is not.

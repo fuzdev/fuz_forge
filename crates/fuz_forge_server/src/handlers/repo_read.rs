@@ -237,9 +237,9 @@ struct RepoLogInput {
     ref_: Option<String>,
     #[serde(default)]
     cursor: Option<String>,
-    /// `z.number().int().positive().max(200)` on the TS side. Kept as the raw
-    /// JSON value so [`require_int_range`] can accept the integral floats zod
-    /// accepts — `Option<usize>` would refuse `50.0`, which the twin admits.
+    /// `pipe(number, integer, min_value(1), max_value(200))` on the TS side. Kept as the raw
+    /// JSON value so [`require_int_range`] can accept the integral floats the TS
+    /// schema accepts — `Option<usize>` would refuse `50.0`, which the twin admits.
     #[serde(default)]
     limit: Option<Value>,
     /// `--author=<pattern>` regex, passed through unmodified.
@@ -283,7 +283,7 @@ pub fn fuz_forge_repo_log(
         require_opt_len("author", input.author.as_deref(), 0, 200)?;
         require_opt_len("since", input.since.as_deref(), 0, LOG_SINCE_MAX_LENGTH)?;
         require_opt_len("path", input.path.as_deref(), 0, 1024)?;
-        // `z.number().int().positive().max(200)` rejects 0 and 201 outright;
+        // the TS `limit` schema (`1..=200`) rejects 0 and 201 outright;
         // clamping here would accept a request the TS twin refuses.
         let limit = match input.limit {
             Some(ref value) => require_int_range("limit", value, 1, MAX_LOG_LIMIT)?,

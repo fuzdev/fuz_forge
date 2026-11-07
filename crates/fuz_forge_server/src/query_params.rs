@@ -25,7 +25,7 @@ pub(crate) fn first_query_param(raw_query: Option<&str>, key: &str) -> Option<St
 }
 
 /// Whether `raw_query` carries a key outside `allowed` — the refusal half of a
-/// TS `z.strictObject({...})` query schema.
+/// strict TS query `object` schema.
 ///
 /// The accept half is [`first_query_param`]: a duplicated *known* key collapses
 /// to its first value, exactly as `c.req.query()` builds the record the TS

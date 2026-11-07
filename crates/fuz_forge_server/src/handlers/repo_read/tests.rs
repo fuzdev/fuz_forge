@@ -143,7 +143,7 @@ fn repo_log_input_binds_the_wire_ref_key() {
 }
 
 /// `limit` is carried as the raw JSON value so the integral-float
-/// spellings zod accepts survive to [`require_int_range`]; an
+/// spellings the TS `integer` schema accepts survive to [`require_int_range`]; an
 /// `Option<usize>` field would 400 on `50.0`, which the TS twin mints.
 #[test]
 fn repo_log_input_carries_the_raw_limit_value() {

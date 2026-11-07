@@ -218,7 +218,7 @@ async fn handle_repo_config(
 }
 
 /// A required-but-nullable wire field: the key must be present, its value may
-/// be `null`. The twin of zod's `.nullable()`, which — unlike `.optional()` —
+/// be `null`. The twin of the TS `nullable`, which — unlike `optional` —
 /// does not admit an absent key. A bare `Option<T>` field can't express this:
 /// serde's derive fills a missing `Option` field with `None`, so the key would
 /// silently become optional on the Rust side alone. (Nor can
@@ -229,14 +229,14 @@ async fn handle_repo_config(
 #[derive(Debug, Deserialize)]
 struct RequiredNullable<T>(Option<T>);
 
-/// Twin of the TS `RepoReceiveCallbackBody` zod schema (`repo_internal.ts`).
+/// Twin of the TS `RepoReceiveCallbackBody` schema (`repo_internal.ts`).
 ///
-/// `deny_unknown_fields` is the `z.strictObject` half: an extra key is a
+/// `deny_unknown_fields` is the strict-`object` half: an extra key is a
 /// parse failure, which the handler answers with the same bare 401 as every
 /// other rejection. [`RefUpdate::new`] is held to the full-sha grammar after
 /// the parse ([`updates_are_valid`]). `pushed_by` / `push_username` are
-/// [`RequiredNullable`] rather than `Option` because the zod schema spells
-/// them `.nullable()` — the hooks always send both keys, `null` when the push
+/// [`RequiredNullable`] rather than `Option` because the TS schema spells
+/// them `nullable(string)` — the hooks always send both keys, `null` when the push
 /// carried no endpoint context.
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]

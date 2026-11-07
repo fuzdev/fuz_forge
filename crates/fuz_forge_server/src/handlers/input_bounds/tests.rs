@@ -59,14 +59,14 @@ fn require_int_range_pins_both_edges() {
     assert_invalid_params(&require_int_range("limit", &json!(-1), 1, 200).unwrap_err());
 }
 
-/// JSON has one number type and `z.number().int()` asks only whether the
+/// JSON has one number type and the TS `integer` schema asks only whether the
 /// value is integral, so `50.0` is a valid `limit` on the TS side — and a
 /// JS client cannot even spell it differently from `50`. Deserializing
 /// straight into `usize` would refuse it, making Rust stricter than its
 /// twin. Twin of the same widening in the spine's
 /// `parse_token_lifetime_param`.
 #[test]
-fn require_int_range_accepts_integral_floats_like_zod() {
+fn require_int_range_accepts_integral_floats_like_ts() {
     assert_eq!(
         require_int_range("limit", &json!(50.0), 1, 200).unwrap(),
         50

@@ -614,7 +614,7 @@ mod tests {
     }
 
     /// `fuz_forge_token_policy_list` takes only `acting`, so an unknown key is
-    /// the same `-32602` the TS `z.strictObject({acting}).default({})` gives.
+    /// the same `-32602` the TS strict `{acting}` object (default `{}`) gives.
     #[test]
     fn token_policy_list_input_is_strict() {
         assert!(

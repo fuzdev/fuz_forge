@@ -213,8 +213,8 @@ pub(super) async fn query_repo_cell(
 /// the lowercase slug (creation folds via
 /// [`fuz_forge_wire::validate_repo_slug`]), so the input
 /// slug is lowercased here before the lookup — `MyOrg/MyRepo` resolves the same
-/// cell as `myorg/myrepo`. (serde does not fold like the TS `RepoSlug` zod
-/// `.transform`, so this keeps `repo_get`/`_resync`/`_rotate_secret`-by-slug at
+/// cell as `myorg/myrepo`. (serde does not fold like the TS `RepoSlug`
+/// `to_lower_case`, so this keeps `repo_get`/`_resync`/`_rotate_secret`-by-slug at
 /// parity with the TS backend on mixed-case input.)
 pub(super) async fn query_repo_cell_by_slug(
     app: &FuzForgeApp,

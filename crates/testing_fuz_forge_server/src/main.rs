@@ -85,11 +85,11 @@ const TESTING_DEFAULT_ADDR: SocketAddr =
 /// Params for `_testing_await_signal`.
 ///
 /// Twin of the TS
-/// `z.strictObject({timeout_ms: z.number().int().positive().max(60_000)})`:
-/// `deny_unknown_fields` is the `strictObject`; the field is an `f64` so an
-/// integral float (`1e3`, `1.0`) passes the way `z.number().int()` passes it
+/// `object({timeout_ms: pipe(number, integer, min_value(1), max_value(60_000))})`:
+/// `deny_unknown_fields` is the strict `object`; the field is an `f64` so an
+/// integral float (`1e3`, `1.0`) passes the way the TS `integer` schema passes it
 /// (JSON has one number type), with the handler's `fract() == 0` check the
-/// `.int()` and its `1..=60_000` range check the `.positive()` + `.max()`.
+/// `integer` and its `1..=60_000` range check the `min_value` + `max_value`.
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct AwaitSignalParams {
@@ -97,13 +97,13 @@ struct AwaitSignalParams {
 }
 
 /// The inclusive `timeout_ms` bound, mirroring the TS schema's
-/// `.positive().max(60_000)`.
+/// `min_value(1)` and `max_value(60_000)`.
 const AWAIT_SIGNAL_TIMEOUT_MS_RANGE: std::ops::RangeInclusive<f64> = 1.0..=60_000.0;
 
 /// Build the forge-local `_testing_await_signal` spec.
 ///
 /// Input `{timeout_ms: number}` (an integer in `1..=60_000`, validated the
-/// way the TS twin's zod schema validates it), output
+/// way the TS twin's schema validates it), output
 /// `{cancelled: boolean}`. The handler races [`ActionContext::signal`]
 /// against that timeout and reports which won, so a test can observe from
 /// the wire whether a `cancel` notification actually reached the handler's

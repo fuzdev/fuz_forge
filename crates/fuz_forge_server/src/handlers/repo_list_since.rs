@@ -8,7 +8,7 @@
 //! here, `Date.parse` on TS — and the two disagree, so one grammar in front of
 //! both stores makes the divergence unreachable instead of documented; see
 //! [`require_iso8601_datetime`] for the case that motivated it. Two bounds sit
-//! outside `z.iso.datetime()` because zod's shape is *wider* than what
+//! outside the datetime regex because its shape is *wider* than what
 //! Postgres will parse: [`MIN_ISO8601_YEAR`] and [`SINCE_MAX_LENGTH`].
 //!
 //! Twin of `src/lib/fuz_forge/repo/repo_list_since.ts`, which applies the same
@@ -23,7 +23,7 @@ use fuz_http::{JsonrpcError, invalid_params};
 ///
 /// The TS twin raises it from the input schema, where the dispatcher flattens
 /// it to a bare `invalid params` (with a DEV-only `data.issues` carrying the
-/// zod message), so only this backend puts the text on the wire — as with
+/// schema message), so only this backend puts the text on the wire — as with
 /// [`super::seed_from::SEED_FROM_URL_MESSAGE`], the `-32602` code is the
 /// contract and the text is not.
 pub(super) const SINCE_DATETIME_MESSAGE: &str =
@@ -31,7 +31,7 @@ pub(super) const SINCE_DATETIME_MESSAGE: &str =
 
 /// Lowest year the grammar admits. Postgres has no year zero, and `0000` is
 /// the only 4-digit year its `timestamptz` parser refuses (`date/time field
-/// value out of range`) — so this is the whole calendar gap between zod's
+/// value out of range`) — so this is the whole calendar gap between the TS regex's
 /// `\d{4}` and what this backend can store. Twin of `MIN_ISO8601_YEAR` in
 /// `src/lib/fuz_forge/repo/repo_list_since.ts`.
 const MIN_ISO8601_YEAR: u16 = 1;
@@ -64,10 +64,10 @@ pub(super) const SINCE_MAX_LENGTH: usize = 64;
 /// `YYYY-MM-DDTHH:MM`, an optional `:SS`, an optional fractional part after
 /// that, then a literal `Z`. No offset form, no local form, no bare date, no
 /// lowercase `t`/`z`. The calendar is validated, leap years included, because
-/// zod's regex does (`2020-02-30T00:00:00Z` and `2021-02-29T00:00:00Z` are
+/// the TS regex does (`2020-02-30T00:00:00Z` and `2021-02-29T00:00:00Z` are
 /// refused there, so they are refused here).
 ///
-/// **Two bounds sit outside that regex**, and both exist because zod's shape
+/// **Two bounds sit outside that regex**, and both exist because the TS regex
 /// is *wider* than what Postgres will parse — a value the schema admits and
 /// the cast refuses is a `-32603` here against a `200` on TS, the same class
 /// of split the grammar was added to close. [`MIN_ISO8601_YEAR`] refuses year
@@ -129,7 +129,7 @@ fn is_iso8601_datetime(value: &str) -> bool {
     else {
         return false;
     };
-    // The year floor is Postgres's, not zod's — see `MIN_ISO8601_YEAR`.
+    // The year floor is Postgres's, not the TS regex's — see `MIN_ISO8601_YEAR`.
     if year < MIN_ISO8601_YEAR
         || !(1..=12).contains(&month)
         || day < 1
@@ -177,8 +177,8 @@ fn is_iso8601_datetime(value: &str) -> bool {
         .is_some_and(|d| !d.is_empty() && digits(d))
 }
 
-/// Days in a Gregorian month, leap years included — the calendar rule zod's
-/// `z.iso.datetime()` regex encodes (divisible by 4, except centuries not
+/// Days in a Gregorian month, leap years included — the calendar rule the TS
+/// datetime regex encodes (divisible by 4, except centuries not
 /// divisible by 400).
 const fn days_in_month(year: u16, month: u8) -> u8 {
     match month {

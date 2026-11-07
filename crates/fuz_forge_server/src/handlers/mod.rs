@@ -33,7 +33,7 @@
 //! - [`repo_id`] — the create RPC's slug validator over the `fuz_forge_wire`
 //!   grammar (keeping its `validation_error` strings).
 //! - [`input_bounds`] — the length/count/selector checks the TS action specs
-//!   declare as zod bounds.
+//!   declare as schema bounds.
 //! - [`repo_list_since`] — the `fuz_forge_repo_list` `since` datetime grammar.
 //! - [`seed_from`] — the `fuz_forge_repo_create` `seed_from` URL grammar and
 //!   host policy.
@@ -66,7 +66,7 @@
 //! is there to prevent. Each `acting` decodes through
 //! `fuz_http::deserialize_optional_wire_uuid`, so the UUID grammar its
 //! `ActingActor` twin declares gates the field itself, not only the
-//! dispatcher's value check. The zod length/count bounds are enforced alongside
+//! dispatcher's value check. The schema's length/count bounds are enforced alongside
 //! them via [`input_bounds`].
 //!
 //! Two things serde does *not* give for free:
@@ -74,11 +74,11 @@
 //! - A **fieldless** template arm has to be spelled `Admin {}`, not `Admin` —
 //!   `deny_unknown_fields` on an internally-tagged enum is applied per-arm, and
 //!   a unit variant has no deserializer to apply it with.
-//! - A JSON `null` on an optional key deserializes to `None`, where zod's
-//!   `.optional()` refuses it. That half is the spine's, not the forge's:
+//! - A JSON `null` on an optional key deserializes to `None`, where the TS
+//!   `optional` refuses it. That half is the spine's, not the forge's:
 //!   `fuz_http::parse_strict_params` walks the raw `params` for a `null` on
 //!   any key before decoding, and every handler decodes through it. No forge
-//!   input is `.nullable()`, so the walk is blanket here — an input that ever
+//!   input is `nullable`, so the walk is blanket here — an input that ever
 //!   gains a nullable field names it through
 //!   `fuz_http::parse_strict_params_allowing_null`.
 

@@ -1,15 +1,15 @@
 //! The policy **document grammar** — the wire shape both backends read out of
 //! `fuz_forge_api_token_policy.policy`.
 //!
-//! Twin of `src/lib/server/fuz_forge_token_policy_schema.ts`: the zod schema
+//! Twin of `src/lib/server/fuz_forge_token_policy_schema.ts`: the schema
 //! there and the serde types here describe one JSON document, so the two
 //! backends accept and reject the same bytes. Grammar only — nothing here
 //! decides whether a capability is allowed ([`super::check`]) or reads a row
 //! ([`super::hydrate`]).
 //!
 //! The literal newtypes ([`WildcardLiteral`], [`TrueLiteral`],
-//! [`EmptyQualifiers`], [`PolicyVersion1`]) are how serde spells zod's
-//! `z.literal(...)`: each accepts exactly one JSON value and serializes back to
+//! [`EmptyQualifiers`], [`PolicyVersion1`]) are how serde spells the TS
+//! `literal(...)`: each accepts exactly one JSON value and serializes back to
 //! it, so a document that drifts fails to parse rather than round-tripping into
 //! a different shape.
 
@@ -58,7 +58,7 @@ impl ResourceMap {
 
 /// A per-id grant value: `true`, or the empty qualifier object `{}`.
 ///
-/// Port of the TS `z.union([z.literal(true), z.strictObject({})])` inside
+/// Port of the TS `union([literal(true), object({})])` inside
 /// `FuzForgeTokenPolicyResourceMap`. The two spellings are semantically
 /// identical in v1 — the object form exists so v2 can add qualifiers (e.g.
 /// `{branches: ['main']}`) without a schema break — but the enum keeps them
@@ -107,7 +107,7 @@ impl<'de> Deserialize<'de> for TrueLiteral {
 /// Hand-written rather than a `#[serde(deny_unknown_fields)] struct
 /// EmptyQualifiers {}`: a derived empty struct also deserializes from an empty
 /// *sequence*, so `[]` would have been read as a grant here and refused by the
-/// TS `z.strictObject({})`. This accepts an empty JSON object and nothing else
+/// TS `object({})`. This accepts an empty JSON object and nothing else
 /// — `{"branches": [...]}` is a v2 document neither backend reads as a v1
 /// grant. Serializes back to `{}`.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -226,7 +226,7 @@ pub struct FilesGrant {
 
 /// The `version` literal `1` — the only policy grammar there is.
 ///
-/// Port of the TS `version: z.literal(1)`. A `u32` here would have read a
+/// Port of the TS `version: literal(1)`. A `u32` here would have read a
 /// stored `{"version": 2}` as a v1 document and enforced its grants under v1
 /// rules, where TS refuses it; the unit type refuses it at deserialization on
 /// this side too, so a future grammar bump can only be understood by a backend
@@ -257,7 +257,7 @@ impl<'de> Deserialize<'de> for PolicyVersion1 {
         // inputs. The two backends read this column
         // through different channels — Rust selects `policy::text` and parses
         // the JSON itself, where `1.0` stays a float, while TS receives the
-        // jsonb pre-parsed by the driver, which hands `z.literal(1)` the JS
+        // jsonb pre-parsed by the driver, which hands `literal(1)` the JS
         // number `1`. Refusing `1.0` here would be a divergence written into
         // the channel rather than into the grammar.
         let version = value.as_u64().or_else(|| {

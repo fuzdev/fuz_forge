@@ -65,7 +65,7 @@ fn fact_store_error_response(context: &str, error: &FactError) -> Response {
 const ACTING_QUERY_KEY: &str = "acting";
 
 /// Read the `acting` actor selector for the file mutation routes (POST /
-/// DELETE) under the TS twins' `query: z.strictObject({acting: ActingActor})`.
+/// DELETE) under the TS twins' `query: object({acting: ActingActor})`.
 ///
 /// Two halves, both off the raw query: an unrecognized key fails the parse
 /// (the `strictObject` part), and the recognized one collapses to its first

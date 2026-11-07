@@ -39,7 +39,7 @@ use super::action_registry::build_action_registry;
 /// The TS forge reports its generated `build_info` `VERSION`; the Rust
 /// backend reports its own crate version. The wire shape (`{version,
 /// uptime_ms}`) is what parity asserts — the loose output schema
-/// (`z.looseObject({version: z.string(), uptime_ms: z.number()})`) compares
+/// (`loose_object({version: string, uptime_ms: nonnegative integer})`) compares
 /// types, not the impl-specific version constant.
 const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
 
