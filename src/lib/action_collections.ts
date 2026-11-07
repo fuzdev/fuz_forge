@@ -16,7 +16,7 @@ import type {
  * Action specifications indexed by method name.
  * These represent the complete action spec definitions.
  */
-export const ActionSpecs = {
+export const ActionSpecs: ActionSpecs = {
 	heartbeat: fuz_forge_specs.heartbeat_action_spec,
 	cancel: fuz_forge_specs.cancel_action_spec,
 	'peer/ping': fuz_forge_specs.peer_ping_action_spec,
@@ -62,54 +62,54 @@ export const ActionSpecs = {
 	account_token_create: account_specs.account_token_create_action_spec,
 	account_token_list: account_specs.account_token_list_action_spec,
 	account_token_revoke: account_specs.account_token_revoke_action_spec
-} as const;
-export interface ActionSpecs {
-	heartbeat: typeof fuz_forge_specs.heartbeat_action_spec;
-	cancel: typeof fuz_forge_specs.cancel_action_spec;
-	'peer/ping': typeof fuz_forge_specs.peer_ping_action_spec;
-	fuz_forge_repo_updated: typeof fuz_forge_specs.fuz_forge_repo_updated_action_spec;
-	fuz_forge_repo_list: typeof fuz_forge_specs.fuz_forge_repo_list_action_spec;
-	fuz_forge_repo_get: typeof fuz_forge_specs.fuz_forge_repo_get_action_spec;
-	fuz_forge_repo_log: typeof fuz_forge_specs.fuz_forge_repo_log_action_spec;
-	fuz_forge_repo_commit: typeof fuz_forge_specs.fuz_forge_repo_commit_action_spec;
-	fuz_forge_repo_refs: typeof fuz_forge_specs.fuz_forge_repo_refs_action_spec;
-	fuz_forge_repo_tree: typeof fuz_forge_specs.fuz_forge_repo_tree_action_spec;
-	fuz_forge_repo_blob: typeof fuz_forge_specs.fuz_forge_repo_blob_action_spec;
-	fuz_forge_repo_create: typeof fuz_forge_specs.fuz_forge_repo_create_action_spec;
-	fuz_forge_repo_resync: typeof fuz_forge_specs.fuz_forge_repo_resync_action_spec;
-	fuz_forge_repo_rotate_secret: typeof fuz_forge_specs.fuz_forge_repo_rotate_secret_action_spec;
-	fuz_forge_token_create_scoped: typeof fuz_forge_specs.fuz_forge_token_create_scoped_action_spec;
-	fuz_forge_token_policy_list: typeof fuz_forge_specs.fuz_forge_token_policy_list_action_spec;
-	admin_account_list: typeof admin_specs.admin_account_list_action_spec;
-	admin_session_list: typeof admin_specs.admin_session_list_action_spec;
-	admin_session_revoke_all: typeof admin_specs.admin_session_revoke_all_action_spec;
-	admin_token_revoke_all: typeof admin_specs.admin_token_revoke_all_action_spec;
-	audit_log_list: typeof admin_specs.audit_log_list_action_spec;
-	audit_log_role_grant_history: typeof admin_specs.audit_log_role_grant_history_action_spec;
-	invite_create: typeof admin_specs.invite_create_action_spec;
-	invite_list: typeof admin_specs.invite_list_action_spec;
-	invite_delete: typeof admin_specs.invite_delete_action_spec;
-	account_delete: typeof admin_specs.account_delete_action_spec;
-	account_purge: typeof admin_specs.account_purge_action_spec;
-	account_undelete: typeof admin_specs.account_undelete_action_spec;
-	app_settings_get: typeof admin_specs.app_settings_get_action_spec;
-	app_settings_update: typeof admin_specs.app_settings_update_action_spec;
-	role_grant_offer_create: typeof role_grant_offer_specs.role_grant_offer_create_action_spec;
-	role_grant_offer_accept: typeof role_grant_offer_specs.role_grant_offer_accept_action_spec;
-	role_grant_offer_decline: typeof role_grant_offer_specs.role_grant_offer_decline_action_spec;
-	role_grant_offer_retract: typeof role_grant_offer_specs.role_grant_offer_retract_action_spec;
-	role_grant_offer_list: typeof role_grant_offer_specs.role_grant_offer_list_action_spec;
-	role_grant_offer_history: typeof role_grant_offer_specs.role_grant_offer_history_action_spec;
-	role_grant_revoke: typeof role_grant_offer_specs.role_grant_revoke_action_spec;
-	role_grant_assign: typeof role_grant_offer_specs.role_grant_assign_action_spec;
-	account_verify: typeof account_specs.account_verify_action_spec;
-	account_session_list: typeof account_specs.account_session_list_action_spec;
-	account_session_revoke: typeof account_specs.account_session_revoke_action_spec;
-	account_session_revoke_all: typeof account_specs.account_session_revoke_all_action_spec;
-	account_token_create: typeof account_specs.account_token_create_action_spec;
-	account_token_list: typeof account_specs.account_token_list_action_spec;
-	account_token_revoke: typeof account_specs.account_token_revoke_action_spec;
-}
+};
+export type ActionSpecs = {
+	readonly heartbeat: typeof fuz_forge_specs.heartbeat_action_spec;
+	readonly cancel: typeof fuz_forge_specs.cancel_action_spec;
+	readonly 'peer/ping': typeof fuz_forge_specs.peer_ping_action_spec;
+	readonly fuz_forge_repo_updated: typeof fuz_forge_specs.fuz_forge_repo_updated_action_spec;
+	readonly fuz_forge_repo_list: typeof fuz_forge_specs.fuz_forge_repo_list_action_spec;
+	readonly fuz_forge_repo_get: typeof fuz_forge_specs.fuz_forge_repo_get_action_spec;
+	readonly fuz_forge_repo_log: typeof fuz_forge_specs.fuz_forge_repo_log_action_spec;
+	readonly fuz_forge_repo_commit: typeof fuz_forge_specs.fuz_forge_repo_commit_action_spec;
+	readonly fuz_forge_repo_refs: typeof fuz_forge_specs.fuz_forge_repo_refs_action_spec;
+	readonly fuz_forge_repo_tree: typeof fuz_forge_specs.fuz_forge_repo_tree_action_spec;
+	readonly fuz_forge_repo_blob: typeof fuz_forge_specs.fuz_forge_repo_blob_action_spec;
+	readonly fuz_forge_repo_create: typeof fuz_forge_specs.fuz_forge_repo_create_action_spec;
+	readonly fuz_forge_repo_resync: typeof fuz_forge_specs.fuz_forge_repo_resync_action_spec;
+	readonly fuz_forge_repo_rotate_secret: typeof fuz_forge_specs.fuz_forge_repo_rotate_secret_action_spec;
+	readonly fuz_forge_token_create_scoped: typeof fuz_forge_specs.fuz_forge_token_create_scoped_action_spec;
+	readonly fuz_forge_token_policy_list: typeof fuz_forge_specs.fuz_forge_token_policy_list_action_spec;
+	readonly admin_account_list: typeof admin_specs.admin_account_list_action_spec;
+	readonly admin_session_list: typeof admin_specs.admin_session_list_action_spec;
+	readonly admin_session_revoke_all: typeof admin_specs.admin_session_revoke_all_action_spec;
+	readonly admin_token_revoke_all: typeof admin_specs.admin_token_revoke_all_action_spec;
+	readonly audit_log_list: typeof admin_specs.audit_log_list_action_spec;
+	readonly audit_log_role_grant_history: typeof admin_specs.audit_log_role_grant_history_action_spec;
+	readonly invite_create: typeof admin_specs.invite_create_action_spec;
+	readonly invite_list: typeof admin_specs.invite_list_action_spec;
+	readonly invite_delete: typeof admin_specs.invite_delete_action_spec;
+	readonly account_delete: typeof admin_specs.account_delete_action_spec;
+	readonly account_purge: typeof admin_specs.account_purge_action_spec;
+	readonly account_undelete: typeof admin_specs.account_undelete_action_spec;
+	readonly app_settings_get: typeof admin_specs.app_settings_get_action_spec;
+	readonly app_settings_update: typeof admin_specs.app_settings_update_action_spec;
+	readonly role_grant_offer_create: typeof role_grant_offer_specs.role_grant_offer_create_action_spec;
+	readonly role_grant_offer_accept: typeof role_grant_offer_specs.role_grant_offer_accept_action_spec;
+	readonly role_grant_offer_decline: typeof role_grant_offer_specs.role_grant_offer_decline_action_spec;
+	readonly role_grant_offer_retract: typeof role_grant_offer_specs.role_grant_offer_retract_action_spec;
+	readonly role_grant_offer_list: typeof role_grant_offer_specs.role_grant_offer_list_action_spec;
+	readonly role_grant_offer_history: typeof role_grant_offer_specs.role_grant_offer_history_action_spec;
+	readonly role_grant_revoke: typeof role_grant_offer_specs.role_grant_revoke_action_spec;
+	readonly role_grant_assign: typeof role_grant_offer_specs.role_grant_assign_action_spec;
+	readonly account_verify: typeof account_specs.account_verify_action_spec;
+	readonly account_session_list: typeof account_specs.account_session_list_action_spec;
+	readonly account_session_revoke: typeof account_specs.account_session_revoke_action_spec;
+	readonly account_session_revoke_all: typeof account_specs.account_session_revoke_all_action_spec;
+	readonly account_token_create: typeof account_specs.account_token_create_action_spec;
+	readonly account_token_list: typeof account_specs.account_token_list_action_spec;
+	readonly account_token_revoke: typeof account_specs.account_token_revoke_action_spec;
+};
 
 export const action_specs: Array<ActionSpecUnion> = Object.values(ActionSpecs);
 

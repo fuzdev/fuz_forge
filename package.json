@@ -33,7 +33,7 @@
   },
   "devDependencies": {
     "@fuzdev/blake3-wasm": "^0.2.0",
-    "@fuzdev/fuz_app": "^0.166.0",
+    "@fuzdev/fuz_app": "^0.167.0",
     "@fuzdev/fuz_code": "^0.56.0",
     "@fuzdev/fuz_css": "^0.72.0",
     "@fuzdev/fuz_schema": "^0.5.4",
@@ -48,7 +48,7 @@
     "@hono/node-server": "^1.19.17",
     "@hono/node-ws": "^1.3.1",
     "@node-rs/argon2": "^2.2.1",
-    "@ryanatkn/eslint-config": "^0.13.1",
+    "@ryanatkn/eslint-config": "^0.13.2",
     "@sveltejs/adapter-static": "^4.0.0",
     "@sveltejs/kit": "^3.1.0",
     "@sveltejs/package": "^3.0.0",
