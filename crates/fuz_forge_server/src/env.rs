@@ -377,7 +377,7 @@ mod tests {
     /// `src/test/fixtures/parity/env_retired.json`, which the TS twin's
     /// `ServerEnv` suite reads too. The assertions differ by side and that
     /// asymmetry is the contract, not a gap: this loader silently ignores each
-    /// name while the TS `z.strictObject` refuses the whole record, and both
+    /// name while the TS strict `object` refuses the whole record, and both
     /// refuse to honor it — which is what the cross-backend env contract
     /// requires.
     #[test]

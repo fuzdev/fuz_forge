@@ -261,7 +261,7 @@ struct RefUpdate {
 }
 
 /// Whether every update's `new` is a full lowercase sha ([`is_full_sha`], which
-/// [`ZERO_SHA`] satisfies). Twin of the `new` refinement on the TS
+/// [`ZERO_SHA`] satisfies). Twin of the `new` `check` on the TS
 /// `RepoReceiveCallbackBody`; a body failing it is the same bare 401 as a
 /// schema failure.
 fn updates_are_valid(body: &RepoReceiveCallbackBody) -> bool {
@@ -559,7 +559,7 @@ mod tests {
         });
         assert!(serde_json::from_value::<RepoReceiveCallbackBody>(base.clone()).is_ok());
 
-        // `z.strictObject` twin — an extra key at either level is a parse
+        // strict `object` twin — an extra key at either level is a parse
         // failure (→ the bare 401), not a silently-ignored field.
         let mut extra_top = base.clone();
         extra_top["surprise"] = json!(1);
@@ -568,7 +568,7 @@ mod tests {
         extra_nested["updates"][0]["surprise"] = json!(1);
         assert!(serde_json::from_value::<RepoReceiveCallbackBody>(extra_nested).is_err());
 
-        // `.nullable()` is not `.optional()` — an absent key is a parse
+        // `nullable` is not `optional` — an absent key is a parse
         // failure on both sides.
         for missing in ["repo_id", "updates", "pushed_by", "push_username"] {
             let mut obj = base.clone();

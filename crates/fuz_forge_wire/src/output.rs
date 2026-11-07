@@ -19,7 +19,7 @@
 //! asserted: `src/test/cross_backend/files_scoped_token.cross.test.ts` requires
 //! a list entry's `uploaded_at` to equal the one the `?meta` read returns. The
 //! file-store *route specs* in `src/lib/server/routes/files.ts` are not that
-//! guard: each is a deliberately loose one-field `z.looseObject`, which a
+//! guard: each is a deliberately loose one-field `loose_object`, which a
 //! renamed or dropped sibling field passes.
 //!
 //! # Serialization invariants
@@ -27,7 +27,7 @@
 //! Every shape carries the same keys and the same values as the JSON the TS
 //! twin emits (key *order* is a separate matter — see below):
 //!
-//! - **No `skip_serializing_if`.** Each `Option` is TS `.nullable()`, so a
+//! - **No `skip_serializing_if`.** Each `Option` is TS `nullable(...)`, so a
 //!   `None` must emit the key with a JSON `null`. Dropping the key fails the
 //!   strict cross-test.
 //! - **No `deny_unknown_fields`.** Deserialization stays tolerant of unknown

@@ -232,7 +232,7 @@ fn deserializes_ts_wire_shape() {
 /// - `grant_values`: a value outside `true | {}` fails the whole document
 ///   rather than being read as a grant here and refused there.
 /// - `optional_null`: `#[serde(default)] Option<T>` alone reads `null` as
-///   absence, where the TS `.optional()` refuses it — so a
+///   absence, where the TS `optional` refuses it — so a
 ///   `{"files": null, "forge": {"push": "*"}}` row granted push here and
 ///   denied everything there.
 ///

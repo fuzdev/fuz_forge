@@ -37,7 +37,7 @@ fn assert_invalid_params(err: &JsonrpcError) {
     assert_eq!(err.code, JsonrpcErrorCode::InvalidParams);
 }
 
-/// `deny_unknown_fields` is the `z.strictObject` twin: a key no read
+/// `deny_unknown_fields` is the strict `object` twin: a key no read
 /// input declares is refused at parse, so the handler never runs on a
 /// silently-dropped field (a typo'd filter would otherwise read as
 /// "no filter" on Rust and 400 on TS).
@@ -94,7 +94,7 @@ fn read_inputs_accept_the_dispatcher_owned_acting_selector() {
 }
 
 /// The spine's [`parse_strict_params`] runs the `null` walk ahead of the
-/// decode: `null` on an optional key is `-32602` on TS (`.optional()` admits
+/// decode: `null` on an optional key is `-32602` on TS (`optional` admits
 /// absence only) but `None` to serde, which would read as "no filter" and
 /// answer 200. On the repo selector that difference is load-bearing —
 /// `{"id": null, "slug": "org/repo"}` would otherwise resolve as a slug-only

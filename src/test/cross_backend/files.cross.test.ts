@@ -35,7 +35,7 @@
  *   *accept* half of a strict `{acting}` object: a duplicated `acting` key
  *   collapses to its first value rather than failing the parse — and the two
  *   grammar edges, a JSON-quoted and a hyphenless UUID, both of which the
- *   bare `Uuid.optional()` (the UUID grammar) parse refuses on both sides.
+ *   bare `optional(Uuid)` (the UUID grammar) parse refuses on both sides.
  * - **the file cell's fact address** — a file cell whose `blake3` is off the
  *   strict fact-address grammar (uppercase hex, a `sha256:` hash, an SRI
  *   token) is a missing file on both backends: `?meta` and the download 404
@@ -645,7 +645,7 @@ describe('acting resolves before the role gate (cross-process, both backends)', 
 		const own = fixture.actor.id;
 		const bytes = new Uint8Array([1, 2, 3]);
 
-		// `ActingActor` is `Uuid.optional()` read straight off the raw query
+		// `ActingActor` is `optional(Uuid)` read straight off the raw query
 		// record, so the only accepted spelling is the bare UUID — which the
 		// duplicated-key case above already drives to a 200. The spine's
 		// `fuz_auth::acting::parse_acting_selector` used to JSON-parse the value

@@ -494,7 +494,7 @@ describe_db('fuz_forge_repo_create seed_from host policy', (get_db) => {
 			// The full object as it crosses the wire: code, the host message
 			// (not the grammar one), and no `data` — a schema failure would
 			// carry DEV-mode issues there, which is what tells the handler's
-			// `invalid_params` apart from a refine on the input schema. Compared
+			// `invalid_params` apart from a `check` on the input schema. Compared
 			// through a JSON round-trip because the in-process envelope carries
 			// an own `data: undefined` key that never reaches a client.
 			assert.deepStrictEqual(

@@ -97,7 +97,7 @@ const SERIALIZE_CONTEXT: &str = "fuz_forge_repo: serialize output";
 
 /// `id` xor `slug` selector shared by `fuz_forge_repo_resync` /
 /// `fuz_forge_repo_rotate_secret`. Mirrors `FuzForgeRepoMutationInput` in
-/// `action_specs.ts`, whose `.refine()` makes the xor a schema failure —
+/// `action_specs.ts`, whose piped `check` makes the xor a schema failure —
 /// [`require_repo_selector`] is the twin.
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -125,7 +125,7 @@ pub fn fuz_forge_repo_create(
         require_opt_len("seed_from", input.seed_from.as_deref(), 1, 2048)?;
         // The seed URL is handed to `git clone --bare` as the remote, so hold
         // it to the http(s) grammar *before* any disk or DB work — the twin of
-        // the `seed_from_url_canonical` refine on the TS input schema. The
+        // the `seed_from_url_canonical` `check` on the TS input schema. The
         // *canonical* serialization is what gets stored and cloned below: the
         // WHATWG parser and git disagree on spellings like
         // `https://host\user:pw@evil/x`, so only the canonical form
@@ -644,7 +644,7 @@ mod tests {
         assert_eq!(err.code, JsonrpcErrorCode::InvalidParams);
     }
 
-    /// `deny_unknown_fields` is the `z.strictObject` twin — a key the write
+    /// `deny_unknown_fields` is the strict `object` twin — a key the write
     /// inputs don't declare is refused at parse rather than dropped.
     #[test]
     fn write_inputs_reject_an_unknown_key() {
@@ -782,7 +782,7 @@ mod tests {
     }
 
     /// `default_branch` defaults to `main` when the key is absent, matching the
-    /// TS `.default('main')`.
+    /// TS `with_default(..., 'main')`.
     #[test]
     fn repo_create_input_defaults_the_branch() {
         let input: RepoCreateInput =

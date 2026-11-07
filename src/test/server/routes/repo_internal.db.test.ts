@@ -529,7 +529,7 @@ describe_db('repo internal callback routes', (get_db) => {
 		});
 
 		test('callback body missing a nullable push-attribution key rejected with 401', async () => {
-			// `.nullable()` is not `.optional()`: the hooks always send both
+			// `nullable` is not `optional`: the hooks always send both
 			// keys (`null` when the push carried no endpoint context), so an
 			// absent key is a malformed body. The Rust twin spells this with a
 			// `RequiredNullable` newtype, since serde fills a missing `Option`

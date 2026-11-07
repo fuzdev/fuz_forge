@@ -199,7 +199,7 @@ describe('cancel protocol method (cross-process, both backends)', () => {
 			const client = await open_socket(fixture.transport.cookies());
 			try {
 				// No `request_id`; an extra key beside a valid one (the params
-				// schema is a `z.strictObject`, so this names nothing); a
+				// schema is a strict `object`, so this names nothing); a
 				// non-object `params`; `params` omitted entirely. Each fails the
 				// twin's `CancelNotificationParams` parse, and none may become an
 				// error envelope — a notification carries no id to answer on.

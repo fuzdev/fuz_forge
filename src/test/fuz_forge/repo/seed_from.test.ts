@@ -121,7 +121,7 @@ describe('seed_from_host_is_private', () => {
 	 * The policy runs on the canonical host, so the address it judges is the
 	 * address git dials — which is what closes the alternate IPv4 spellings the
 	 * parser folds (`2130706433`, `0177.0.0.1`) and the dotted IPv4-mapped IPv6
-	 * form. The handler applies this exact chain after the grammar refine, and
+	 * form. The handler applies this exact chain after the grammar `check`, and
 	 * `FUZ_FORGE_SEED_FROM_ALLOW_PRIVATE_HOSTS` is what skips it.
 	 */
 	for (const row of parity_rows(host_fixture, 'private_urls')) {

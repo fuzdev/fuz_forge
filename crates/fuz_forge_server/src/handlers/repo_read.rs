@@ -83,7 +83,7 @@ pub fn fuz_forge_repo_list(
     Box::pin(async move {
         // Absent params reach here as `Value::Null`, which `parse_strict_params`
         // maps to `{}` — the twin of the TS dispatcher's `raw_params ?? {}`
-        // against the spec's `.default({})`. Its `null` walk is a no-op on a
+        // against the spec's `with_default_fn`. Its `null` walk is a no-op on a
         // non-object, so a no-arg call needs no branch of its own.
         let input: RepoListInput = parse_strict_params(params)?;
         require_opt_len("slug_prefix", input.slug_prefix.as_deref(), 0, 255)?;
@@ -119,7 +119,7 @@ pub fn fuz_forge_repo_list(
         // those disagree in *both* directions. Postgres's special words
         // (`yesterday` / `today` / `now` / `epoch` / `infinity`) parse here and
         // are `NaN` there; year `0000` and a 150-digit fraction pass
-        // `z.iso.datetime()` and are refused by the cast here. The grammar plus
+        // the TS datetime regex and are refused by the cast here. The grammar plus
         // its two bounds (`MIN_ISO8601_YEAR`, `SINCE_MAX_LENGTH`) make both
         // directions unreachable, so the cast below cannot fail and there is no
         // probe-and-degrade step left.
@@ -181,7 +181,7 @@ pub fn fuz_forge_repo_list(
 /// `id` xor `slug` lookup for `fuz_forge_repo_get`. `id` is the cell-id
 /// UUID (PK lookup); `slug` (the `org/repo` clone handle) resolves on the
 /// `repos/<slug>` cell path. Mirrors `FuzForgeRepoGetInput` in
-/// `action_specs.ts`, whose `.refine()` makes the xor a schema failure —
+/// `action_specs.ts`, whose piped `check` makes the xor a schema failure —
 /// [`require_repo_selector`] is the twin.
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]

@@ -116,7 +116,7 @@ describe('db-admin parity (cross-process, both backends)', () => {
 		assert.strictEqual(dup.status, 200, 'duplicate limit takes the first occurrence');
 		assert.strictEqual(((await dup.json()) as { limit: number }).limit, 1);
 		// unknown key: the query contract is strict on both (TS
-		// `z.strictObject`, Rust `assert_known_query_keys`)
+		// strict `object`, Rust `assert_known_query_keys`)
 		const unknown = await fetch(`${base_url}/api/db/tables/cell?foo=1`, { headers });
 		assert.strictEqual(unknown.status, 400, 'unknown query key is refused');
 		assert.strictEqual(((await unknown.json()) as { error: string }).error, 'invalid_query_params');

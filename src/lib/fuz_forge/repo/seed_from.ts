@@ -48,7 +48,7 @@
  * only act on the grammar as a whole.
  *
  * Only the Rust backend puts it on the wire. On TS the grammar is a
- * `.refine()` on the input schema, and the dispatcher flattens every schema
+ * `check` on the input schema, and the dispatcher flattens every schema
  * failure to a bare `invalid params` — this message reaches the client only
  * as a DEV-mode `data.issues` entry. Both sides answer `-32602`, so that code
  * is the cross-backend contract; the text is not.

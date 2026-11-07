@@ -5,8 +5,8 @@
  * `src/test/fixtures/parity/repo_list_since.json`, which the `repo_list_since` test
  * module (`crates/fuz_forge_server/src/handlers/repo_list_since/tests.rs`) reads
  * too. The grammar here is the forge-local `RepoListSince` on the input
- * schema — a union of `z.iso.datetime()` and its minute-precision form, with a
- * `.max()` and a year floor; there it is the hand-written `is_iso8601_datetime`
+ * schema — a datetime regex (seconds optional) under a
+ * `max_length` and a year floor `check`; there it is the hand-written `is_iso8601_datetime`
  * behind `require_iso8601_datetime`. Every spelling in the fixture is a shared
  * assertion.
  *

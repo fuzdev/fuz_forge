@@ -136,7 +136,7 @@ impl<'de> Deserialize<'de> for EmptyQualifiers {
 ///
 /// `#[serde(default)] Option<T>` alone accepts three spellings — absent,
 /// `null`, and a value — mapping the first two onto `None`. The TS twin's
-/// `.optional()` accepts only two: absent, or a value. So a stored
+/// `optional` accepts only two: absent, or a value. So a stored
 /// `{"version": 1, "files": null, "forge": {"push": "*"}}` parsed here as
 /// "no files section, push granted" while the same row failed the TS schema
 /// outright and resolved to the deny-all document. Paired with `default`,

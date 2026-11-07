@@ -68,7 +68,7 @@ const ACTING_QUERY_KEY: &str = "acting";
 /// DELETE) under the TS twins' `query: object({acting: ActingActor})`.
 ///
 /// Two halves, both off the raw query: an unrecognized key fails the parse
-/// (the `strictObject` part), and the recognized one collapses to its first
+/// (the strict-`object` part), and the recognized one collapses to its first
 /// value (what `c.req.query()` hands the schema). The value is a bare UUID,
 /// decoded by [`parse_acting_query`]; absent ⇒ the credential's primary
 /// actor.
@@ -81,7 +81,7 @@ const ACTING_QUERY_KEY: &str = "acting";
 /// # Errors
 ///
 /// Returns the 400 `invalid_query_params` `Response` for an unknown key or an
-/// `acting` value that isn't a UUID — the one body the TS `strictObject`
+/// `acting` value that isn't a UUID — the one body the TS strict `object`
 /// answers for either.
 #[allow(
     clippy::result_large_err,

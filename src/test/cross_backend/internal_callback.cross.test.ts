@@ -50,7 +50,7 @@
  * `#[serde(deny_unknown_fields)]` twin (an unknown key at either level), the
  * `nullable`-is-not-`optional` twin (an absent `pushed_by` /
  * `push_username`), and the full-sha grammar on an update's `new` (the TS
- * `is_full_sha` refinement, the Rust `updates_are_valid`). The same move gives
+ * `is_full_sha` `check`, the Rust `updates_are_valid`). The same move gives
  * a cell the empty string's digest, to pin that an empty secret header is read
  * as absent rather than compared.
  *

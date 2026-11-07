@@ -214,7 +214,7 @@ export const fuz_forge_repo_get_action_spec = {
 
 /**
  * Input shape shared by every repo mutation RPC — `id` xor `slug`,
- * same refine pattern as `FuzForgeRepoGetInput`. Reused so the wire
+ * same piped `check` as `FuzForgeRepoGetInput`. Reused so the wire
  * contract for `fuz_forge_repo_resync` and `fuz_forge_repo_rotate_secret` (and
  * future mutation RPCs) stays uniform with
  * the get-side surface.

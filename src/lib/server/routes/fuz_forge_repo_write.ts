@@ -286,7 +286,7 @@ export const create_fuz_forge_repo_write_rpc_actions = (
 				if (input.seed_from !== undefined) {
 					seed_from = seed_from_url_canonical(input.seed_from);
 					if (seed_from === null) {
-						// Unreachable — the schema refine already ran — but the
+						// Unreachable — the schema `check` already ran — but the
 						// canonical form is load-bearing, so don't assert it.
 						throw jsonrpc_errors.validation_error(`invalid seed_from: ${SEED_FROM_URL_MESSAGE}`);
 					}

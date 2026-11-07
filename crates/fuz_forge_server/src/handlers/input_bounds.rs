@@ -60,7 +60,7 @@ pub(super) fn require_len(
 }
 
 /// [`require_len`] over an optional field — absent is always in bounds
-/// (the TS twins are `.optional()`).
+/// (the TS twins are `optional(...)`).
 ///
 /// # Errors
 ///
@@ -149,10 +149,11 @@ pub(super) fn require_int_range(
     Err(out_of_range())
 }
 
-/// Resolve the `id` xor `slug` repo selector, mirroring the `.refine()` on
-/// the TS `FuzForgeRepoGetInput` / `FuzForgeRepoMutationInput` (which rejects
-/// both-set and neither-set at dispatch). A present `slug` is additionally
-/// held to the `RepoSlug` grammar the TS schema applies at the same point.
+/// Resolve the `id` xor `slug` repo selector, mirroring the `check` piped
+/// over the TS `FuzForgeRepoGetInput` / `FuzForgeRepoMutationInput` (which
+/// rejects both-set and neither-set at dispatch). A present `slug` is
+/// additionally held to the `RepoSlug` grammar the TS schema applies at the
+/// same point.
 ///
 /// # Errors
 ///

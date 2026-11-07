@@ -22,7 +22,7 @@ use url::Url;
 /// are the same on both backends, but their *wording* would drift, and a
 /// caller can only act on the grammar as a whole.
 ///
-/// Only this backend puts it on the wire. On TS the grammar is a `.refine()`
+/// Only this backend puts it on the wire. On TS the grammar is a `check`
 /// on the input schema and the dispatcher flattens every schema failure to a
 /// bare `invalid params`, so the text reaches the client there only as a
 /// DEV-mode `data.issues` entry. Both sides answer -32602, so that code is
@@ -50,9 +50,9 @@ pub(super) const SEED_FROM_URL_MESSAGE: &str =
 /// `example.invalid\user:pw` as credentials. Callers must store and clone
 /// what this returns, so the host that was validated is the host git dials.
 ///
-/// Twin of the `seed_from_url_canonical` `.refine()` on
+/// Twin of the `seed_from_url_canonical` `check` on
 /// `FuzForgeRepoCreateInput` in `src/lib/action_specs.ts` (TS canonicalizes
-/// in the handler right after parse, since a schema `.transform()` there
+/// in the handler right after parse, since a schema `transform` there
 /// would blank the input schema out of the generated attack surface). Both
 /// sides parse with a WHATWG URL parser (`url::Url` here, `new URL()`
 /// there), so scheme and host arrive lowercase-canonicalized, IDNA hosts

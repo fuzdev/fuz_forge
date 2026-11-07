@@ -269,7 +269,7 @@
 					}
 				},
 				"accepted": false,
-				"note": "a null section next to a live grant: `#[serde(default)] Option<T>` alone reads it as absence and grants push, where `.optional()` refuses it"
+				"note": "a null section next to a live grant: `#[serde(default)] Option<T>` alone reads it as absence and grants push, where `optional` refuses it"
 			}
 		]
 	}

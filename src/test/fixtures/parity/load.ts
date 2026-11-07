@@ -30,8 +30,8 @@
  * that side's loader skips it; the marker is always accompanied by a `note`
  * saying which language construct is missing.
  *
- * Deliberately **no zod**. The Rust loader validates with `serde` and its own
- * count assertion; a zod schema here would make the TS side's guard the richer
+ * Deliberately **no schema library**. The Rust loader validates with `serde` and its own
+ * count assertion; a schema here would make the TS side's guard the richer
  * of the two and hide a malformed fixture from Rust until it deserialized.
  * Both loaders assert the same three things: `tables` is present, every table
  * is a non-empty array of objects, and `counts[table]` equals its length.

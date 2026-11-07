@@ -29,7 +29,7 @@ pub(crate) fn first_query_param(raw_query: Option<&str>, key: &str) -> Option<St
 ///
 /// The accept half is [`first_query_param`]: a duplicated *known* key collapses
 /// to its first value, exactly as `c.req.query()` builds the record the TS
-/// schema parses. What `strictObject` adds on top is that an *unknown* key
+/// schema parses. What the strict `object` adds on top is that an *unknown* key
 /// fails the parse, and this is that check, read off the same raw query so the
 /// two halves see the same pairs.
 ///
@@ -71,7 +71,7 @@ mod tests {
 
     /// The strict-object half. There is no shared fixture for it: the TS side
     /// has no helper of this shape — it reads the refusal off a
-    /// `z.strictObject` query schema — so the rows below are this side's alone.
+    /// strict `object` query schema — so the rows below are this side's alone.
     #[test]
     fn has_unknown_query_key_mirrors_strict_object() {
         // Nothing to refuse.

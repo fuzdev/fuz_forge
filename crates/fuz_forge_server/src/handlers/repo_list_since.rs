@@ -58,9 +58,9 @@ pub(super) const SINCE_MAX_LENGTH: usize = 64;
 /// stores makes the divergence unreachable instead of documenting it.
 ///
 /// **The grammar** is the forge-local `RepoListSince` that
-/// `FuzForgeRepoListInput.since` declares: a union of `z.iso.datetime()`,
-/// which requires seconds, and its minute-precision form
-/// (`z.iso.datetime({precision: -1})`), with a year floor. UTC only:
+/// `FuzForgeRepoListInput.since` declares: a string capped at
+/// `SINCE_MAX_LENGTH` that matches one datetime regex (seconds optional),
+/// with a year floor. UTC only:
 /// `YYYY-MM-DDTHH:MM`, an optional `:SS`, an optional fractional part after
 /// that, then a literal `Z`. No offset form, no local form, no bare date, no
 /// lowercase `t`/`z`. The calendar is validated, leap years included, because
@@ -97,8 +97,8 @@ pub(super) fn require_iso8601_datetime(
 }
 
 /// Whether `value` is a UTC ISO 8601 datetime in `RepoListSince`'s grammar:
-/// the union of `z.iso.datetime()` and its minute-precision form, plus the
-/// [`MIN_ISO8601_YEAR`] floor its `.refine` adds. Twin of `RepoListSince` in
+/// the TS datetime regex (seconds optional), plus the
+/// [`MIN_ISO8601_YEAR`] floor its `check` adds. Twin of `RepoListSince` in
 /// `src/lib/fuz_forge/repo/repo_list_since.ts`; the shared case table is
 /// `src/test/fixtures/parity/repo_list_since.json`, asserted by this module's
 /// tests and by `src/test/fuz_forge/repo/repo_list_since.test.ts`.

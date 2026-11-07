@@ -362,7 +362,7 @@ describe('GET /api/rpc transport contract (cross-process, both backends)', () =>
 	test('a non-void method reads ?params=null as the empty object', async () => {
 		// The other half of the same mapping: TS's `raw_params ?? {}` makes
 		// `null` and absent identical for every non-void input, so `cell_list`
-		// — all-optional, `.default({})` — must answer the unfiltered page to
+		// — all-optional, `with_default_fn` — must answer the unfiltered page to
 		// both. A mapping that refused `null` outright would close the void
 		// gap by breaking this one.
 		const fixture = await setup_test();

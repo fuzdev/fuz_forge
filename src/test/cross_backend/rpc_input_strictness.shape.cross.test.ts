@@ -14,7 +14,7 @@
  * *fields* (`cell_get.id`, `cell_list.ids[]`) sit with the forge's own id
  * grammar in `repo_id_grammar.cross.test.ts`.
  *
- * Every forge action input is a `z.strictObject` (`src/lib/action_specs.ts`),
+ * Every forge action input is a strict `object` (`src/lib/action_specs.ts`),
  * and the TS dispatcher enforces the whole schema before the handler runs. The
  * Rust backend has no schema layer: its inputs are serde structs, so the same
  * contract is carried by `#[serde(deny_unknown_fields)]` plus the
@@ -36,8 +36,8 @@
  *     and never the `-32005`/422 a handler-side `validation_error` would
  *     give, with `'*'` itself as the control that keeps the wildcard reachable
  *   - `id` and `slug` both set, or neither → `-32602`, not `-32003`
- *   - a `null` on an optional key → `-32602`; no forge input is `.nullable()`,
- *     so `.optional()` admits an absent key and nothing else
+ *   - a `null` on an optional key → `-32602`; no forge input is `nullable`,
+ *     so `optional` admits an absent key and nothing else
  *   - the spine's hand-decoded **`Uuid` param** (`admin_session_revoke_all`'s
  *     `account_id`) and the dispatcher's own **`acting` selector**, on any
  *     spec, held to the UUID grammar — with the two orderings that go
@@ -51,7 +51,7 @@
  *     `{ok: true, revoked: false}`. These are mutations, so an ungated
  *     backend answers a **success envelope** for input the twin refuses,
  *     which is the one shape a client can't tell from a real no-op
- *   - a `null` on a spine optional key — the same `.optional()`-refuses-null
+ *   - a `null` on a spine optional key — the same `optional`-refuses-null
  *     divergence the forge's own inputs carry, closed for both by
  *     `fuz_http::parse_strict_params`
  *   - a **`void`-input** method (`account_session_list`) refusing a
@@ -62,9 +62,9 @@
  *   - the `fuz_auth` **hand-decoded** families (`admin_*` / `role_grant_*` /
  *     `account_*`), whose `params.get` chains ignore a key nothing looks for
  *     and read a present wrong-typed optional as absent, plus the one mounted
- *     key whose twin is `.optional()` rather than `.nullish()`
+ *     key whose twin is `optional(...)` rather than `optional(nullable(...))`
  *   - the spine's three **`acting`-only admin reads** (`admin_session_list` and
- *     its two siblings) — `a strict `{acting}` object.default({})` on the twin,
+ *     its two siblings) — a strict `{acting}` `object` under `with_default_fn` on the twin,
  *     so an unknown key and a `null` selector are `-32602` while `{}` and an
  *     absent `params` are the call
  *   - the one **flat-REST** row, `POST /api/account/password` with an unknown
@@ -263,7 +263,7 @@ describe('rpc input strictness (cross-process, both backends)', () => {
 	});
 
 	test('a null on an optional key is rejected, not read as absent', async () => {
-		// No forge input field is `.nullable()`, so an `optional` refuses
+		// No forge input field is `nullable`, so an `optional` refuses
 		// `null` outright. Serde's `Option<T>` would map it to `None`, making
 		// `{ref: null}` read as "no ref" on Rust and answer 200 where TS 400s.
 		const fixture = await setup_test();
@@ -382,7 +382,7 @@ describe('rpc input strictness (cross-process, both backends)', () => {
 		// `acting` is the one input the *dispatcher* owns, and the two spines
 		// reach the same refusal by different routes: TS reads a malformed
 		// selector as omitted and then its typed input schema (`ActingActor` =
-		// `Uuid.optional()`) refuses the value, while the Rust dispatcher — which
+		// `optional(Uuid)`) refuses the value, while the Rust dispatcher — which
 		// has no schema layer — validates a present `acting` against the grammar
 		// twin `fuz_http::is_valid_uuid` before the authorization phase.
 		//
@@ -780,7 +780,7 @@ describe('spine hand-decoded input strictness (cross-process, both backends)', (
 	// The `fuz_auth` action families (`admin_*`, `role_grant_*`, `account_*`)
 	// decode their params by hand — `params.get(..)` chains that surface a
 	// per-field `data.reason` a serde struct could not carry. The chain is
-	// blind in two ways the twin's `z.strictObject` is not: a key nothing
+	// blind in two ways the twin's strict `object` is not: a key nothing
 	// looks for is ignored, and a present-but-wrong-typed optional reads as
 	// absent. `fuz_http::reject_unknown_keys` + the typed optional readers
 	// close both, so these rows answer `-32602` on each backend where an
@@ -888,11 +888,11 @@ describe('spine hand-decoded input strictness (cross-process, both backends)', (
 		// behind.
 		const fixture = await setup_test();
 		const cases: Array<[string, Record<string, unknown>]> = [
-			// `.nullish()` string filter read through `as_str`.
+			// `optional(nullable(...))` string filter read through `as_str`.
 			['audit_log_list', { event_type: 42 }],
-			// `.nullish()` boolean flag read through `as_bool`.
+			// `optional(nullable(...))` boolean flag read through `as_bool`.
 			['admin_account_list', { include_deleted: 'yes' }],
-			// `.nullish()` integer read through `as_i64`.
+			// `optional(nullable(...))` integer read through `as_i64`.
 			['role_grant_offer_history', { limit: 'ten' }]
 		];
 		for (const [method, params] of cases) {
@@ -935,7 +935,7 @@ describe('spine hand-decoded input strictness (cross-process, both backends)', (
 		}
 	});
 
-	test('a null on a hand-decoded key the twin declares .optional() is refused', async () => {
+	test('a null on a hand-decoded key the twin declares `optional` is refused', async () => {
 		// `account_token_create.name` is `with_default(string, 'CLI token')`, and
 		// a default fills an **absent** key only — so an explicit `null` is
 		// `-32602` on the twin where an ungated backend mints a token under the
@@ -1000,7 +1000,7 @@ describe('spine acting-only admin inputs (cross-process, both backends)', () => 
 	});
 
 	test('an admin acting-only input takes {} and an absent params', async () => {
-		// The `.default({})` half — the shape every real caller sends.
+		// The `with_default_fn` half — the shape every real caller sends.
 		const fixture = await setup_test();
 		const empty = await post_rpc_session(fixture, {
 			jsonrpc: JSONRPC_VERSION,
@@ -1030,7 +1030,7 @@ describe('spine acting-only admin inputs (cross-process, both backends)', () => 
 describe('flat-REST body strictness (cross-process, both backends)', () => {
 	// The one non-RPC row in this suite: `POST /api/account/password` carries a
 	// JSON body rather than a JSON-RPC envelope, but it is the same
-	// strict-object contract one transport over — `z.strictObject` on TS,
+	// strict-object contract one transport over — strict `object` on TS,
 	// `#[serde(deny_unknown_fields)]` on the Rust spine, and an unknown key is
 	// a refusal on both rather than a silent drop. The mirror of fuz_app's own
 	// signup row upstream.

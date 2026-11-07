@@ -57,7 +57,7 @@
 //! ## Input strictness
 //!
 //! Every input struct carries `#[serde(deny_unknown_fields)]`, the twin of the
-//! `z.strictObject` each TS action input is built from: an unrecognized key is
+//! strict `object` each TS action input is built from: an unrecognized key is
 //! `invalid_params` (-32602) before the handler body runs, on both backends.
 //! That makes the dispatcher-owned `acting` selector and
 //! `fuz_forge_token_create_scoped`'s `lifetime` explicit (accepted, then

@@ -63,8 +63,8 @@ struct TokenCreateInput {
 }
 
 /// Mirrors `fuz_forge_token_policy_list`'s input — `acting` only, and
-/// `.default({})` when params are absent. Carries no field the handler reads;
-/// it exists so an unknown key is the same `-32602` the TS `z.strictObject`
+/// `with_default_fn` supplies `{}` when params are absent. Carries no field the
+/// handler reads; it exists so an unknown key is the same `-32602` the TS strict `object`
 /// produces.
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -425,7 +425,7 @@ pub fn fuz_forge_token_policy_list(
     Box::pin(async move {
         // Absent params reach here as `Value::Null`, which `parse_params`
         // maps to `{}` — the twin of the TS dispatcher's `raw_params ?? {}`
-        // against the spec's `.default({})`. Every field is dispatcher-owned,
+        // against the spec's `with_default_fn`. Every field is dispatcher-owned,
         // so the parse is a shape check only.
         let _input: TokenPolicyListInput = parse_strict_params(params)?;
         let Some(auth) = ctx.auth.actor() else {

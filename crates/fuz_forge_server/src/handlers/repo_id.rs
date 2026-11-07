@@ -83,7 +83,7 @@ mod tests {
     }
 
     /// The per-segment cap the wire crate single-sources, read off the same
-    /// fixture the TS `.refine` is.
+    /// fixture the TS segment `check` is.
     #[test]
     fn repo_segment_length_max_matches_the_ts_twin() {
         for row in parity_rows(REPO_SLUG_FIXTURE, "constants") {

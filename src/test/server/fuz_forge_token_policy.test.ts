@@ -168,7 +168,7 @@ describe('FuzForgeTokenPolicy schema', () => {
 	//
 	// The `grant_values` rows pin that a value outside `true | {}` fails the whole
 	// document rather than being read as a grant on one backend and refused on the
-	// other. The `optional_null` rows pin `.optional()`: absence and a value are
+	// other. The `optional_null` rows pin `optional`: absence and a value are
 	// admitted, `null` never is — the Rust `#[serde(default)] Option<T>` reads
 	// `null` as absence without a reject-null wrapper on every optional grant
 	// field, so a `{files: null, forge: {push: '*'}}` row would grant push there
