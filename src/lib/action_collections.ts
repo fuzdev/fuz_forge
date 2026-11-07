@@ -113,57 +113,9 @@ export type ActionSpecs = {
 export const action_specs: Array<ActionSpecUnion> = Object.values(ActionSpecs);
 
 /**
- * Action parameter schemas indexed by method name.
- * These represent the input data for each action,
- * e.g. JSON-RPC request/notification params and local call arguments.
+ * Action inputs indexed by method name, as parsed: each input schema's output
+ * type, e.g. JSON-RPC request/notification params and local call arguments.
  */
-export const ActionInputs = {
-	heartbeat: fuz_forge_specs.heartbeat_action_spec.input,
-	cancel: fuz_forge_specs.cancel_action_spec.input,
-	'peer/ping': fuz_forge_specs.peer_ping_action_spec.input,
-	fuz_forge_repo_updated: fuz_forge_specs.fuz_forge_repo_updated_action_spec.input,
-	fuz_forge_repo_list: fuz_forge_specs.fuz_forge_repo_list_action_spec.input,
-	fuz_forge_repo_get: fuz_forge_specs.fuz_forge_repo_get_action_spec.input,
-	fuz_forge_repo_log: fuz_forge_specs.fuz_forge_repo_log_action_spec.input,
-	fuz_forge_repo_commit: fuz_forge_specs.fuz_forge_repo_commit_action_spec.input,
-	fuz_forge_repo_refs: fuz_forge_specs.fuz_forge_repo_refs_action_spec.input,
-	fuz_forge_repo_tree: fuz_forge_specs.fuz_forge_repo_tree_action_spec.input,
-	fuz_forge_repo_blob: fuz_forge_specs.fuz_forge_repo_blob_action_spec.input,
-	fuz_forge_repo_create: fuz_forge_specs.fuz_forge_repo_create_action_spec.input,
-	fuz_forge_repo_resync: fuz_forge_specs.fuz_forge_repo_resync_action_spec.input,
-	fuz_forge_repo_rotate_secret: fuz_forge_specs.fuz_forge_repo_rotate_secret_action_spec.input,
-	fuz_forge_token_create_scoped: fuz_forge_specs.fuz_forge_token_create_scoped_action_spec.input,
-	fuz_forge_token_policy_list: fuz_forge_specs.fuz_forge_token_policy_list_action_spec.input,
-	admin_account_list: admin_specs.admin_account_list_action_spec.input,
-	admin_session_list: admin_specs.admin_session_list_action_spec.input,
-	admin_session_revoke_all: admin_specs.admin_session_revoke_all_action_spec.input,
-	admin_token_revoke_all: admin_specs.admin_token_revoke_all_action_spec.input,
-	audit_log_list: admin_specs.audit_log_list_action_spec.input,
-	audit_log_role_grant_history: admin_specs.audit_log_role_grant_history_action_spec.input,
-	invite_create: admin_specs.invite_create_action_spec.input,
-	invite_list: admin_specs.invite_list_action_spec.input,
-	invite_delete: admin_specs.invite_delete_action_spec.input,
-	account_delete: admin_specs.account_delete_action_spec.input,
-	account_purge: admin_specs.account_purge_action_spec.input,
-	account_undelete: admin_specs.account_undelete_action_spec.input,
-	app_settings_get: admin_specs.app_settings_get_action_spec.input,
-	app_settings_update: admin_specs.app_settings_update_action_spec.input,
-	role_grant_offer_create: role_grant_offer_specs.role_grant_offer_create_action_spec.input,
-	role_grant_offer_accept: role_grant_offer_specs.role_grant_offer_accept_action_spec.input,
-	role_grant_offer_decline: role_grant_offer_specs.role_grant_offer_decline_action_spec.input,
-	role_grant_offer_retract: role_grant_offer_specs.role_grant_offer_retract_action_spec.input,
-	role_grant_offer_list: role_grant_offer_specs.role_grant_offer_list_action_spec.input,
-	role_grant_offer_history: role_grant_offer_specs.role_grant_offer_history_action_spec.input,
-	role_grant_revoke: role_grant_offer_specs.role_grant_revoke_action_spec.input,
-	role_grant_assign: role_grant_offer_specs.role_grant_assign_action_spec.input,
-	account_verify: account_specs.account_verify_action_spec.input,
-	account_session_list: account_specs.account_session_list_action_spec.input,
-	account_session_revoke: account_specs.account_session_revoke_action_spec.input,
-	account_session_revoke_all: account_specs.account_session_revoke_all_action_spec.input,
-	account_token_create: account_specs.account_token_create_action_spec.input,
-	account_token_list: account_specs.account_token_list_action_spec.input,
-	account_token_revoke: account_specs.account_token_revoke_action_spec.input
-} as const;
 export interface ActionInputs {
 	heartbeat: Infer<typeof fuz_forge_specs.heartbeat_action_spec.input>;
 	cancel: Infer<typeof fuz_forge_specs.cancel_action_spec.input>;
@@ -313,57 +265,9 @@ export interface ActionCallInputs {
 }
 
 /**
- * Action result schemas indexed by method name.
- * These represent the output data for each action,
+ * Action outputs indexed by method name: each output schema's output type,
  * e.g. JSON-RPC response results and local call return values.
  */
-export const ActionOutputs = {
-	heartbeat: fuz_forge_specs.heartbeat_action_spec.output,
-	cancel: fuz_forge_specs.cancel_action_spec.output,
-	'peer/ping': fuz_forge_specs.peer_ping_action_spec.output,
-	fuz_forge_repo_updated: fuz_forge_specs.fuz_forge_repo_updated_action_spec.output,
-	fuz_forge_repo_list: fuz_forge_specs.fuz_forge_repo_list_action_spec.output,
-	fuz_forge_repo_get: fuz_forge_specs.fuz_forge_repo_get_action_spec.output,
-	fuz_forge_repo_log: fuz_forge_specs.fuz_forge_repo_log_action_spec.output,
-	fuz_forge_repo_commit: fuz_forge_specs.fuz_forge_repo_commit_action_spec.output,
-	fuz_forge_repo_refs: fuz_forge_specs.fuz_forge_repo_refs_action_spec.output,
-	fuz_forge_repo_tree: fuz_forge_specs.fuz_forge_repo_tree_action_spec.output,
-	fuz_forge_repo_blob: fuz_forge_specs.fuz_forge_repo_blob_action_spec.output,
-	fuz_forge_repo_create: fuz_forge_specs.fuz_forge_repo_create_action_spec.output,
-	fuz_forge_repo_resync: fuz_forge_specs.fuz_forge_repo_resync_action_spec.output,
-	fuz_forge_repo_rotate_secret: fuz_forge_specs.fuz_forge_repo_rotate_secret_action_spec.output,
-	fuz_forge_token_create_scoped: fuz_forge_specs.fuz_forge_token_create_scoped_action_spec.output,
-	fuz_forge_token_policy_list: fuz_forge_specs.fuz_forge_token_policy_list_action_spec.output,
-	admin_account_list: admin_specs.admin_account_list_action_spec.output,
-	admin_session_list: admin_specs.admin_session_list_action_spec.output,
-	admin_session_revoke_all: admin_specs.admin_session_revoke_all_action_spec.output,
-	admin_token_revoke_all: admin_specs.admin_token_revoke_all_action_spec.output,
-	audit_log_list: admin_specs.audit_log_list_action_spec.output,
-	audit_log_role_grant_history: admin_specs.audit_log_role_grant_history_action_spec.output,
-	invite_create: admin_specs.invite_create_action_spec.output,
-	invite_list: admin_specs.invite_list_action_spec.output,
-	invite_delete: admin_specs.invite_delete_action_spec.output,
-	account_delete: admin_specs.account_delete_action_spec.output,
-	account_purge: admin_specs.account_purge_action_spec.output,
-	account_undelete: admin_specs.account_undelete_action_spec.output,
-	app_settings_get: admin_specs.app_settings_get_action_spec.output,
-	app_settings_update: admin_specs.app_settings_update_action_spec.output,
-	role_grant_offer_create: role_grant_offer_specs.role_grant_offer_create_action_spec.output,
-	role_grant_offer_accept: role_grant_offer_specs.role_grant_offer_accept_action_spec.output,
-	role_grant_offer_decline: role_grant_offer_specs.role_grant_offer_decline_action_spec.output,
-	role_grant_offer_retract: role_grant_offer_specs.role_grant_offer_retract_action_spec.output,
-	role_grant_offer_list: role_grant_offer_specs.role_grant_offer_list_action_spec.output,
-	role_grant_offer_history: role_grant_offer_specs.role_grant_offer_history_action_spec.output,
-	role_grant_revoke: role_grant_offer_specs.role_grant_revoke_action_spec.output,
-	role_grant_assign: role_grant_offer_specs.role_grant_assign_action_spec.output,
-	account_verify: account_specs.account_verify_action_spec.output,
-	account_session_list: account_specs.account_session_list_action_spec.output,
-	account_session_revoke: account_specs.account_session_revoke_action_spec.output,
-	account_session_revoke_all: account_specs.account_session_revoke_all_action_spec.output,
-	account_token_create: account_specs.account_token_create_action_spec.output,
-	account_token_list: account_specs.account_token_list_action_spec.output,
-	account_token_revoke: account_specs.account_token_revoke_action_spec.output
-} as const;
 export interface ActionOutputs {
 	heartbeat: Infer<typeof fuz_forge_specs.heartbeat_action_spec.output>;
 	cancel: Infer<typeof fuz_forge_specs.cancel_action_spec.output>;

@@ -66,6 +66,7 @@ import {
 import type { Context } from 'hono';
 import { define_route, type RouteSpec } from '@fuzdev/fuz_app/http/route_spec.ts';
 import { route_ok, route_raw } from '@fuzdev/fuz_app/http/route_result.ts';
+import { read_json_body } from '@fuzdev/fuz_app/http/json_text.ts';
 import type { QueryDeps } from '@fuzdev/fuz_app/db/query_deps.ts';
 import type { Logger } from '@fuzdev/fuz_util/log.ts';
 import type { Uuid } from '@fuzdev/fuz_app/primitive_schemas.ts';
@@ -303,13 +304,9 @@ export const create_repo_internal_route_specs = (
 			handler: async (c) => {
 				if (!internal_pre_auth_ok(deps, c)) return route_raw(unauthorized(c));
 
-				let raw_body: unknown;
-				try {
-					raw_body = await c.req.json();
-				} catch {
-					return route_raw(unauthorized(c));
-				}
-				const parsed = parse(RepoReceiveCallbackBody, raw_body);
+				const raw_body = await read_json_body(c.req);
+				if (!raw_body.ok) return route_raw(unauthorized(c));
+				const parsed = parse(RepoReceiveCallbackBody, raw_body.value);
 				if (!parsed.ok) return route_raw(unauthorized(c));
 				const body = parsed.value;
 
