@@ -18,7 +18,7 @@ use fuz_forge_wire::output::RepoOutput;
 use fuz_http::{
     JsonrpcError, internal_error_with_source, invalid_params, not_found, service_unavailable,
 };
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
 
@@ -45,6 +45,24 @@ pub fn hash_hook_secret(secret: &str) -> String {
 /// for an indexed slug lookup + uniqueness.
 pub const REPO_PATH_PREFIX: &str = "repos/";
 
+/// Read an optional stamp the forge minted: absent, `null`, or the wire
+/// timestamp ([`fuz_sys::is_rfc3339_utc_seconds`]). The repo output types the
+/// stamps as the twin's `Timestamp`, which the browser checks, so a cell
+/// holding another string (an admin's `cell_update` can write one) fails to
+/// narrow and is skipped, as the TS narrow's `is_optional_stamp` does, rather
+/// than failing the whole list.
+fn deserialize_optional_stamp<'de, D: Deserializer<'de>>(
+    deserializer: D,
+) -> Result<Option<String>, D::Error> {
+    let stamp = Option::<String>::deserialize(deserializer)?;
+    match stamp {
+        Some(s) if !fuz_sys::is_rfc3339_utc_seconds(&s) => Err(serde::de::Error::custom(
+            "a stamp must be a wire timestamp (YYYY-MM-DDTHH:MM:SSZ)",
+        )),
+        stamp => Ok(stamp),
+    }
+}
+
 /// The push-derived fields of a repo cell, written and cleared as a unit. A
 /// push refreshes the `last_push*` trio and (for a default-branch update)
 /// `head_sha`; `head_sha` is `None` on a never-pushed repo or a default-branch
@@ -58,7 +76,7 @@ pub const REPO_PATH_PREFIX: &str = "repos/";
 pub struct PushFacts {
     #[serde(default)]
     pub head_sha: Option<String>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_optional_stamp")]
     pub last_pushed_at: Option<String>,
     #[serde(default)]
     pub last_pushed_by: Option<String>,
@@ -121,7 +139,7 @@ pub struct RepoCellData {
     pub hook_secret_hash: String,
     #[serde(default)]
     seed_from: Option<String>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "deserialize_optional_stamp")]
     seed_completed_at: Option<String>,
     #[serde(flatten)]
     pub push: PushFacts,

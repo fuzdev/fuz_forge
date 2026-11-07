@@ -16,6 +16,7 @@
  */
 
 import type { JsonObject } from '@fuzdev/fuz_util/json.ts';
+import { ISO8601_SECONDS } from '@fuzdev/fuz_app/timestamp.ts';
 
 /**
  * Cell `data` shape for a forge repo (one cell per repo).
@@ -82,6 +83,16 @@ const is_optional_str = (v: unknown): v is string | null | undefined =>
 	v === undefined || v === null || typeof v === 'string';
 
 /**
+ * An optional stamp the forge minted: absent, `null`, or the wire timestamp
+ * (`ISO8601_SECONDS`). The repo output types the stamps as `Timestamp`, which
+ * the browser checks, so a cell holding another string (an admin's
+ * `cell_update` can write one) narrows to `null` and is skipped, as on Rust
+ * (`deserialize_optional_stamp`), rather than failing the whole list.
+ */
+const is_optional_stamp = (v: unknown): v is string | null | undefined =>
+	v === undefined || v === null || (typeof v === 'string' && ISO8601_SECONDS.test(v));
+
+/**
  * Narrow a cell's `data` JSON to `RepoCellData`. Returns `null`
  * for any required-field shape mismatch — and for a wrong-typed optional
  * field (`is_optional_str`) — so a malformed cell behaves
@@ -102,9 +113,9 @@ export const narrow_repo_cell_data = (data: unknown): RepoCellData | null => {
 	if (typeof d.default_branch !== 'string') return null;
 	if (typeof d.hook_secret_hash !== 'string') return null;
 	if (!is_optional_str(d.seed_from)) return null;
-	if (!is_optional_str(d.seed_completed_at)) return null;
+	if (!is_optional_stamp(d.seed_completed_at)) return null;
 	if (!is_optional_str(d.head_sha)) return null;
-	if (!is_optional_str(d.last_pushed_at)) return null;
+	if (!is_optional_stamp(d.last_pushed_at)) return null;
 	if (!is_optional_str(d.last_pushed_by)) return null;
 	if (!is_optional_str(d.last_push_username)) return null;
 	return {

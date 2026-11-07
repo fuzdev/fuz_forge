@@ -12,6 +12,22 @@ import { assert, describe, test } from 'vitest';
 import { narrow_repo_cell_data } from '#lib/fuz_forge/repo/plan_repo.ts';
 
 describe('narrow_repo_cell_data', () => {
+	test('a minted stamp is a wire timestamp or absent, else the cell is skipped', () => {
+		const base = {
+			slug: 'fuzdev/fuz_app',
+			name: 'fuz_app',
+			default_branch: 'main',
+			hook_secret_hash: 'secret'
+		};
+		for (const key of ['seed_completed_at', 'last_pushed_at']) {
+			assert.isNotNull(narrow_repo_cell_data({ ...base, [key]: '2026-01-01T00:00:00Z' }), key);
+			assert.isNotNull(narrow_repo_cell_data({ ...base, [key]: null }), key);
+			for (const bad of ['yesterday', '2026-01-01T00:00:00+00:00', '2026-01-01T00:00:00.123Z']) {
+				assert.isNull(narrow_repo_cell_data({ ...base, [key]: bad }), `${key} ${bad}`);
+			}
+		}
+	});
+
 	test('parses a well-shaped cell data object', () => {
 		const data = narrow_repo_cell_data({
 			slug: 'fuzdev/fuz_app',

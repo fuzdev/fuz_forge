@@ -335,8 +335,8 @@ describe_db('fuz_forge_repo_list / fuz_forge_repo_get', (get_db) => {
 		});
 
 		test('since filters to repos pushed at or after the timestamp', async () => {
-			const old_push = '2026-01-01T00:00:00.000Z';
-			const recent_push = '2026-05-01T00:00:00.000Z';
+			const old_push = '2026-01-01T00:00:00Z';
+			const recent_push = '2026-05-01T00:00:00Z';
 			await seed_repo_cell(
 				get_db,
 				SAMPLE_DATA({ slug: 'org/old', name: 'old', last_pushed_at: old_push })
@@ -367,15 +367,15 @@ describe_db('fuz_forge_repo_list / fuz_forge_repo_get', (get_db) => {
 		test('slug_prefix and since combine', async () => {
 			await seed_repo_cell(
 				get_db,
-				SAMPLE_DATA({ slug: 'fuzdev/a', name: 'a', last_pushed_at: '2026-05-01T00:00:00.000Z' })
+				SAMPLE_DATA({ slug: 'fuzdev/a', name: 'a', last_pushed_at: '2026-05-01T00:00:00Z' })
 			);
 			await seed_repo_cell(
 				get_db,
-				SAMPLE_DATA({ slug: 'fuzdev/b', name: 'b', last_pushed_at: '2026-01-01T00:00:00.000Z' })
+				SAMPLE_DATA({ slug: 'fuzdev/b', name: 'b', last_pushed_at: '2026-01-01T00:00:00Z' })
 			);
 			await seed_repo_cell(
 				get_db,
-				SAMPLE_DATA({ slug: 'other/c', name: 'c', last_pushed_at: '2026-05-01T00:00:00.000Z' })
+				SAMPLE_DATA({ slug: 'other/c', name: 'c', last_pushed_at: '2026-05-01T00:00:00Z' })
 			);
 
 			const res = await rpc_call({

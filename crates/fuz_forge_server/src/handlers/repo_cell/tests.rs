@@ -45,6 +45,33 @@ fn repo_cell_data_requires_slug_name_default_branch_hook_secret_hash() {
     }
 }
 
+/// The stamps the forge mints are wire timestamps or absent; a cell holding
+/// another string fails to narrow and is skipped, as the TS narrow does.
+#[test]
+fn repo_cell_data_stamps_are_wire_timestamps() {
+    let with = |key: &str, value: Value| {
+        let mut obj = json!({
+            "slug": "org/repo",
+            "name": "repo",
+            "default_branch": "main",
+            "hook_secret_hash": "s3cr3t",
+        });
+        obj[key] = value;
+        serde_json::from_value::<RepoCellData>(obj)
+    };
+    for key in ["seed_completed_at", "last_pushed_at"] {
+        assert!(with(key, json!("2026-01-01T00:00:00Z")).is_ok(), "{key}");
+        assert!(with(key, Value::Null).is_ok(), "{key}");
+        for bad in [
+            "yesterday",
+            "2026-01-01T00:00:00+00:00",
+            "2026-01-01T00:00:00.123Z",
+        ] {
+            assert!(with(key, json!(bad)).is_err(), "{key} {bad}");
+        }
+    }
+}
+
 #[test]
 fn hash_hook_secret_is_the_bare_lowercase_blake3_hex() {
     // The BLAKE3 test vector for "abc" — the TS twin hashes the same UTF-8

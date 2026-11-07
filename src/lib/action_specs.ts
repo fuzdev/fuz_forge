@@ -41,7 +41,7 @@ import { heartbeat_action_spec } from '@fuzdev/fuz_app/actions/heartbeat.ts';
 import { cancel_action_spec } from '@fuzdev/fuz_app/actions/cancel.ts';
 import { peer_ping_action_spec } from '@fuzdev/fuz_app/actions/peer_ping.ts';
 import { protocol_action_specs } from '@fuzdev/fuz_app/actions/protocol.ts';
-import { ActingActor } from '@fuzdev/fuz_app/primitive_schemas.ts';
+import { ActingActor, Timestamp } from '@fuzdev/fuz_app/primitive_schemas.ts';
 import { ERROR_TOKEN_LIFETIME_INVALID } from '@fuzdev/fuz_app/auth/account_action_specs.ts';
 import { TokenLifetimeInput } from '@fuzdev/fuz_app/auth/token_lifetime.ts';
 // brings in the `invalid_reason` meta key, merged into fuz_schema's `SchemaMeta`
@@ -81,13 +81,13 @@ export const FuzForgeRepoOutput = object({
 	name: string,
 	default_branch: string,
 	seed_from: nullable(string),
-	seed_completed_at: nullable(string),
+	seed_completed_at: nullable(Timestamp),
 	head_sha: nullable(string),
-	last_pushed_at: nullable(string),
+	last_pushed_at: nullable(Timestamp),
 	last_pushed_by: nullable(string),
 	last_push_username: nullable(string),
-	created_at: string,
-	updated_at: string
+	created_at: Timestamp,
+	updated_at: Timestamp
 });
 export type FuzForgeRepoOutput = Infer<typeof FuzForgeRepoOutput>;
 
@@ -114,7 +114,7 @@ export const fuz_forge_repo_updated_action_spec = {
 	input: object({
 		repo_id: string,
 		head_sha: nullable(string),
-		last_pushed_at: string,
+		last_pushed_at: Timestamp,
 		last_pushed_by: nullable(string)
 	}),
 	output: fuz_void,

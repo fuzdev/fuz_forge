@@ -49,7 +49,7 @@ const SAMPLE_DATA = (overrides: Partial<RepoCellData> = {}): RepoCellData => ({
 	seed_completed_at: null,
 	hook_secret_hash: 'secret-must-not-leak',
 	head_sha: 'a'.repeat(40),
-	last_pushed_at: '2026-05-13T00:00:00.000Z',
+	last_pushed_at: '2026-05-13T00:00:00Z',
 	last_pushed_by: null,
 	last_push_username: null,
 	...overrides
