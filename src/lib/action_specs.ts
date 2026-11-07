@@ -30,8 +30,8 @@ import { heartbeat_action_spec } from '@fuzdev/fuz_app/actions/heartbeat.ts';
 import { cancel_action_spec } from '@fuzdev/fuz_app/actions/cancel.ts';
 import { peer_ping_action_spec } from '@fuzdev/fuz_app/actions/peer_ping.ts';
 import { protocol_action_specs } from '@fuzdev/fuz_app/actions/protocol.ts';
-import { ActingActor } from '@fuzdev/fuz_app/http/auth_shape.ts';
-import { ActingActor as ActingActorFuz } from '@fuzdev/fuz_app/primitive_schemas_fuz.ts';
+import { ActingActor } from '@fuzdev/fuz_app/primitive_schemas.ts';
+import { ZodActingActor } from '@fuzdev/fuz_app/zod_schemas.ts';
 import { ERROR_TOKEN_LIFETIME_INVALID } from '@fuzdev/fuz_app/auth/account_action_specs.ts';
 import { TokenLifetimeInput } from '@fuzdev/fuz_app/auth/token_lifetime.ts';
 // brings in the `invalid_reason` meta key, merged into fuz_schema's `SchemaMeta`
@@ -149,7 +149,7 @@ export const FuzForgeRepoListInput = z
 	.strictObject({
 		slug_prefix: z.string().max(255).optional(),
 		since: RepoListSince.optional(),
-		acting: ActingActor
+		acting: ZodActingActor
 	})
 	.default({});
 export type FuzForgeRepoListInput = z.infer<typeof FuzForgeRepoListInput>;
@@ -180,7 +180,7 @@ export const FuzForgeRepoGetInput = z
 	.strictObject({
 		id: RepoId.optional(),
 		slug: RepoSlug.optional(),
-		acting: ActingActor
+		acting: ZodActingActor
 	})
 	.refine((v) => (v.id !== undefined) !== (v.slug !== undefined), {
 		message: 'must provide exactly one of id or slug'
@@ -210,7 +210,7 @@ export const FuzForgeRepoMutationInput = z
 	.strictObject({
 		id: RepoId.optional(),
 		slug: RepoSlug.optional(),
-		acting: ActingActor
+		acting: ZodActingActor
 	})
 	.refine((v) => (v.id !== undefined) !== (v.slug !== undefined), {
 		message: 'must provide exactly one of id or slug'
@@ -325,7 +325,7 @@ export const FuzForgeRepoCreateInput = z.strictObject({
 			description:
 				'one-shot upstream URL to clone --bare from at create time; absolute http(s), host required, no embedded credentials; recorded and cloned in canonical (parser-serialized) form'
 		}),
-	acting: ActingActor
+	acting: ZodActingActor
 });
 export type FuzForgeRepoCreateInput = z.infer<typeof FuzForgeRepoCreateInput>;
 
@@ -395,7 +395,7 @@ export const FuzForgeRepoLogInput = z.strictObject({
 	author: z.string().max(200).meta({ sensitivity: 'personal' }).optional(),
 	since: z.string().max(LOG_SINCE_MAX_LENGTH).optional(),
 	path: z.string().max(1024).optional(),
-	acting: ActingActor
+	acting: ZodActingActor
 });
 export type FuzForgeRepoLogInput = z.infer<typeof FuzForgeRepoLogInput>;
 
@@ -473,7 +473,7 @@ export type FuzForgeRepoCommitDiff = z.infer<typeof FuzForgeRepoCommitDiff>;
 export const FuzForgeRepoCommitInput = z.strictObject({
 	id: RepoId,
 	sha: z.string().max(64),
-	acting: ActingActor
+	acting: ZodActingActor
 });
 export type FuzForgeRepoCommitInput = z.infer<typeof FuzForgeRepoCommitInput>;
 
@@ -511,7 +511,7 @@ export const FuzForgeRepoRefEntry = z.strictObject({
 });
 export type FuzForgeRepoRefEntry = z.infer<typeof FuzForgeRepoRefEntry>;
 
-export const FuzForgeRepoRefsInput = z.strictObject({ id: RepoId, acting: ActingActor });
+export const FuzForgeRepoRefsInput = z.strictObject({ id: RepoId, acting: ZodActingActor });
 export type FuzForgeRepoRefsInput = z.infer<typeof FuzForgeRepoRefsInput>;
 
 export const FuzForgeRepoRefsOutput = z.strictObject({
@@ -557,7 +557,7 @@ export const FuzForgeRepoTreeInput = z.strictObject({
 	id: RepoId,
 	ref: z.string().max(255),
 	path: z.string().max(4096).default(''),
-	acting: ActingActor
+	acting: ZodActingActor
 });
 export type FuzForgeRepoTreeInput = z.infer<typeof FuzForgeRepoTreeInput>;
 
@@ -600,7 +600,7 @@ export const FuzForgeRepoBlobInput = z.strictObject({
 	id: RepoId,
 	ref: z.string().max(255),
 	path: z.string().min(1).max(4096),
-	acting: ActingActor
+	acting: ZodActingActor
 });
 export type FuzForgeRepoBlobInput = z.infer<typeof FuzForgeRepoBlobInput>;
 
@@ -692,7 +692,7 @@ export const FuzForgeTokenCreateScopedInput = object({
 			"`{kind:'eternal'}` never expires, `{kind:'ttl',days:N}` expires N days from mint.",
 		invalid_reason: ERROR_TOKEN_LIFETIME_INVALID
 	}),
-	acting: ActingActorFuz
+	acting: ActingActor
 });
 export type FuzForgeTokenCreateScopedInput = Infer<typeof FuzForgeTokenCreateScopedInput>;
 
@@ -758,7 +758,7 @@ export const fuz_forge_token_policy_list_action_spec = {
 	},
 	side_effects: false,
 	async: true,
-	input: z.strictObject({ acting: ActingActor }).default({}),
+	input: z.strictObject({ acting: ZodActingActor }).default({}),
 	output: FuzForgeTokenPolicyListOutput,
 	description:
 		'List per-token policy template names for the calling account. Absent tokens are unscoped.',

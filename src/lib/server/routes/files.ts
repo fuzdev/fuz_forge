@@ -41,7 +41,7 @@ import {
 	REST_TOKEN_SCOPE_REQUIRED,
 	rest_error
 } from '@fuzdev/fuz_app/http/error_schemas.ts';
-import { ActingActor } from '@fuzdev/fuz_app/http/auth_shape.ts';
+import { ZodActingActor } from '@fuzdev/fuz_app/zod_schemas.ts';
 import { require_request_context } from '@fuzdev/fuz_app/auth/request_context.ts';
 import type { Uuid } from '@fuzdev/fuz_app/primitive_schemas.ts';
 import type { QueryDeps } from '@fuzdev/fuz_app/db/query_deps.ts';
@@ -249,7 +249,7 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 			description: 'Upload a file to the file store',
 			input: z.null(),
 			raw_body: true,
-			query: z.strictObject({ acting: ActingActor }),
+			query: z.strictObject({ acting: ZodActingActor }),
 			output: z.looseObject({ filename: z.string() }),
 			// the handler reads the filename param itself (no `params` schema)
 			errors: [
@@ -548,7 +548,7 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 			auth: { account: 'required', actor: 'required', roles: ['admin'] },
 			description: 'Delete a file from the file store',
 			input: z.null(),
-			query: z.strictObject({ acting: ActingActor }),
+			query: z.strictObject({ acting: ZodActingActor }),
 			output: z.looseObject({ deleted: z.boolean() }),
 			// the handler reads the filename param itself (no `params` schema)
 			errors: [

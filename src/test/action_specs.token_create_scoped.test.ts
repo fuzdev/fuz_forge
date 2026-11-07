@@ -15,7 +15,7 @@
 import { assert, describe, test } from 'vitest';
 import { z } from 'zod';
 import { parse } from '@fuzdev/fuz_schema/schema.ts';
-import { ActingActor } from '@fuzdev/fuz_app/http/auth_shape.ts';
+import { ZodActingActor } from '@fuzdev/fuz_app/zod_schemas.ts';
 import { ERROR_TOKEN_LIFETIME_INVALID } from '@fuzdev/fuz_app/auth/account_action_specs.ts';
 import { TOKEN_TTL_DAYS_MAX } from '@fuzdev/fuz_app/auth/token_lifetime.ts';
 import { resolve_issues_invalid_reason } from '@fuzdev/fuz_app/schema_meta.ts';
@@ -51,7 +51,7 @@ const ZodInput = z.strictObject({
 		})
 	]),
 	lifetime: ZodTokenLifetimeInput.meta({ invalid_reason: ERROR_TOKEN_LIFETIME_INVALID }),
-	acting: ActingActor
+	acting: ZodActingActor
 });
 
 const ID = '3f8a1c2e-1234-4abc-9def-0123456789ab';

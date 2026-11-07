@@ -18,7 +18,7 @@ import { z } from 'zod';
 import { to_json_schema } from '@fuzdev/fuz_schema/json_schema.ts';
 import { parse } from '@fuzdev/fuz_schema/schema.ts';
 import { Uuid } from '@fuzdev/fuz_app/primitive_schemas.ts';
-import { Uuid as UuidFuz } from '@fuzdev/fuz_app/primitive_schemas_fuz.ts';
+import { ZodUuid } from '@fuzdev/fuz_app/zod_schemas.ts';
 
 import { RepoId, RepoSlug, REPO_SEGMENT_LENGTH_MAX } from '#lib/fuz_forge/repo/repo_id.ts';
 import { RepoId as RepoIdFuz } from '#lib/fuz_forge/repo/repo_id_fuz.ts';
@@ -48,7 +48,7 @@ describe('RepoId schema', () => {
 		// JSON Schemas pin the two regexes equal: a fuz_app upgrade that moves
 		// its UUID grammar fails here rather than forking the repo-id grammar.
 		const repo_id = z.toJSONSchema(RepoId);
-		const uuid = z.toJSONSchema(Uuid);
+		const uuid = z.toJSONSchema(ZodUuid);
 		assert.isString(repo_id.pattern);
 		assert.strictEqual(repo_id.pattern, uuid.pattern);
 		assert.strictEqual(repo_id.format, uuid.format);
@@ -90,7 +90,7 @@ describe('RepoId fuz_schema twin', () => {
 		// mirrors, so the three rendered patterns are one
 		const fuz = to_json_schema(RepoIdFuz);
 		const zod = z.toJSONSchema(RepoId);
-		const fuz_uuid = to_json_schema(UuidFuz);
+		const fuz_uuid = to_json_schema(Uuid);
 		assert.isString(fuz.pattern);
 		assert.strictEqual(fuz.pattern, zod.pattern);
 		assert.strictEqual(fuz.pattern, fuz_uuid.pattern);
