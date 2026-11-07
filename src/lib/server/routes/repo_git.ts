@@ -75,7 +75,7 @@
  * @module
  */
 
-import { z } from 'zod';
+import { literal, unknown } from '@fuzdev/fuz_schema/schema.ts';
 import type { Context } from 'hono';
 import { define_route, type RouteSpec } from '@fuzdev/fuz_app/http/route_spec.ts';
 import { route_raw, type RouteRaw } from '@fuzdev/fuz_app/http/route_result.ts';
@@ -262,8 +262,8 @@ export const create_repo_git_route_specs = (deps: RepoGitRoutesDeps): Array<Rout
 			auth: { account: 'none', actor: 'none' },
 			description:
 				'Git smart-HTTP capability advertisement (in-handler HTTP Basic auth; admin role required)',
-			input: z.null(),
-			output: z.unknown(),
+			input: literal(null),
+			output: unknown,
 			transaction: false,
 			handler: (c) => handle_advertise(c)
 		}),
@@ -272,9 +272,9 @@ export const create_repo_git_route_specs = (deps: RepoGitRoutesDeps): Array<Rout
 			path: GIT_UPLOAD_PACK_PATH,
 			auth: { account: 'none', actor: 'none' },
 			description: 'Git fetch/clone body (in-handler HTTP Basic auth; admin role required)',
-			input: z.null(),
+			input: literal(null),
 			raw_body: true,
-			output: z.unknown(),
+			output: unknown,
 			transaction: false,
 			handler: handle_post('/git-upload-pack', 'pull')
 		}),
@@ -284,9 +284,9 @@ export const create_repo_git_route_specs = (deps: RepoGitRoutesDeps): Array<Rout
 			auth: { account: 'none', actor: 'none' },
 			description:
 				'Git push body (in-handler HTTP Basic auth; admin role required; default-branch force-push protected by pre-receive hook)',
-			input: z.null(),
+			input: literal(null),
 			raw_body: true,
-			output: z.unknown(),
+			output: unknown,
 			transaction: false,
 			handler: handle_post('/git-receive-pack', 'push')
 		})

@@ -26,7 +26,6 @@
  */
 
 import type { Context } from 'hono';
-import { z } from 'zod';
 import { define_route, type RouteSpec } from '@fuzdev/fuz_app/http/route_spec.ts';
 import {
 	route_fail,
@@ -34,16 +33,23 @@ import {
 	route_raw,
 	type RouteFailOf
 } from '@fuzdev/fuz_app/http/route_result.ts';
-import { string } from '@fuzdev/fuz_schema/schema.ts';
+import {
+	array,
+	boolean,
+	literal,
+	loose_object,
+	object,
+	string,
+	unknown
+} from '@fuzdev/fuz_schema/schema.ts';
 import {
 	ERROR_PAYLOAD_TOO_LARGE,
 	REST_INVALID_ROUTE_PARAMS,
 	REST_TOKEN_SCOPE_REQUIRED,
 	rest_error
 } from '@fuzdev/fuz_app/http/error_schemas.ts';
-import { ZodActingActor } from '@fuzdev/fuz_app/zod_schemas.ts';
+import { ActingActor, type Uuid } from '@fuzdev/fuz_app/primitive_schemas.ts';
 import { require_request_context } from '@fuzdev/fuz_app/auth/request_context.ts';
-import type { Uuid } from '@fuzdev/fuz_app/primitive_schemas.ts';
 import type { QueryDeps } from '@fuzdev/fuz_app/db/query_deps.ts';
 import type { JsonObject } from '@fuzdev/fuz_util/json.ts';
 import type { AsyncSemaphore } from '@fuzdev/fuz_util/async.ts';
@@ -247,10 +253,10 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 			path: '/:filename{.+}',
 			auth: { account: 'required', actor: 'required', roles: ['admin'] },
 			description: 'Upload a file to the file store',
-			input: z.null(),
+			input: literal(null),
 			raw_body: true,
-			query: z.strictObject({ acting: ZodActingActor }),
-			output: z.looseObject({ filename: z.string() }),
+			query: object({ acting: ActingActor }),
+			output: loose_object({ filename: string }),
 			// the handler reads the filename param itself (no `params` schema)
 			errors: [
 				REST_INVALID_ROUTE_PARAMS,
@@ -408,8 +414,8 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 			path: '/',
 			auth: { account: 'required', actor: 'none' },
 			description: 'List all files in the file store',
-			input: z.null(),
-			output: z.looseObject({ files: z.array(z.any()) }),
+			input: literal(null),
+			output: loose_object({ files: array(unknown) }),
 			errors: [REST_TOKEN_SCOPE_REQUIRED],
 			handler: async (c) => {
 				// Ahead of the listing query, matching every other route's
@@ -477,10 +483,10 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 			path: '/:filename{.+}',
 			auth: { account: 'required', actor: 'none' },
 			description: 'Download a file (or its metadata with ?meta) from the file store',
-			input: z.null(),
+			input: literal(null),
 			// The `?meta` branch returns JSON (validated in DEV); the download branch
 			// returns raw bytes (non-JSON → output validation skips it).
-			output: z.looseObject({ filename: z.string() }),
+			output: loose_object({ filename: string }),
 			// the handler reads the filename param itself (no `params` schema)
 			errors: [
 				REST_INVALID_ROUTE_PARAMS,
@@ -547,9 +553,9 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 			path: '/:filename{.+}',
 			auth: { account: 'required', actor: 'required', roles: ['admin'] },
 			description: 'Delete a file from the file store',
-			input: z.null(),
-			query: z.strictObject({ acting: ZodActingActor }),
-			output: z.looseObject({ deleted: z.boolean() }),
+			input: literal(null),
+			query: object({ acting: ActingActor }),
+			output: loose_object({ deleted: boolean }),
 			// the handler reads the filename param itself (no `params` schema)
 			errors: [
 				REST_INVALID_ROUTE_PARAMS,

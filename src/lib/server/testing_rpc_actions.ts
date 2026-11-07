@@ -23,7 +23,15 @@
  * @module
  */
 
-import { z } from 'zod';
+import {
+	boolean,
+	integer,
+	max_value,
+	min_value,
+	number,
+	object,
+	pipe
+} from '@fuzdev/fuz_schema/schema.ts';
 import type { AppDeps } from '@fuzdev/fuz_app/auth/deps.ts';
 import type { DaemonTokenState } from '@fuzdev/fuz_app/auth/daemon_token.ts';
 import type { SessionOptions } from '@fuzdev/fuz_app/auth/session_cookie.ts';
@@ -69,10 +77,10 @@ const testing_await_signal_action_spec = {
 	initiator: 'frontend',
 	auth: { account: 'required', actor: 'none' },
 	side_effects: false,
-	input: z.strictObject({
-		timeout_ms: z.number().int().positive().max(60_000)
+	input: object({
+		timeout_ms: pipe(number, integer, min_value(1), max_value(60_000))
 	}),
-	output: z.strictObject({ cancelled: z.boolean() }),
+	output: object({ cancelled: boolean }),
 	async: true,
 	description:
 		"Test seam: awaits the request's abort signal against a timeout and reports whether the signal fired. Makes a client `cancel` notification's effect observable on the wire."

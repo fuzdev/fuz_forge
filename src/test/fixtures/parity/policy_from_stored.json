@@ -3,7 +3,7 @@
 	"source_ts": "src/lib/server/fuz_forge_token_policy.ts",
 	"source_rust": "crates/fuz_forge_server/src/token_policy/check.rs",
 	"counts": {
-		"stored": 8
+		"stored": 9
 	},
 	"tables": {
 		"stored": [
@@ -18,6 +18,19 @@
 				},
 				"accepted": true,
 				"note": "a readable document parses through"
+			},
+			{
+				"document": {
+					"version": 1,
+					"files": {
+						"read": {
+							"__proto__": true
+						}
+					}
+				},
+				"filename": "__proto__",
+				"accepted": true,
+				"note": "an own `__proto__` grant survives the read: a record parse drops that key, but a stored document is returned as stored, as the Rust BTreeMap keeps it"
 			},
 			{
 				"document": {

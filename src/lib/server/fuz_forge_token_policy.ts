@@ -30,6 +30,7 @@ import type { Logger } from '@fuzdev/fuz_util/log.ts';
 
 import type { FuzForgeTokenTemplateInput } from '../action_specs.ts';
 
+import { parse } from '@fuzdev/fuz_schema/schema.ts';
 import {
 	DENY_ALL_POLICY,
 	FuzForgeTokenPolicy,
@@ -111,10 +112,11 @@ export const policy_check = (
  * decision is made once: a document that fails `FuzForgeTokenPolicy`
  * resolves to `DENY_ALL_POLICY`, never to `null`. The row exists, so the
  * token *is* scoped, and reading it as unscoped — which is what `null` means
- * to `policy_check` — is the one outcome that would widen it. Twin of the Rust
- * `policy_from_stored` (`token_policy/check.rs`).
+ * to `policy_check` — is the one outcome that would widen it. A readable
+ * document is returned as stored, so an own `__proto__` grant survives the read
+ * as it does in the Rust twin `policy_from_stored` (`token_policy/check.rs`).
  *
- * @param stored - the document as the driver returned it (jsonb, pre-parsed but unvalidated)
+ * @param stored - the document as the driver returned it: a plain JSON value (jsonb, pre-parsed but unvalidated), so getters are unreachable, as from `JSON.parse`
  * @param api_token_id - named in the log line, so an unreadable row is traceable to its token
  * @param log - where the parse failure is recorded
  * @returns the validated policy, or the deny-all document
@@ -124,11 +126,14 @@ export const policy_from_stored = (
 	api_token_id: string,
 	log: Pick<Logger, 'error'>
 ): FuzForgeTokenPolicy => {
-	const parsed = FuzForgeTokenPolicy.safeParse(stored);
-	if (parsed.success) return parsed.data;
+	const parsed = parse(FuzForgeTokenPolicy, stored);
+	// the stored document itself, not the parsed copy: a record parse drops an own
+	// `__proto__` key, which would turn a stored `files.read:__proto__` grant into a
+	// denial the Rust twin (whose `BTreeMap` keeps the key) does not make
+	if (parsed.ok) return stored as FuzForgeTokenPolicy;
 	log.error(
 		`fuz_forge_token_policy: stored policy for ${api_token_id} is unreadable; denying every capability`,
-		parsed.error
+		parsed.issues
 	);
 	return DENY_ALL_POLICY;
 };
@@ -168,7 +173,9 @@ export const capability_string = (capability: FuzForgeCapability): string => {
  * passes `FILE_KEY_CHARSET`, so that was reachable, and it diverged from the
  * Rust twin's `BTreeMap` (which stores the key like any other). `fromEntries`
  * defines own properties, so the key survives and the prototype is untouched.
- * Reads are already safe — `resource_map_allows` uses `Object.hasOwn`.
+ * Reads are safe too: `resource_map_allows` uses `Object.hasOwn`, and
+ * `policy_from_stored` returns the stored document rather than a parsed copy,
+ * which would drop the `__proto__` key.
  */
 const build_resource_map = (ids: '*' | ReadonlyArray<string>): FuzForgeTokenPolicyResourceMap =>
 	ids === '*' ? '*' : Object.fromEntries([...new Set(ids)].map((id) => [id, true as const]));

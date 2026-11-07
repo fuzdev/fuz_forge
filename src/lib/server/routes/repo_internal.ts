@@ -29,7 +29,7 @@
  *   so the framework's pre-handler validation middleware is skipped;
  *   a malformed body from a non-loopback caller therefore looks
  *   identical (401 generic) to a well-formed body with bad auth, with
- *   no Zod-issues enumeration leaking the schema shape.
+ *   no issue enumeration leaking the schema shape.
  * - All *rejections* are the generic 401 (no enumeration). The slow
  *   path (compare secret) only runs after the cheap localhost gate
  *   passes.
@@ -51,7 +51,17 @@
  * @module
  */
 
-import { z } from 'zod';
+import {
+	array,
+	check,
+	literal,
+	min_length,
+	nullable,
+	object,
+	parse,
+	pipe,
+	string
+} from '@fuzdev/fuz_schema/schema.ts';
 import type { Context } from 'hono';
 import { define_route, type RouteSpec } from '@fuzdev/fuz_app/http/route_spec.ts';
 import { route_ok, route_raw } from '@fuzdev/fuz_app/http/route_result.ts';
@@ -90,29 +100,29 @@ export interface RepoInternalRoutesDeps {
 /**
  * Body shape for `POST /internal/repo-receive-callback`.
  *
- * Exported for the in-handler `safeParse` (the route spec sets
- * `input: z.null()` so no pre-handler validation middleware runs;
+ * Exported for the in-handler `parse` (the route spec sets
+ * `input: literal(null)` so no pre-handler validation middleware runs;
  * validating in-handler keeps a malformed body from leaking the
- * schema shape via a 400 + Zod issues before the auth gate fires).
+ * schema shape via a 400 + issue list before the auth gate fires).
  *
  * An update's `new` is held to `is_full_sha` (which the all-zero id of a
  * deleted ref satisfies): it becomes the cell's `head_sha`, which the read
  * RPCs hand to git. The Rust twin checks the same after its parse
  * (`updates_are_valid` in `internal_routes.rs`).
  */
-export const RepoReceiveCallbackBody = z.strictObject({
-	repo_id: z.string().min(1),
-	updates: z.array(
-		z.strictObject({
-			old: z.string(),
-			new: z.string().refine(is_full_sha),
-			ref: z.string()
+export const RepoReceiveCallbackBody = object({
+	repo_id: pipe(string, min_length(1)),
+	updates: array(
+		object({
+			old: string,
+			new: pipe(string, check(is_full_sha)),
+			ref: string
 		})
 	),
 	/** Account id of the operator behind the push. May be `null` if the hook ran without endpoint context (defensive). */
-	pushed_by: z.string().nullable(),
+	pushed_by: nullable(string),
 	/** HTTP Basic username supplied with the push. May be `null` (same reason). */
-	push_username: z.string().nullable()
+	push_username: nullable(string)
 });
 
 const HOOK_SECRET_HEADER = 'X-FuzForge-Repo-Secret';
@@ -259,9 +269,9 @@ export const create_repo_internal_route_specs = (
 			auth: { account: 'none', actor: 'none' },
 			description:
 				'Pre-receive hook callback: returns {default_branch} after loopback + secret check (in-handler auth)',
-			input: z.null(),
-			params: z.strictObject({ id: z.string().min(1) }),
-			output: z.strictObject({ default_branch: z.string() }),
+			input: literal(null),
+			params: object({ id: pipe(string, min_length(1)) }),
+			output: object({ default_branch: string }),
 			transaction: false,
 			handler: async (c) => {
 				if (!internal_pre_auth_ok(deps, c)) return route_raw(unauthorized(c));
@@ -280,11 +290,11 @@ export const create_repo_internal_route_specs = (
 				'Post-receive hook callback: updates cell head_sha/last_pushed_* and broadcasts fuz_forge_repo_updated (in-handler auth, in-handler body validation)',
 			// `input: z.null()` skips the pre-handler validation middleware
 			// so a malformed body from a non-loopback caller returns the
-			// same generic 401 as everything else — no Zod-issues 400
+			// same generic 401 as everything else — no issues-listing 400
 			// enumerates the schema. The real schema is validated inside
-			// the handler via `RepoReceiveCallbackBody.safeParse`.
-			input: z.null(),
-			output: z.strictObject({ ok: z.literal(true) }),
+			// the handler via `RepoReceiveCallbackBody`.
+			input: literal(null),
+			output: object({ ok: literal(true) }),
 			// Cell update + broadcast are not transactional with each other
 			// (broadcast is fan-out, not DB); the cell write itself is a
 			// single statement so the route doesn't need a wrapping tx.
@@ -298,9 +308,9 @@ export const create_repo_internal_route_specs = (
 				} catch {
 					return route_raw(unauthorized(c));
 				}
-				const parsed = RepoReceiveCallbackBody.safeParse(raw_body);
-				if (!parsed.success) return route_raw(unauthorized(c));
-				const body = parsed.data;
+				const parsed = parse(RepoReceiveCallbackBody, raw_body);
+				if (!parsed.ok) return route_raw(unauthorized(c));
+				const body = parsed.value;
 
 				const lookup = await internal_verify_repo_secret(deps, c, body.repo_id);
 				if (!lookup) return route_raw(unauthorized(c));

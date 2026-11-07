@@ -299,11 +299,12 @@ fn policy_from_stored_fails_closed() {
         );
         let policy = policy_from_stored(&stored, "tok_1");
         let readable = flag(&row, "accepted");
+        let filename = row
+            .get("filename")
+            .and_then(|v| v.as_str())
+            .unwrap_or("a.bin");
         assert_eq!(
-            policy_check(
-                Some(&policy),
-                &FuzForgeCapability::FilesRead { filename: "a.bin" }
-            ),
+            policy_check(Some(&policy), &FuzForgeCapability::FilesRead { filename }),
             readable,
             "stored policy {stored}",
         );

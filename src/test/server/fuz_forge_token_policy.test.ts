@@ -17,6 +17,7 @@
  */
 
 import { assert, describe, test } from 'vitest';
+import { parse, parse_or_throw } from '@fuzdev/fuz_schema/schema.ts';
 
 import {
 	capability_string,
@@ -137,16 +138,16 @@ describe('capability_string', () => {
 
 describe('FuzForgeTokenPolicy schema', () => {
 	test('accepts a minimal policy ({version: 1})', () => {
-		const parsed = FuzForgeTokenPolicy.parse({ version: 1 });
+		const parsed = parse_or_throw(FuzForgeTokenPolicy, { version: 1 });
 		assert.deepStrictEqual(parsed, { version: 1 });
 	});
 	test('accepts the canonical forge_push template output', () => {
-		FuzForgeTokenPolicy.parse({ version: 1, forge: { push: { alpha: true, beta: true } } });
-		FuzForgeTokenPolicy.parse({ version: 1, forge: { push: '*' } });
+		parse_or_throw(FuzForgeTokenPolicy, { version: 1, forge: { push: { alpha: true, beta: true } } });
+		parse_or_throw(FuzForgeTokenPolicy, { version: 1, forge: { push: '*' } });
 	});
 	test('rejects unknown top-level keys (strict)', () => {
-		const r = FuzForgeTokenPolicy.safeParse({ version: 1, unknown: 'field' });
-		assert.strictEqual(r.success, false);
+		const r = parse(FuzForgeTokenPolicy, { version: 1, unknown: 'field' });
+		assert.strictEqual(r.ok, false);
 	});
 	// The `version` accept/reject table is asserted against
 	// `src/test/fixtures/parity/token_policy_schema.json`, which the Rust twin's
@@ -158,7 +159,7 @@ describe('FuzForgeTokenPolicy schema', () => {
 	// literal, so this half of the row can only pin the JS number `1`) because
 	// the two backends reach this grammar through different channels: the driver
 	// hands this side the jsonb column pre-parsed, so a stored `1.0` is already
-	// the JS number `1` by the time `z.literal(1)` sees it, while Rust parses
+	// the JS number `1` by the time `literal(1)` sees it, while Rust parses
 	// `policy::text` itself and gets a float. Rust widens to accept the
 	// integral-float spelling so the same row reads the same way on both.
 	//
@@ -182,10 +183,10 @@ describe('FuzForgeTokenPolicy schema', () => {
 			const accepted = parity_bool(row, 'accepted');
 			const name = `${table}[${index}] ${accepted ? 'accepts' : 'refuses'}: ${JSON.stringify(row.document)}`;
 			test(name, () => {
-				const parsed = FuzForgeTokenPolicy.safeParse(row.document);
-				assert.strictEqual(parsed.success, accepted);
-				if (!parsed.success) return;
-				const policy = parsed.data;
+				const parsed = parse(FuzForgeTokenPolicy, row.document);
+				assert.strictEqual(parsed.ok, accepted);
+				if (!parsed.ok) return;
+				const policy = parsed.value;
 				const reads_f = policy_check(policy, { kind: 'files.read', filename: 'f' });
 				if (table === 'version') {
 					// Every accepted `version` row is the bare grant-less document.
@@ -207,11 +208,11 @@ describe('FuzForgeTokenPolicy schema', () => {
 	 */
 	test('both grant spellings round-trip', () => {
 		const doc: FuzForgeTokenPolicy = { version: 1, files: { read: { a: true, b: {} } } };
-		assert.deepStrictEqual(FuzForgeTokenPolicy.parse(doc), doc);
+		assert.deepStrictEqual(parse_or_throw(FuzForgeTokenPolicy, doc), doc);
 	});
 	test('rejects unknown forge sub-keys (strict)', () => {
-		const r = FuzForgeTokenPolicy.safeParse({ version: 1, forge: { fetch: '*' } });
-		assert.strictEqual(r.success, false);
+		const r = parse(FuzForgeTokenPolicy, { version: 1, forge: { fetch: '*' } });
+		assert.strictEqual(r.ok, false);
 	});
 });
 
@@ -229,10 +230,19 @@ describe('policy_from_stored', () => {
 		const readable = parity_bool(row, 'accepted');
 		test(`${readable ? 'parses through' : 'denies everything'}: ${JSON.stringify(row.document)}`, () => {
 			const policy = policy_from_stored(row.document, 'tok_1', silent_log);
-			assert.strictEqual(policy_check(policy, { kind: 'files.read', filename: 'a.bin' }), readable);
+			const filename = typeof row.filename === 'string' ? row.filename : 'a.bin';
+			assert.strictEqual(policy_check(policy, { kind: 'files.read', filename }), readable);
 			if (!readable) assert.deepStrictEqual(policy, DENY_ALL_POLICY);
 		});
 	}
+
+	test('an own __proto__ grant survives the read, as on the Rust twin', () => {
+		const stored = JSON.parse('{"version":1,"files":{"read":{"__proto__":true}}}');
+		const policy = policy_from_stored(stored, 'tok_1', silent_log);
+		assert.strictEqual(policy, stored);
+		assert.isTrue(policy_check(policy, { kind: 'files.read', filename: '__proto__' }));
+		assert.isFalse(policy_check(policy, { kind: 'files.read', filename: 'a.bin' }));
+	});
 
 	test('the failure is reported to the log with the token id', () => {
 		const messages: Array<unknown> = [];
@@ -294,7 +304,7 @@ describe('policy_from_template', () => {
 		for (const t of cases) {
 			const p = policy_from_template(t);
 			assert.ok(p !== null);
-			FuzForgeTokenPolicy.parse(p); // throws on schema mismatch
+			parse_or_throw(FuzForgeTokenPolicy, p); // throws on schema mismatch
 		}
 	});
 });

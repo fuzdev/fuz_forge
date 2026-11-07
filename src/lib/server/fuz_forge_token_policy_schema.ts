@@ -1,5 +1,5 @@
 /**
- * Zod schema for the scoped-token policy document.
+ * Schema for the scoped-token policy document.
  *
  * A policy is a strict allow-only JSON document. Tokens with
  * `policy = null` (no row in `fuz_forge_api_token_policy`) are unscoped —
@@ -43,7 +43,14 @@
  * @module
  */
 
-import { z } from 'zod';
+import {
+	literal,
+	object,
+	optional,
+	record,
+	union,
+	type Infer
+} from '@fuzdev/fuz_schema/schema.ts';
 
 /**
  * Per-resource allowlist: either `'*'` (any) or a record from
@@ -54,30 +61,30 @@ import { z } from 'zod';
  * so v2 can add qualifiers (e.g. `branches: ['main']`) without
  * breaking the schema.
  */
-export const FuzForgeTokenPolicyResourceMap = z.union([
-	z.literal('*'),
-	z.record(z.string(), z.union([z.literal(true), z.strictObject({})]))
+export const FuzForgeTokenPolicyResourceMap = union([
+	literal('*'),
+	record(union([literal(true), object({})]))
 ]);
-export type FuzForgeTokenPolicyResourceMap = z.infer<typeof FuzForgeTokenPolicyResourceMap>;
+export type FuzForgeTokenPolicyResourceMap = Infer<typeof FuzForgeTokenPolicyResourceMap>;
 
 /**
  * Forge-section grammar: per-operation per-repo allowlist.
  */
-export const FuzForgeTokenPolicyForge = z.strictObject({
-	push: FuzForgeTokenPolicyResourceMap.optional(),
-	pull: FuzForgeTokenPolicyResourceMap.optional()
+export const FuzForgeTokenPolicyForge = object({
+	push: optional(FuzForgeTokenPolicyResourceMap),
+	pull: optional(FuzForgeTokenPolicyResourceMap)
 });
-export type FuzForgeTokenPolicyForge = z.infer<typeof FuzForgeTokenPolicyForge>;
+export type FuzForgeTokenPolicyForge = Infer<typeof FuzForgeTokenPolicyForge>;
 
 /**
  * File-store-section grammar: per-operation per-filename allowlist.
  */
-export const FuzForgeTokenPolicyFiles = z.strictObject({
-	read: FuzForgeTokenPolicyResourceMap.optional(),
-	write: FuzForgeTokenPolicyResourceMap.optional(),
-	delete: FuzForgeTokenPolicyResourceMap.optional()
+export const FuzForgeTokenPolicyFiles = object({
+	read: optional(FuzForgeTokenPolicyResourceMap),
+	write: optional(FuzForgeTokenPolicyResourceMap),
+	delete: optional(FuzForgeTokenPolicyResourceMap)
 });
-export type FuzForgeTokenPolicyFiles = z.infer<typeof FuzForgeTokenPolicyFiles>;
+export type FuzForgeTokenPolicyFiles = Infer<typeof FuzForgeTokenPolicyFiles>;
 
 /**
  * The full policy document. Stored as `policy` in
@@ -94,13 +101,13 @@ export type FuzForgeTokenPolicyFiles = z.infer<typeof FuzForgeTokenPolicyFiles>;
  * empty-qualifier values) — though only forge / files are ever checked
  * against it; see the `rpc` note above.
  */
-export const FuzForgeTokenPolicy = z.strictObject({
-	version: z.literal(1),
-	forge: FuzForgeTokenPolicyForge.optional(),
-	files: FuzForgeTokenPolicyFiles.optional(),
-	rpc: FuzForgeTokenPolicyResourceMap.optional()
+export const FuzForgeTokenPolicy = object({
+	version: literal(1),
+	forge: optional(FuzForgeTokenPolicyForge),
+	files: optional(FuzForgeTokenPolicyFiles),
+	rpc: optional(FuzForgeTokenPolicyResourceMap)
 });
-export type FuzForgeTokenPolicy = z.infer<typeof FuzForgeTokenPolicy>;
+export type FuzForgeTokenPolicy = Infer<typeof FuzForgeTokenPolicy>;
 
 /**
  * The policy a stored document that cannot be read resolves to: a bare
