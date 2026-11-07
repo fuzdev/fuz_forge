@@ -75,7 +75,7 @@
 	}}
 >
 	<div
-		class="display:grid gap_sm align-items:center --flow_margin:0"
+		class="grid gap_sm align-items:center --flow_margin:0"
 		style:grid-template-columns="max-content 1fr"
 	>
 		<label for="ref" class="text_50">ref</label>

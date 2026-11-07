@@ -56,7 +56,7 @@
 	</div>
 
 	<dl
-		class="display:grid gap_sm overflow-wrap:anywhere"
+		class="grid gap_sm overflow-wrap:anywhere"
 		style:grid-template-columns="max-content minmax(0, 1fr)"
 	>
 		<dt class="text_50">id</dt>
