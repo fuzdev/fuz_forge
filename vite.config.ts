@@ -10,7 +10,13 @@ import { create_csp_directives } from '@fuzdev/fuz_ui/csp.ts';
 import { csp_directives_of_fuzdev } from '@fuzdev/fuz_ui/csp_of_fuzdev.ts';
 import { vite_plugin_fuz_css } from '@fuzdev/fuz_css/vite_plugin_fuz_css.ts';
 import svelte_docinfo from 'svelte-docinfo/vite.js';
-import { git_info_get } from '@fuzdev/fuz_util/git.ts';
+import {
+	GIT_LOCAL_PASS_ENV,
+	git_current_branch_name,
+	git_current_commit_hash,
+	to_git_program
+} from '@fuzdev/gro/git.ts';
+import { spawn } from '@fuzdev/gro/spawn.ts';
 import { vite_plugin_pkg_json } from '@fuzdev/fuz_ui/vite_plugin_pkg_json.ts';
 import { make_cross_backend_project } from '@fuzdev/fuz_app/testing/cross_backend/make_cross_backend_project.ts';
 
@@ -18,7 +24,21 @@ import { make_cross_backend_project } from '@fuzdev/fuz_app/testing/cross_backen
 // small, and the cross-backend projects spawn real backends beside the workers.
 const max_workers = Math.max(1, Math.ceil(availableParallelism() / 2));
 
-const git = await git_info_get();
+// the commit and branch, nulls when git can't answer, as outside a repo
+const git_info_load = async (): Promise<{ commit: string | null; branch: string | null }> => {
+	try {
+		const git_program = to_git_program(spawn, { pass_env: GIT_LOCAL_PASS_ENV });
+		const [commit, branch] = await Promise.all([
+			git_current_commit_hash(git_program),
+			git_current_branch_name(git_program)
+		]);
+		return { commit, branch };
+	} catch {
+		return { commit: null, branch: null };
+	}
+};
+
+const git = await git_info_load();
 
 // The `cross_backend_*` projects spawn real backend binaries via `globalSetup`
 // (and the Rust ones need a Postgres DB). Gate them behind

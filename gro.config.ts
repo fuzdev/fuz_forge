@@ -1,6 +1,7 @@
 import type { CreateGroConfig } from '@fuzdev/gro/gro_config.ts';
 import { gro_plugin_deno_server } from '@fuzdev/gro/gro_plugin_deno_server.ts';
-import { spawn, spawn_result_to_message } from '@fuzdev/fuz_util/process.ts';
+import { spawn_result_is_ok, to_spawn_result_message } from '@fuzdev/gro/cli.ts';
+import { spawn } from '@fuzdev/gro/spawn.ts';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -98,15 +99,22 @@ const config: CreateGroConfig = (cfg) => {
 				if (target) {
 					log.info(`[cargo] cross-building for ${target} via cargo-zigbuild (static musl)`);
 					// Best-effort: ensure the target's std is present (a no-op once installed).
-					await spawn('rustup', ['target', 'add', target]);
+					try {
+						await spawn.find('rustup', { pass_env: 'all' })?.run(['target', 'add', target]);
+					} catch {
+						// best-effort, and a real problem shows up in the build below
+					}
 				}
 				const args = target
 					? ['zigbuild', '--release', '--target', target, ...bins.flatMap((bin) => ['--bin', bin])]
 					: ['build', '--release', ...bins.flatMap((bin) => ['--bin', bin])];
 				log.info(`[cargo] cargo ${args.join(' ')}`);
-				const result = await spawn('cargo', args);
-				if (!result.ok) {
-					throw new Error(`cargo ${args.join(' ')} failed (${spawn_result_to_message(result)})`);
+				// `pass_env: 'all'` because a build reads the user's toolchain and linker setup
+				// (`CARGO_*`, `RUSTUP_*`, `RUSTFLAGS`, `CC`, zig for `zigbuild`), not a closed set
+				const cargo = spawn.program('cargo', { pass_env: 'all' });
+				const result = await cargo.run(args);
+				if (!spawn_result_is_ok(result)) {
+					throw new Error(`cargo ${args.join(' ')} failed (${to_spawn_result_message(result)})`);
 				}
 				for (const name of bins) {
 					const output_path = join(output_dir, name);
