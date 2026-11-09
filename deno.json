@@ -20,16 +20,7 @@
 		"db:status": "deno run --allow-read --allow-env --allow-net --allow-ffi scripts/db_status.ts"
 	},
 	"imports": {
-		"@std/fs": "jsr:@std/fs@^1",
-		"hono": "npm:hono@^4.13.16",
-		"@hono/deno": "npm:@hono/deno@^1.0.3",
-		"@fuzdev/pglet-wasm": "npm:@fuzdev/pglet-wasm@^0.1.2",
-		"pg": "npm:pg@^8.23.0",
-		"@fuzdev/blake3-wasm": "npm:@fuzdev/blake3-wasm@^0.2.0",
-		"@fuzdev/fuz_app/": "npm:/@fuzdev/fuz_app@^0.175.0/",
-		"@fuzdev/fuz_util/": "npm:/@fuzdev/fuz_util@^0.81.0/",
-		"@fuzdev/fuz_schema/": "npm:/@fuzdev/fuz_schema@^0.5.6/",
-		"@node-rs/argon2": "npm:@node-rs/argon2@^2.2.1"
+		"@std/fs": "jsr:@std/fs@^1"
 	},
 	"fmt": {
 		"useTabs": true,

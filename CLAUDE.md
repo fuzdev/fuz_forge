@@ -101,8 +101,8 @@ Then bootstrap the keeper account at `/admin` with the token in
 reach the server.
 
 Use `npm i`, never `deno install` (it creates duplicate module copies that
-break TS types). Keep versions in sync between `package.json` and
-`deno.json` `imports`.
+break TS types). npm packages resolve through `package.json` and
+`node_modules`; `deno.json` `imports` holds only JSR packages.
 
 ### Commands
 

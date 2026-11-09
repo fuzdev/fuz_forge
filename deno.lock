@@ -10,16 +10,7 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@std/fs@1",
-      "npm:@fuzdev/blake3-wasm@0.2",
-      "npm:@fuzdev/fuz_app@0.175",
-      "npm:@fuzdev/fuz_schema@~0.5.6",
-      "npm:@fuzdev/fuz_util@0.81",
-      "npm:@fuzdev/pglet-wasm@~0.1.2",
-      "npm:@hono/deno@^1.0.3",
-      "npm:@node-rs/argon2@^2.2.1",
-      "npm:hono@^4.13.16",
-      "npm:pg@^8.23.0"
+      "jsr:@std/fs@1"
     ],
     "packageJson": {
       "dependencies": [
