@@ -1,6 +1,6 @@
 /**
  * Cross-process **case-insensitive repo-slug lookup** suite — run against BOTH
- * fuz_forge backends (Deno/Hono + Rust `fuz_forge_server`, Axum) via the
+ * fuz_forge backends (TS/Hono + Rust `fuz_forge_server`, Axum) via the
  * `cross_backend_*` mechanism. It pins the operator-approved contract that repo
  * slugs are **case-insensitive** (canonical lowercase): a repo created at a
  * lowercase slug resolves identically when addressed in any case.

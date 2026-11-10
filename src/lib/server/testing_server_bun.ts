@@ -2,11 +2,11 @@
  * Bun spawn entry for the fuz_forge cross-process test binary.
  *
  * Thin wiring of fuz_app's `create_bun_testing_adapter` + `start_testing_server`
- * onto `build_fuz_forge_testing_app` — the Bun twin of `server/testing_server_deno.ts` /
+ * onto `build_fuz_forge_testing_app` — the Bun twin of
  * `server/testing_server_node.ts`, differing only in which runtime adapter + Hono
  * middleware it binds. Spawned by the cross-impl bench
  * (`src/benchmarks/cross_impl.bench.ts`) so the TS reference backend can be timed
- * under Bun JSC alongside Node V8 + Deno V8.
+ * under Bun JSC beside Node V8.
  *
  * Bun implements `node:child_process`, so the git-route subprocess primitives
  * are `server/subprocess.ts`'s own (`spawn_streaming` / `spawn_collect`) — no
@@ -51,7 +51,7 @@ const start = async (): Promise<void> => {
 				daemon_token_path,
 				spawn_streaming,
 				spawn_collect,
-				// mounts `/api/ws`, as the Deno and Node binaries do, so the
+				// mounts `/api/ws`, as the Node binary does, so the
 				// spawned app is the same on every runtime
 				create_upgrade_websocket: context.prepare_websocket()
 			})

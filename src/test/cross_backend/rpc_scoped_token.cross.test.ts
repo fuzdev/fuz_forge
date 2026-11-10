@@ -1,7 +1,7 @@
 /**
  * Cross-process integration suite for the **`rpc_subset` scoped-token RPC
  * method gate** and **`fuz_forge_token_policy_list`** — run against BOTH
- * fuz_forge backends (Deno/Hono + Rust `fuz_forge_server`) via the
+ * fuz_forge backends (TS/Hono + Rust `fuz_forge_server`) via the
  * `cross_backend_*` mechanism. Companion to `files_scoped_token.cross.test.ts`
  * (which probes the file-route capability gate); this one probes the JSON-RPC
  * method gate `files_scoped_token.cross.test.ts` never fires an RPC against.

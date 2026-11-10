@@ -18,9 +18,9 @@ test('joins multiple chunks in order', () => {
 });
 
 test('joins zero-offset views bounded only by their length, not by their backing buffer', () => {
-	// the production shape on the Deno path: a `Deno.Command` stdout reader hands
-	// back a short view at `byteOffset` 0 over its much larger read buffer, so
-	// `length` is the only bound separating the chunk from the trailing slack
+	// a stream reader can hand back a short view at `byteOffset` 0 over its much
+	// larger read buffer, so `length` is the only bound separating the chunk
+	// from the trailing slack
 	const first_backing = new ArrayBuffer(64);
 	new Uint8Array(first_backing).set([1, 2, 3]);
 	const first = new Uint8Array(first_backing, 0, 3);

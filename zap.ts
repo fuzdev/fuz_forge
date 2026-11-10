@@ -6,7 +6,7 @@
  * - SSH hardening (root login disabled, key-only auth)
  * - Systemd hardening (NoNewPrivileges, ProtectSystem, ProtectHome)
  * - PostgreSQL over the Unix socket as the service account (peer auth)
- * - Compiled `fuzfd` binary (no Deno on server)
+ * - Compiled `fuzfd` binary (no JS runtime on the server)
  * - One-shot bootstrap token for first-time keeper account creation
  *
  * Target: `<forge-host>` (a Debian 13 droplet; SSH target from `DEPLOY_HOST`, public
@@ -189,7 +189,7 @@ export default (zap: ZapBuilder): void => {
 	// git runs on every push.
 	zap.pkg({ id: 'python3', name: 'python3 (repo hooks)', from: { apt: 'python3' } });
 
-	// No Deno runtime on the host: the deployed `fuzfd` binary is a
+	// No JS runtime on the host: the deployed `fuzfd` binary is a
 	// self-contained Rust binary, and provisioning runs through
 	// the standalone `zap` binary — neither evaluates `.ts` on the host.
 

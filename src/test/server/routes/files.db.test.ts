@@ -41,6 +41,7 @@ import { Logger } from '@fuzdev/fuz_util/log.ts';
 import { fuz_forge_session_config } from '#lib/server/routes/account.ts';
 import { create_fuz_forge_app_route_specs } from '#lib/server/routes/fuz_forge_route_specs.ts';
 import { PgFactStore } from '@fuzdev/fuz_app/db/fact_store.ts';
+import { FactStorageFullError } from '@fuzdev/fuz_app/db/fact_store_errors.ts';
 import { fact_hash_bytes } from '@fuzdev/fuz_util/fact_hash.ts';
 import { fact_disk_path } from '@fuzdev/fuz_app/db/file_fact_url.ts';
 import {
@@ -77,6 +78,10 @@ const build_test_app = async (
 		embedded_threshold?: number;
 		/** Set, the route runs the free-space preflight over the suite's disk root with this margin. */
 		free_space_margin_bytes?: number;
+		/** The upload cap, 16 MiB unless set. */
+		max_upload_bytes?: number;
+		/** Set, `put_stream` reads the body's first chunk and throws this, as a store failing mid-stream. */
+		put_stream_error?: () => Error;
 	}
 ): Promise<TestApp> => {
 	const create_route_specs = (ctx: AppServerContext) => {
@@ -88,6 +93,15 @@ const build_test_app = async (
 			embedded_threshold: options?.embedded_threshold,
 			log
 		});
+		const put_stream_error = options?.put_stream_error;
+		if (put_stream_error) {
+			fact_store.put_stream = async (stream) => {
+				const reader = stream.getReader();
+				await reader.read();
+				await reader.cancel();
+				throw put_stream_error();
+			};
+		}
 		return create_fuz_forge_app_route_specs(ctx, {
 			audit_sse: test_audit_sse_deps(),
 			fuz_forge: {
@@ -98,7 +112,7 @@ const build_test_app = async (
 			},
 			files: test_file_route_deps({
 				query_deps,
-				max_upload_bytes: 16 * 1024 * 1024,
+				max_upload_bytes: options?.max_upload_bytes ?? 16 * 1024 * 1024,
 				fact_store,
 				...(options?.free_space_margin_bytes === undefined
 					? null
@@ -171,6 +185,7 @@ describe_db('files routes (cell-primary)', (get_db) => {
 			const res = await upload(test_app, admin, filename, bytes);
 			assert.strictEqual(res.status, 507);
 			assert.deepStrictEqual(await res.json(), { error: 'storage_full' });
+			assert.strictEqual(res.headers.get('connection'), 'close', 'the unread body closes');
 
 			assert.isNull(
 				await query_cell_get_by_path({ db: get_db() }, file_cell_path(filename)),
@@ -190,6 +205,73 @@ describe_db('files routes (cell-primary)', (get_db) => {
 			const bytes = new TextEncoder().encode('fits');
 			const res = await upload(test_app, admin, 'room.txt', bytes);
 			assert.strictEqual(res.status, 200);
+		});
+
+		// A refusal before the body is read to its end closes the connection: on
+		// `@hono/node-server` a keep-alive answer is dropped once the adapter's
+		// drain window passes, failing a request the client sent on it meanwhile.
+		// The Rust twin needs no header for it — hyper closes or drains on its own.
+		describe('a refusal that leaves the body unread closes the connection', () => {
+			const MAX_UPLOAD_BYTES_SMALL = 1024;
+
+			test('a declared Content-Length over the cap → 413, Connection: close', async () => {
+				const test_app = await build_test_app(get_db, { max_upload_bytes: MAX_UPLOAD_BYTES_SMALL });
+				const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
+				const res = await test_app.app.request('/api/fuz_forge/files/declared.bin', {
+					method: 'POST',
+					headers: admin.create_session_headers({
+						'Content-Type': 'application/octet-stream',
+						'Content-Length': String(MAX_UPLOAD_BYTES_SMALL + 1)
+					}),
+					body: new Uint8Array(MAX_UPLOAD_BYTES_SMALL + 1)
+				});
+				assert.strictEqual(res.status, 413);
+				assert.strictEqual(res.headers.get('connection'), 'close');
+			});
+
+			test('a body over the cap with no declared length → 413 mid-stream, Connection: close', async () => {
+				const test_app = await build_test_app(get_db, { max_upload_bytes: MAX_UPLOAD_BYTES_SMALL });
+				const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
+				const chunk = new Uint8Array(MAX_UPLOAD_BYTES_SMALL);
+				let sent = 0;
+				const body = new ReadableStream<Uint8Array>({
+					pull(controller) {
+						if (sent === 4) {
+							controller.close();
+							return;
+						}
+						sent++;
+						controller.enqueue(chunk);
+					}
+				});
+				const res = await test_app.app.request('/api/fuz_forge/files/chunked.bin', {
+					method: 'POST',
+					headers: admin.create_session_headers({ 'Content-Type': 'application/octet-stream' }),
+					body,
+					duplex: 'half'
+				} as RequestInit);
+				assert.strictEqual(res.status, 413);
+				assert.strictEqual(res.headers.get('connection'), 'close');
+			});
+
+			test('a disk that fills mid-stream → 507, Connection: close', async () => {
+				const test_app = await build_test_app(get_db, {
+					put_stream_error: () => new FactStorageFullError()
+				});
+				const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
+				const res = await upload(test_app, admin, 'disk-full.bin', new Uint8Array(64));
+				assert.strictEqual(res.status, 507);
+				assert.deepStrictEqual(await res.json(), { error: 'storage_full' });
+				assert.strictEqual(res.headers.get('connection'), 'close');
+			});
+
+			test('an upload under the cap keeps the connection', async () => {
+				const test_app = await build_test_app(get_db, { max_upload_bytes: MAX_UPLOAD_BYTES_SMALL });
+				const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
+				const res = await upload(test_app, admin, 'small.bin', new Uint8Array([1, 2, 3]));
+				assert.strictEqual(res.status, 200);
+				assert.isNull(res.headers.get('connection'));
+			});
 		});
 
 		test('happy path: fact + cell rows are consistent', async () => {

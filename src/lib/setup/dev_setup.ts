@@ -2,7 +2,7 @@
  * The local development setup and reset flows.
  *
  * Dev state is project-local: the forge home is the project's `.fuz_forge/`,
- * the one `gro dev` and `npm run dev:start` run the server with, so the dev
+ * the one `gro dev` and `npm run dev:server` run the server with, so the dev
  * forge never touches a `~/.fuz_forge/` pointed at a real server.
  *
  * @module

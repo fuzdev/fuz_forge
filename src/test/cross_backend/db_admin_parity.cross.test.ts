@@ -1,6 +1,6 @@
 /**
  * Cross-process TS↔Rust parity suite for the **db-admin browser** — run
- * against BOTH fuz_forge backends (Deno/Hono + Rust `fuz_forge_server`)
+ * against BOTH fuz_forge backends (TS/Hono + Rust `fuz_forge_server`)
  * via the `cross_backend_*` mechanism.
  *
  * The browsable-tables allowlist is declared twice — TS

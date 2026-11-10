@@ -1,6 +1,6 @@
 /**
  * Cross-process integration suite for the **git smart-HTTP auth 401 negatives**
- * (anti-enumeration) — run against BOTH fuz_forge backends (Deno/Hono + Rust
+ * (anti-enumeration) — run against BOTH fuz_forge backends (TS/Hono + Rust
  * `fuz_forge_server`, Axum) via the `cross_backend_*` mechanism. It pins the
  * locked-down failure posture of the forge's `info/refs` gate: every rejection
  * is the *same* generic 401 — same status, same plain-text body, same

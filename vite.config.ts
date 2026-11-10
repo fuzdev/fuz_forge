@@ -43,7 +43,7 @@ const git = await git_info_load();
 // The `cross_backend_*` projects spawn real backend binaries via `globalSetup`
 // (and the Rust ones need a Postgres DB). Gate them behind
 // `FUZ_TEST_CROSS_BACKEND=1` so a bare `gro test` stays in-process; an explicit
-// `FUZ_TEST_CROSS_BACKEND=1 npx vitest run --project cross_backend_ts_deno` runs.
+// `FUZ_TEST_CROSS_BACKEND=1 npx vitest run --project cross_backend_ts_node` runs.
 const GLOBAL_SETUP = './src/test/cross_backend/global_setup.ts';
 // The parity project spawns BOTH backends in one run (a shared dual-spawn
 // globalSetup) and serves every gate that compares the two: schema parity
@@ -76,7 +76,7 @@ const NON_STANDARD_CROSS_TESTS = [...DUAL_SPAWN_TESTS, ...LOGIN_SECURITY_TESTS];
 const cross_backend_projects = process.env.FUZ_TEST_CROSS_BACKEND
 	? [
 			make_cross_backend_project({
-				name: 'cross_backend_ts_deno',
+				name: 'cross_backend_ts_node',
 				global_setup: GLOBAL_SETUP,
 				exclude: NON_STANDARD_CROSS_TESTS
 			}),
@@ -92,7 +92,7 @@ const cross_backend_projects = process.env.FUZ_TEST_CROSS_BACKEND
 				group_order: 4
 			}),
 			make_cross_backend_project({
-				name: 'cross_backend_login_security_ts_deno',
+				name: 'cross_backend_login_security_ts_node',
 				global_setup: LOGIN_SECURITY_GLOBAL_SETUP,
 				include: LOGIN_SECURITY_TESTS,
 				group_order: 5

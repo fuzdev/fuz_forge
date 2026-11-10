@@ -24,7 +24,7 @@ AI disclosure: this codebase is LLM-generated with uneven human review.
 
 Building needs [Fuz](https://github.com/fuzdev/fuz) and
 [Zap](https://github.com/fuzdev/zap) checked out beside this repo as `fuz/` and
-`zap/`, plus Node, Deno, a Rust toolchain, PostgreSQL, git, and Python 3 (the
+`zap/`, plus Node, a Rust toolchain, PostgreSQL, git, and Python 3 (the
 repo hooks). Start with `gro check`; the full command list is in [CLAUDE.md](CLAUDE.md), and the
 design and operator docs are in [docs/](docs/).
 

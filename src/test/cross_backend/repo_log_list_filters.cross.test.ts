@@ -1,6 +1,6 @@
 /**
  * Cross-process coverage for the `fuz_forge_repo_log` and `fuz_forge_repo_list`
- * server-side filters — run against BOTH fuz_forge backends (Deno/Hono + Rust
+ * server-side filters — run against BOTH fuz_forge backends (TS/Hono + Rust
  * `fuz_forge_server`).
  *
  * The generic round-trip suite only ever sees error envelopes for these

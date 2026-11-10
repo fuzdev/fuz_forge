@@ -1,6 +1,6 @@
 /**
  * Shared git push/clone helpers for the cross-backend suites that drive the
- * forge's smart-HTTP write path against the spawned binary (Deno/Hono + Rust
+ * forge's smart-HTTP write path against the spawned binary (TS/Hono + Rust
  * `fuz_forge_server`).
  *
  * Every suite that seeds history builds it the same way — a work tree under

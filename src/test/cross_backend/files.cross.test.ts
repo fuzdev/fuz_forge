@@ -1,6 +1,6 @@
 /**
  * Cross-process integration suite for the file store's **CRUD contract** — run
- * against BOTH fuz_forge backends (the Deno/Hono server and the Rust
+ * against BOTH fuz_forge backends (the TS/Hono server and the Rust
  * `fuz_forge_server`, Axum) via the shared `cross_backend_*` mechanism.
  *
  * The two existing file suites cover the authority axes
@@ -484,7 +484,7 @@ describe('file list is unbounded (cross-process, both backends)', () => {
 	// that bound is where the production backend can silently truncate while
 	// the reference one stays complete. `BULK_COUNT` sits just
 	// past it: enough to catch the truncation, small enough that the slower
-	// Deno/in-memory probe stays well inside the timeout.
+	// TS/in-memory probe stays well inside the timeout.
 	const BULK_COUNT = 201;
 	/** Concurrent uploads in flight while seeding. */
 	const BULK_CONCURRENCY = 8;

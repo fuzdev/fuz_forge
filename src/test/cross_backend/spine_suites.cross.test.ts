@@ -1,7 +1,7 @@
 /**
  * Every shipped `@fuzdev/fuz_app` cross suite the forge's capabilities admit,
  * in one `describe_spine_cross_suites` call, against both forge backends
- * (Deno/Hono + Rust `fuz_forge_server`). A suite added upstream runs here
+ * (TS/Hono + Rust `fuz_forge_server`). A suite added upstream runs here
  * without a file of its own; one the forge can't run is excluded below with
  * its reason, and each forge difference from the spine defaults is an
  * override.

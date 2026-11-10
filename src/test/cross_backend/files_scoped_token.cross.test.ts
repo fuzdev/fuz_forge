@@ -1,7 +1,7 @@
 /**
  * Cross-process integration suite for the file-store **scoped-token
  * capability** gate and the **`acting` actor selector** — run against BOTH
- * fuz_forge backends (the Deno/Hono server and the Rust `fuz_forge_server`,
+ * fuz_forge backends (the TS/Hono server and the Rust `fuz_forge_server`,
  * Axum) via the shared `cross_backend_*` project mechanism. This is the
  * live-HTTP parity probe for the two branches the in-process
  * `server/routes/files.scoped_token.db.test.ts` covers in-process: it asserts
@@ -12,7 +12,7 @@
  *
  * **Why mint scoped tokens via RPC, not direct DB.** The in-process test
  * inserts `fuz_forge_api_token_policy` rows directly via `get_db()`.
- * Cross-process that's impossible for the Deno backend (its DB is in-memory,
+ * Cross-process that's impossible for the TS backend (its DB is in-memory,
  * unreachable from this process). So the scoped token is minted
  * through the `fuz_forge_token_create_scoped` RPC — it derives the policy from
  * the template grammar (`policy_from_template`), creates the `api_token` +

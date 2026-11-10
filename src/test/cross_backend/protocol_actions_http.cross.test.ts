@@ -1,6 +1,6 @@
 /**
  * Cross-process **protocol actions over HTTP** suite — run against BOTH
- * fuz_forge backends (Deno/Hono + Rust `fuz_forge_server`) via the
+ * fuz_forge backends (TS/Hono + Rust `fuz_forge_server`) via the
  * `cross_backend_*` mechanism. The two dispatchable protocol actions answer a
  * `POST /api/rpc` differently on purpose, and each is pinned here.
  *

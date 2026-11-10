@@ -1,7 +1,7 @@
 /**
  * Cross-process integration suite for the forge's **session-only credential
  * gates** on the JSON-RPC surface — run against BOTH fuz_forge backends
- * (Deno/Hono + Rust `fuz_forge_server`) via the `cross_backend_*` mechanism.
+ * (TS/Hono + Rust `fuz_forge_server`) via the `cross_backend_*` mechanism.
  *
  * Three forge methods mount `credential_types: ['session']` /
  * `CredentialGate::SESSION_ONLY` on both backends:

@@ -1,10 +1,9 @@
 //! Unit coverage for the failure classifier and its caller mappings.
 //!
 //! The `#[tokio::test]`s here spawn a **real `git`** — they need `git` on
-//! `PATH` (as does every cross-backend suite; the Deno backend already
-//! requires `--allow-run` for it) and they write a throwaway bare repo
-//! under the system temp dir. Everything else is a pure-function
-//! assertion.
+//! `PATH` (as does every cross-backend suite, where both backends spawn it)
+//! and they write a throwaway bare repo under the system temp dir.
+//! Everything else is a pure-function assertion.
 
 use fuz_http::JsonrpcErrorCode;
 

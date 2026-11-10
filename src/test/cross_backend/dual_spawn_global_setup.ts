@@ -1,6 +1,6 @@
 /**
  * Vitest `globalSetup` for the fuz_forge cross-backend **parity** project.
- * Spawns + bootstraps BOTH backends (Deno TS + Rust) in one run and provides
+ * Spawns + bootstraps BOTH backends (TS on Node + Rust) in one run and provides
  * both serialized handles, so a parity gate can drive both and compare.
  *
  * One project uses it — `cross_backend_parity`, one spawn pair serving every
@@ -16,7 +16,7 @@
  * in-memory engine behind the TS backend's `memory://` default renders an
  * index without its per-key sort direction, `NULLS` placement, operator
  * classes or `NULLS NOT DISTINCT`. On one engine, a diff can only be DDL
- * drift. So this project alone gives the Deno leg a `postgres://` URL:
+ * drift. So this project alone gives the TS leg a `postgres://` URL:
  * `TS_PARITY_DATABASE` on the server the Rust leg's URL names, which keeps
  * the two legs on one server version.
  *
@@ -48,18 +48,18 @@ import {
 import {
 	FORGE_CARGO_BINARY,
 	RUST_DATABASE_URL,
-	deno_backend_config,
+	node_backend_config,
 	rust_backend_config
 } from './fuz_forge_backend_config.ts';
 
 /**
- * The Postgres database the Deno leg migrates — beside the Rust leg's
+ * The Postgres database the TS leg migrates — beside the Rust leg's
  * `fuz_forge_test_rust`, and used by nothing else: every run empties it.
  */
 const TS_PARITY_DATABASE = 'fuz_forge_test_ts_parity';
 
 const setup = async (project: TestProject): Promise<() => Promise<void>> => {
-	// the Deno leg's database on the Rust leg's server, so neither can be
+	// the TS leg's database on the Rust leg's server, so neither can be
 	// pointed at the other's database
 	const ts_database_url = with_database_name(RUST_DATABASE_URL, TS_PARITY_DATABASE);
 	ensure_database_for_url(RUST_DATABASE_URL);
@@ -72,7 +72,7 @@ const setup = async (project: TestProject): Promise<() => Promise<void>> => {
 	prepare_cargo_binary(FORGE_CARGO_BINARY);
 	const dual_spawn = create_dual_spawn_global_setup({
 		configs: {
-			a: () => deno_backend_config({ database_url: ts_database_url }),
+			a: () => node_backend_config({ database_url: ts_database_url }),
 			b: rust_backend_config
 		}
 	});

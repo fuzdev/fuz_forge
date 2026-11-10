@@ -1,6 +1,6 @@
 /**
  * Cross-process integration suite for the **git smart-HTTP clone-URL grammar**
- * — run against BOTH fuz_forge backends (Deno/Hono + Rust `fuz_forge_server`,
+ * — run against BOTH fuz_forge backends (TS/Hono + Rust `fuz_forge_server`,
  * Axum) via the `cross_backend_*` mechanism. It pins the one URL shape either
  * backend serves and, more importantly, that every *other* shape is refused
  * before `git http-backend` sees it.

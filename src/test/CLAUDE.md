@@ -1,10 +1,9 @@
 # Test Infrastructure
 
-> Tests run in vitest (Node.js), not Deno
+> Tests run in vitest (Node.js)
 
-The TS reference server runs in **Deno**; its tests run in **vitest**
-(Node.js), with `RuntimeDeps` (from `@fuzdev/fuz_app`) mocked by
-`runtime_mock.ts`. The `fuzf` client is Rust, tested in `crates/fuz_forge/`.
+The TS reference server runs on **Node**; its tests run in **vitest**, with
+`RuntimeDeps` (from `@fuzdev/fuz_app`) mocked by `runtime_mock.ts`. The `fuzf` client is Rust, tested in `crates/fuz_forge/`.
 
 Tests mirror `src/lib/` (per the
 [fuz-stack skill](https://docs.fuz.dev/skills/fuz-stack)); vitest auto-discovers new
@@ -59,16 +58,15 @@ database and run in `cargo test --workspace`; the `#[ignore]`d ones are in
 ```bash
 npm test              # gro test → vitest
 gro check             # full check
-deno task check       # Deno type-check (TS server/backend, excludes src/test/)
 
 # the cross-backend projects are gated, so a bare `gro test` stays in-process:
 export FUZ_TEST_CROSS_BACKEND=1
 # the `_rust` projects' `fuz_forge_test_rust` is created by their setup when missing
 # the parity project also uses `fuz_forge_test_ts_parity`, which its setup creates and empties
-npx vitest run --project cross_backend_ts_deno                 # TS (Deno), in-memory pglet
+npx vitest run --project cross_backend_ts_node                 # TS (Node), in-memory pglet
 npx vitest run --project cross_backend_rust                    # Rust (testing_fuzfd, Axum)
 npx vitest run --project cross_backend_parity                  # dual-spawn, both on Postgres: schemas, registries, differential
-npx vitest run --project cross_backend_login_security_ts_deno  # own pair, limiters ENABLED
+npx vitest run --project cross_backend_login_security_ts_node  # own pair, limiters ENABLED
 npx vitest run --project cross_backend_login_security_rust
 ```
 
@@ -159,7 +157,7 @@ its own root).
 
 ## Cross-backend integration tests (`cross_backend/`)
 
-The TS (Hono/Deno) and Rust (`fuz_forge_server`) backends run the same
+The TS (Hono on Node) and Rust (`fuz_forge_server`) backends run the same
 wire-shape assertions. The `cross_backend_*` vitest projects spawn a real
 backend binary (via `globalSetup`), bootstrap a keeper, and run the shared
 `@fuzdev/fuz_app` suites (one `describe_spine_cross_suites` call) plus the
@@ -203,7 +201,7 @@ over WS, by `ws_cancel.cross.test.ts`.
 the rest of the registry: each backend has a **last-position** injection seam
 beside the ordinary extras one (Rust `RunAppOptions.final_action_specs_factory`,
 TS `ServerTestingOptions.final_rpc_actions_factory`); production passes none.
-The spawned binaries are `src/lib/server/testing_server_deno.ts` (over
+The spawned binaries are `src/lib/server/testing_server_node.ts` (over
 `testing_server_build.ts`) and the `crates/testing_fuz_forge_server` crate;
 each header lists its seams. The TS seams are one list in
 `src/lib/server/testing_rpc_actions.ts`, which the binary mounts and
@@ -224,7 +222,7 @@ other half of a parity contract have their own sections below.
 | `consumer_surface_scoped_token` | the spine-scope axis over forge's own non-RPC surfaces, each with a full-token control | |
 | `db_admin_parity` | the browsable-table allowlist, the paging-400 spellings, and the query gate's phase order across anon / roleless / admin | the mount and its ordering are the spine's |
 | `db_admin_session_only` | every bearer, narrowed or full, refused at the credential channel before scope and role gates | |
-| `files` | the store's CRUD contract — upload status matrix, `?meta` projection (presence, not value), delete, content-type table, unbounded list, `acting` phase order, the file cell's fact address (a foreign `file:` row is a missing file) | the large list seed is the slow case, slowest on Deno |
+| `files` | the store's CRUD contract — upload status matrix, `?meta` projection (presence, not value), delete, content-type table, unbounded list, `acting` phase order, the file cell's fact address (a foreign `file:` row is a missing file) | the large list seed is the slow case |
 | `files_disk_budget` | the streaming edges — Content-Length 413, empty-body 400, multi-KB round-trip + dedup | the 507 `storage_full` path is unit-covered per backend (no shared `extra_env` knob makes it deterministic) |
 | `files_scoped_token` | the per-file policy gates, the `acting` selector's 400s, `uploaded_at`'s wire shape | |
 | `internal_callback` | the loopback-gated `/internal/*` 401-negatives, body strictness, the over-cap 413 before the secret compare, and that only a served repo cell names a secret (the reserved-kind create refusal, the lookup's kind + path fence) | |
@@ -458,7 +456,7 @@ excluded from their glob.
 as the engine renders them, and the in-memory engine behind the TS backend's
 `memory://` default drops an index's sort direction, `NULLS` placement,
 operator classes and `NULLS NOT DISTINCT` — on mixed engines correct DDL would
-read as drift. So the Deno leg gets its own database, `fuz_forge_test_ts_parity`,
+read as drift. So the TS leg gets its own database, `fuz_forge_test_ts_parity`,
 on the server the Rust leg's URL names: created when missing, its `public`
 schema dropped and recreated before each run (behind a guard refusing any
 other database name), with a loud setup failure when Postgres is unreachable.
@@ -489,12 +487,11 @@ name: their mount scope is a transport concern, not a domain surface. The
 per-spec rate-limit **class** rides on each entry and is compared here; the
 *bounds* those classes spend are pinned by `fixtures/parity/rate_limits.json`.
 
-## Type Checking Exclusions
+## Type Checking
 
-Tests mix Node + Deno imports, so the Deno checker excludes `src/test/`
-(`deno.json` `exclude`). The Node side covers it: `tsconfig.json` includes
-`src/**/*.ts` plus the root `*.ts` configs (`zap.ts` and `zap.forge2.ts`
-included), and ESLint lints them too. Each inherits its exclusions from its
+`gro check` typechecks everything: `tsconfig.json` includes `src/**/*.ts`
+plus the root `*.ts` configs (`zap.ts` and `zap.forge2.ts` included), and
+ESLint lints them too. Each inherits its exclusions from its
 base config, so the two sets differ slightly: `src/test/fixtures/` is in the
 project but ESLint-ignored by the shared preset. Neither zap config is format-checked —
 `gro format`'s root list does not name them.

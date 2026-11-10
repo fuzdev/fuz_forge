@@ -1,6 +1,6 @@
 /**
  * Cross-process integration suite for the **session-only db-admin gate** —
- * run against BOTH fuz_forge backends (Deno/Hono + Rust `fuz_forge_server`)
+ * run against BOTH fuz_forge backends (TS/Hono + Rust `fuz_forge_server`)
  * via the `cross_backend_*` mechanism.
  *
  * **Why this surface needs its own probe.** `/api/db/*` is the largest blast

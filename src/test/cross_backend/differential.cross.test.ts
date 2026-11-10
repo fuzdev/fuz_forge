@@ -1,5 +1,5 @@
 /**
- * Cross-backend differential gate for the forge, Deno against Rust.
+ * Cross-backend differential gate for the forge, TS against Rust.
  *
  * Sends every generated conformance row (`generate_rpc_auth_conformance_cases`
  * over the whole live mount, as `conformance.cross.test.ts` runs them) to both
@@ -20,7 +20,7 @@
  * each expecting the answer both backends give.
  *
  * Runs under the dual-spawn `cross_backend_parity` project (`parity_handle_a`
- * = Deno, `parity_handle_b` = Rust), both on Postgres, so no engine difference
+ * = TS, `parity_handle_b` = Rust), both on Postgres, so no engine difference
  * can show up as a body difference.
  *
  * @module
@@ -49,7 +49,7 @@ import { fuz_forge_live_rpc_endpoints, fuz_forge_rpc_endpoints } from './fuz_for
 const SECOND_ACTOR_NAME = 'differential_second_actor';
 
 const parity = inject_parity_handles();
-const deno = parity.a;
+const ts = parity.a;
 const rust = parity.b;
 
 const surface_source = create_fuz_forge_app_surface_spec();
@@ -75,55 +75,55 @@ const ws_target = (
 
 const ws_cases = cases.filter((c) => c.request.as !== 'fresh_non_admin');
 
-const deno_setup = default_cross_process_setup(deno);
+const ts_setup = default_cross_process_setup(ts);
 const rust_setup = default_cross_process_setup(rust);
 
 describe_differential_conformance_tests({
 	...shared,
 	cases,
 	backends: [
-		{ name: 'deno', setup_test: deno_setup },
+		{ name: 'ts', setup_test: ts_setup },
 		{ name: 'rust', setup_test: rust_setup }
 	],
 	known_divergences: differential_known_divergences,
-	suite_name: 'differential conformance (deno vs rust)'
+	suite_name: 'differential conformance (ts vs rust)'
 });
 
 describe_differential_conformance_tests({
 	...shared,
 	cases: ws_cases,
 	backends: [
-		{ name: 'deno', setup_test: deno_setup, ws: ws_target(deno) },
+		{ name: 'ts', setup_test: ts_setup, ws: ws_target(ts) },
 		{ name: 'rust', setup_test: rust_setup, ws: ws_target(rust) }
 	],
 	known_divergences: differential_ws_known_divergences,
-	suite_name: 'differential conformance over WS (deno vs rust)'
+	suite_name: 'differential conformance over WS (ts vs rust)'
 });
 
 const multi_actor_setup = { extra_actors: [SECOND_ACTOR_NAME] };
-const deno_multi_actor_setup = default_cross_process_setup(deno, multi_actor_setup);
+const ts_multi_actor_setup = default_cross_process_setup(ts, multi_actor_setup);
 const rust_multi_actor_setup = default_cross_process_setup(rust, multi_actor_setup);
 
 describe_differential_conformance_tests({
 	...shared,
 	cases,
 	backends: [
-		{ name: 'deno', setup_test: deno_multi_actor_setup },
+		{ name: 'ts', setup_test: ts_multi_actor_setup },
 		{ name: 'rust', setup_test: rust_multi_actor_setup }
 	],
 	known_divergences: differential_known_divergences,
-	suite_name: 'differential multi-actor conformance (deno vs rust)'
+	suite_name: 'differential multi-actor conformance (ts vs rust)'
 });
 
 describe_differential_conformance_tests({
 	...shared,
 	cases: ws_cases,
 	backends: [
-		{ name: 'deno', setup_test: deno_multi_actor_setup, ws: ws_target(deno) },
+		{ name: 'ts', setup_test: ts_multi_actor_setup, ws: ws_target(ts) },
 		{ name: 'rust', setup_test: rust_multi_actor_setup, ws: ws_target(rust) }
 	],
 	known_divergences: differential_ws_known_divergences,
-	suite_name: 'differential multi-actor conformance over WS (deno vs rust)'
+	suite_name: 'differential multi-actor conformance over WS (ts vs rust)'
 });
 
 /**
@@ -146,9 +146,9 @@ describe_differential_conformance_tests({
 	...shared,
 	cases: hand_written_cases,
 	backends: [
-		{ name: 'deno', setup_test: deno_setup },
+		{ name: 'ts', setup_test: ts_setup },
 		{ name: 'rust', setup_test: rust_setup }
 	],
 	known_divergences: differential_known_divergences,
-	suite_name: 'differential hand-written agreement (deno vs rust)'
+	suite_name: 'differential hand-written agreement (ts vs rust)'
 });

@@ -1,7 +1,7 @@
 /**
  * Cross-impl latency benchmark for the **fuz_forge domain** — the TS
- * (Hono) reference backend, run under three JS runtimes (Node V8 / Deno V8 /
- * Bun JSC), vs the Rust (`fuz_forge_server`, Axum) backend, driven over real
+ * (Hono) reference backend, run under two JS runtimes (Node V8 / Bun JSC),
+ * vs the Rust (`fuz_forge_server`, Axum) backend, driven over real
  * HTTP through fuz_app's cross-impl bench engine
  * (`@fuzdev/fuz_app/testing/cross_backend/bench`).
  *
@@ -14,13 +14,13 @@
  * pulls. The shared spine scenarios are spread in first so the forge numbers
  * sit next to a comparable baseline.
  *
- * **Axes.** Two are isolated: the JS-runtime axis (Node / Deno / Bun, all the
- * identical TS app over the same DB driver — apples-to-apples with each other)
- * and the cross-language axis (any TS runtime vs Rust). The four backends run
- * in order `[deno, node, bun, rust]`.
+ * **Axes.** Two are isolated: the JS-runtime axis (Node / Bun, the identical
+ * TS app over the same DB driver — apples-to-apples with each other) and the
+ * cross-language axis (either TS runtime vs Rust). The backends run in order
+ * `[node, bun, rust]`.
  *
  * **TS is the reference impl; full parity is the goal.** The reference column
- * is `deno` and the report's verdict reads as each backend `vs deno` per
+ * is `node` and the report's verdict reads as each backend `vs node` per
  * scenario. The Rust backend is benched by default (parity is the standing
  * goal); set `FUZ_FORGE_BENCH_TS_ONLY=1` for a zero-Postgres, TS-only quick run.
  *
@@ -31,12 +31,12 @@
  *
  * **Bun is optional.** The Bun backend is included only when `bun` is on
  * `PATH` (the bench probes `bun --version`); otherwise it is skipped with a
- * note so the Node + Deno (+ Rust) run still completes.
+ * note so the Node (+ Rust) run still completes.
  *
- * **DB-layer caveat.** By default the three TS backends run fuz_app's in-memory
+ * **DB-layer caveat.** By default the TS backends run fuz_app's in-memory
  * `memory://` database while the Rust backend runs real Postgres
  * (`tokio-postgres` can't reach an in-process database) — so the TS-vs-`rust` columns are NOT apples-to-apples at the DB
- * layer (the three TS runtimes still are, with each other). The numbers compare
+ * layer (the TS runtimes still are, with each other). The numbers compare
  * whole-backend wall-clock for each path, not the storage engine in isolation.
  * Same caveat fuz_app's and zzz's `cross_impl.bench` carry. The Rust backend
  * needs its Postgres DB created once (idempotent):
@@ -48,9 +48,9 @@
  * (the Rust test binary self-wipes the schema on boot via
  * `FUZ_TESTING_RESET_DB_ON_STARTUP=true`).
  *
- * **Fair-DB option (`FUZ_FORGE_BENCH_PG=1`).** Points the three TS backends at
- * real Postgres too — per-runtime DBs `fuz_forge_bench_deno` /
- * `fuz_forge_bench_node` / `fuz_forge_bench_bun` — so the whole-backend numbers
+ * **Fair-DB option (`FUZ_FORGE_BENCH_PG=1`).** Points the TS backends at
+ * real Postgres too — per-runtime DBs `fuz_forge_bench_node` /
+ * `fuz_forge_bench_bun` — so the whole-backend numbers
  * compare apples-to-apples at the DB layer against Rust. Requires Postgres +
  * `dropdb` / `createdb` on `PATH`. Unlike the Rust test binary, the TS testing
  * server does NOT self-wipe its DB, and bootstrap expects an empty DB, so the
@@ -88,7 +88,6 @@ import { prepare_cargo_binary } from '@fuzdev/fuz_app/testing/cross_backend/carg
 
 import {
 	bun_backend_config,
-	deno_backend_config,
 	FORGE_CARGO_BINARY,
 	node_backend_config,
 	rust_backend_config
@@ -96,8 +95,8 @@ import {
 
 const ARTIFACT_PATH = 'src/benchmarks/cross_impl.latest.json';
 
-/** TS is the reference impl; the report reads as each backend `vs deno` per scenario. */
-const REFERENCE_BACKEND = 'deno';
+/** TS is the reference impl; the report reads as each backend `vs node` per scenario. */
+const REFERENCE_BACKEND = 'node';
 
 /** Skip the Rust backend (no Postgres / cargo) for a quick TS-only run. */
 const TS_ONLY = process.env.FUZ_FORGE_BENCH_TS_ONLY === '1';
@@ -109,12 +108,11 @@ const TS_ONLY = process.env.FUZ_FORGE_BENCH_TS_ONLY === '1';
  */
 const FAIR_PG = process.env.FUZ_FORGE_BENCH_PG === '1';
 
-/** The three TS JS runtimes benched (each runs the identical TS app). */
-type TsRuntime = 'deno' | 'node' | 'bun';
+/** The TS JS runtimes benched (each runs the identical TS app). */
+type TsRuntime = 'node' | 'bun';
 
 /** Per-TS-runtime Postgres DB names used when `FUZ_FORGE_BENCH_PG=1`. */
 const TS_PG_DBS: Readonly<Record<TsRuntime, string>> = {
-	deno: 'fuz_forge_bench_deno',
 	node: 'fuz_forge_bench_node',
 	bun: 'fuz_forge_bench_bun'
 };
@@ -168,10 +166,9 @@ if (FAIR_PG) {
 	console.log('TS backends in-memory (set FUZ_FORGE_BENCH_PG=1 for fair-DB Postgres)');
 }
 
-// Order: [deno, node, bun, rust] — deno stays the reference backend. Bun is
-// included only when it's on PATH (the bench gracefully skips it otherwise).
+// Order: [node, bun, rust] — node is the reference backend. Bun is included
+// only when it's on PATH (the bench gracefully skips it otherwise).
 const configs: Array<BackendConfig> = [
-	deno_backend_config({ database_url: ts_database_url('deno') }),
 	node_backend_config({ database_url: ts_database_url('node') })
 ];
 if (bun_available()) {

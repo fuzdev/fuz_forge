@@ -117,6 +117,19 @@ const empty_body = (): RouteFailOf<typeof REST_EMPTY_BODY> =>
 const file_too_large = (message: string): RouteFailOf<typeof REST_FILE_TOO_LARGE> =>
 	route_fail(REST_FILE_TOO_LARGE, { message });
 
+/**
+ * Mark the response to close the connection, for an upload refused before its
+ * body is read to the end: the client may still be sending it, and nothing
+ * reads the rest. Without `Connection: close`, `@hono/node-server` answers
+ * keep-alive, tries to drain the rest, and drops the connection when its drain
+ * window passes, so a request the client sends on the connection meanwhile
+ * fails. A body the handler has partly read never drains there, so the
+ * mid-stream refusals always meet it.
+ */
+const close_unread_body = (c: Context): void => {
+	c.header('Connection', 'close');
+};
+
 /** Dependencies for file store routes. */
 export interface FileRoutesDeps {
 	query_deps: QueryDeps;
@@ -286,6 +299,7 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 				// here and rely on the mid-stream counter.
 				const declared_content_length = parse_content_length(c.req.header('Content-Length'));
 				if (declared_content_length !== null && declared_content_length > max_upload_bytes) {
+					close_unread_body(c);
 					return file_too_large(
 						`File too large: ${declared_content_length} bytes exceeds ${max_upload_bytes} byte limit`
 					);
@@ -314,6 +328,7 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 						log
 					);
 					if (!budget) {
+						close_unread_body(c);
 						return route_fail(REST_STORAGE_FULL);
 					}
 
@@ -342,11 +357,13 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 						});
 					} catch (err) {
 						if (err instanceof FactPayloadTooLargeError) {
+							close_unread_body(c);
 							return file_too_large(`File too large: exceeds ${max_upload_bytes} byte limit`);
 						}
 						// Mid-stream disk-full (ENOSPC) — the backstop for what the
 						// free-space preflight can't catch (chunked uploads, TOCTOU races).
 						if (err instanceof FactStorageFullError) {
+							close_unread_body(c);
 							return route_fail(REST_STORAGE_FULL);
 						}
 						throw err;
@@ -528,15 +545,16 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 
 				// `Content-Length` is intentionally NOT set here: the body is a
 				// fully-buffered `Uint8Array`, so every runtime derives the length
-				// from it (Deno's `Response`, `@hono/node-server`, `Bun.serve`).
+				// from it (`@hono/node-server`, `Bun.serve`).
 				// Setting it manually produced a *duplicate* `Content-Length` under
 				// `@hono/node-server`: it lowercases the supplied header to
 				// `content-length` then re-adds `Content-Length` from `byteLength`,
 				// and Node's `writeHead` emits both keys — which the bench's undici
 				// client (Node `fetch`) rejects as an HTTP/1.1 protocol violation.
-				// TODO: remove double cast when Deno and Node BodyInit types align on Uint8Array
+				// `BodyInit` takes no `ArrayBufferLike`-backed view, and the store's
+				// bytes are never over a `SharedArrayBuffer`
 				return route_raw(
-					new Response(bytes as unknown as BodyInit, {
+					new Response(bytes as Uint8Array<ArrayBuffer>, {
 						headers: {
 							'Content-Type': file_data.content_type,
 							'Content-Disposition': `attachment; filename="${filename}"`,

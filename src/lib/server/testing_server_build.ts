@@ -2,8 +2,8 @@
  * fuz_forge domain seam for the cross-process test binary.
  *
  * The runtime-neutral orchestration (serve, daemon-info, WS attach, drain)
- * + the Node/Deno/Bun adapters live in fuz_app
- * (`@fuzdev/fuz_app/testing/cross_backend/testing_server_{core,node,deno,bun}.ts`).
+ * + the Node and Bun adapters live in fuz_app
+ * (`@fuzdev/fuz_app/testing/cross_backend/testing_server_{core,node,bun}.ts`).
  * This module keeps only what's fuz_forge-specific: building the production
  * `create_app` with the test seams wired — `stub_password_deps`, daemon-token
  * rotation, the test rate-limiter gates, and the `_testing_*` seams from
@@ -73,7 +73,7 @@ export const resolve_fuz_forge_testing_config = (
 
 export interface BuildFuzForgeTestingAppOptions {
 	runtime: RuntimeDeps;
-	/** Runtime-specific static middleware factory (e.g. `serveStatic` from `@hono/deno`). */
+	/** Runtime-specific static middleware factory (e.g. `serveStatic` from `@hono/node-server`). */
 	serve_static: ServeStaticFactory;
 	/** Extract the raw TCP connection IP from a Hono context (adapter-specific). */
 	get_connection_ip: (c: Context) => string | undefined;

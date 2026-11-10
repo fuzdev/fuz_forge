@@ -1,6 +1,6 @@
 /**
  * Cross-process **repo read-shape** suite — run against BOTH fuz_forge backends
- * (Deno/Hono + Rust `fuz_forge_server`) via the `cross_backend_*` mechanism.
+ * (TS/Hono + Rust `fuz_forge_server`) via the `cross_backend_*` mechanism.
  *
  * `repo_push.cross.test.ts` drives the write path and reads a *linear,
  * single-commit, small-object* repo back through every read RPC. The shapes

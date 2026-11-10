@@ -127,7 +127,7 @@ export interface ServerDeps {
 /**
  * Test-only knobs for `ServerDeps.testing`. `build_fuz_forge_testing_app`
  * (`server/testing_server_build.ts`) is the only caller — the shared core of
- * the Deno, Node, and Bun cross-process test binaries.
+ * the Node and Bun cross-process test binaries.
  */
 export interface ServerTestingOptions {
 	/**

@@ -1,7 +1,7 @@
 /**
  * Cross-process integration suite for the **loopback-gated internal callback
  * 401 negatives** (`POST /internal/repo-receive-callback`) — run against BOTH
- * fuz_forge backends (Deno/Hono + Rust `fuz_forge_server`, Axum) via the
+ * fuz_forge backends (TS/Hono + Rust `fuz_forge_server`, Axum) via the
  * `cross_backend_*` mechanism. It pins the anti-enumeration failure posture of
  * the post-receive hook callback: every reachable rejection is the *same* bare
  * 401 — same status, same plain-text body, NO `WWW-Authenticate`, no JSON

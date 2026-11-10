@@ -1,6 +1,6 @@
 /**
  * Cross-process integration suite for the **forge's own non-RPC surfaces** —
- * run against BOTH backends (the Deno/Hono server and the Rust
+ * run against BOTH backends (the TS/Hono server and the Rust
  * `fuz_forge_server`) via the shared `cross_backend_*` mechanism.
  *
  * ## What this covers that nothing else did

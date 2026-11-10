@@ -1,7 +1,7 @@
 {
 	"extends": "$app/tsconfig",
 	"compilerOptions": {
-		"types": ["$app/types", "deno"],
+		"types": ["$app/types"],
 		"module": "nodenext",
 		"moduleResolution": "nodenext",
 		"strict": true,

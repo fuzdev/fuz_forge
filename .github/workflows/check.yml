@@ -7,9 +7,8 @@
 #   xtask check-release` — keeps `fuz_testing`, `fuz_audit`, and test-only
 #   features off the `fuzf` / `fuzfd` release graph), and rustdoc held at zero
 #   warnings.
-# - `ts` — `gro check` (types, tests, format, lint, and the static site build)
-#   and `deno task check` (the Deno-run server), against a
-#   Postgres service for the DB-backed tests.
+# - `ts` — `gro check` (types, tests, format, lint, and the static site build),
+#   against a Postgres service for the DB-backed tests.
 #
 # Not run here: the cross-backend vitest projects, which spawn both backends
 # (`FUZ_TEST_CROSS_BACKEND=1`, src/test/CLAUDE.md).
@@ -162,11 +161,9 @@ jobs:
           --health-retries 5
 
     # `ZAP_REF` is the `zap` commit the forge is checked against: a branch
-    # tracks it, a SHA pins it. `DENO_VERSION` is pinned so a Deno release
-    # can't change the check under an unchanged commit.
+    # tracks it, a SHA pins it.
     env:
       ZAP_REF: main
-      DENO_VERSION: 2.9.8
       TEST_DATABASE_URL: postgres://fuz_forge_test:fuz_forge_test@localhost:5432/fuz_forge_test
 
     defaults:
@@ -196,11 +193,6 @@ jobs:
             fuz_forge/package-lock.json
             zap/package-lock.json
 
-      - name: Install Deno
-        uses: denoland/setup-deno@22d081ff2d3a40755e97629de92e3bcbfa7cf2ed # v2.0.5
-        with:
-          deno-version: ${{ env.DENO_VERSION }}
-
       # The linked `@fuzdev/zap` resolves its types from `dist/`, so the zap
       # checkout is installed and built first.
       - name: Build zap
@@ -219,6 +211,3 @@ jobs:
       # binaries.
       - name: gro check
         run: npx @fuzdev/gro check --workspace --build
-
-      - name: deno check
-        run: deno task check

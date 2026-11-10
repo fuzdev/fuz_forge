@@ -1,6 +1,6 @@
 /**
  * Cross-process integration suite for the **admin role gate on the `/api/ws`
- * upgrade** — run against BOTH fuz_forge backends (Deno/Hono + Rust
+ * upgrade** — run against BOTH fuz_forge backends (Hono on Node + Rust
  * `fuz_forge_server`, Axum) via the `cross_backend_*` mechanism.
  *
  * **Why this is load-bearing, not redundant with the scoped-token suite.** The
@@ -41,8 +41,12 @@
  * the status and content type) against the TS spine's `require_auth` 401 and
  * `require_role` 403 — `{error: 'authentication_required'}` and `{error:
  * 'insufficient_permissions', required_roles: ['admin']}` — which the Rust side
- * now emits through the shared `fuz_http::authentication_required_response` /
- * `fuz_http::insufficient_permissions_response`.
+ * emits through the shared `fuz_http::authentication_required_response` /
+ * `fuz_http::insufficient_permissions_response`. Where the backend sends no
+ * body with a refused upgrade (`capabilities.ws_refusal_body`: Node's
+ * `@hono/node-ws` answers with the status and an empty body), the case pins the
+ * status and that empty body instead, so the rungs are told apart by status
+ * alone there.
  *
  * Gated on `capabilities.ws` (skipped on a backend that doesn't mount the
  * socket).
@@ -84,6 +88,16 @@ const { base_url, ws_path, capabilities } = handle.config;
 type UpgradeOutcome =
 	| { upgraded: true }
 	| { upgraded: false; status: number; content_type: string | undefined; body: unknown };
+
+/**
+ * The refusal outcome a case expects: `status` with the JSON `body` where the
+ * backend sends a refused upgrade's body, else `status` with no content type
+ * and an empty body.
+ */
+const to_refusal = (status: number, body: unknown): UpgradeOutcome =>
+	capabilities.ws_refusal_body
+		? { upgraded: false, status, content_type: 'application/json', body }
+		: { upgraded: false, status, content_type: undefined, body: '' };
 
 /**
  * Attempt a WebSocket upgrade carrying `auth_headers`.
@@ -173,12 +187,7 @@ describe('admin role gate on the WS upgrade (cross-process, both backends)', () 
 
 			const outcome = await probe_ws_upgrade({ auth_headers: {}, origin: base_url });
 
-			assert.deepStrictEqual(outcome, {
-				upgraded: false,
-				status: 401,
-				content_type: 'application/json',
-				body: { error: 'authentication_required' }
-			});
+			assert.deepStrictEqual(outcome, to_refusal(401, { error: 'authentication_required' }));
 		}
 	);
 
@@ -194,12 +203,10 @@ describe('admin role gate on the WS upgrade (cross-process, both backends)', () 
 				origin: base_url
 			});
 
-			assert.deepStrictEqual(outcome, {
-				upgraded: false,
-				status: 403,
-				content_type: 'application/json',
-				body: { error: 'insufficient_permissions', required_roles: [ROLE_ADMIN] }
-			});
+			assert.deepStrictEqual(
+				outcome,
+				to_refusal(403, { error: 'insufficient_permissions', required_roles: [ROLE_ADMIN] })
+			);
 		}
 	);
 
@@ -218,12 +225,10 @@ describe('admin role gate on the WS upgrade (cross-process, both backends)', () 
 			origin: null
 		});
 
-		assert.deepStrictEqual(outcome, {
-			upgraded: false,
-			status: 403,
-			content_type: 'application/json',
-			body: { error: 'insufficient_permissions', required_roles: [ROLE_ADMIN] }
-		});
+		assert.deepStrictEqual(
+			outcome,
+			to_refusal(403, { error: 'insufficient_permissions', required_roles: [ROLE_ADMIN] })
+		);
 	});
 
 	// The control that keeps the negatives honest: the identical request over an

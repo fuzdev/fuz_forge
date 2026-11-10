@@ -1,7 +1,7 @@
 /**
  * Path resolution utilities.
  *
- * Deno's filesystem APIs don't expand shell tilde (`~`),
+ * Filesystem APIs don't expand shell tilde (`~`),
  * so paths from environment variables need explicit resolution.
  *
  * @module

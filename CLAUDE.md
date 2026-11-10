@@ -18,8 +18,8 @@ The app's own schemas (action specs, route specs, the token policy, `RepoId`,
 - **Backends**: two, held to wire parity by the cross-backend test harness
   and the shared parity fixtures (documented divergences aside). **Production
   runs the Rust `fuzfd`** (crate `fuz_forge_server`, Axum on the spine
-  crates). The **TS Hono server is the reference twin** — run directly
-  for tests, benchmarks, and local dev; never compiled or shipped.
+  crates). The **TS Hono server is the reference twin** — run directly on
+  Node for tests, benchmarks, and local dev; never compiled or shipped.
 - **Client**: the Rust `fuzf` CLI (crate `fuz_forge`) — a forge client, not a
   parity twin.
 - **Provisioning and deploy**: the standalone `zap` CLI, driven by `zap.ts` /
@@ -40,7 +40,7 @@ signed tool registry.
 
 - ./zap.ts — forge (Debian/systemd) provisioning + deploy config; ./zap.forge2.ts — forge2 (Alpine/OpenRC)
 - ./gro.config.ts — Gro config: the dev-server plugin (`gro_plugin_server`) and the cargo plugin that builds `fuzf` + `fuzfd`
-- ./package.json — the operator scripts (`npm run <name>`); ./deno.json — the Deno reference server's tasks; ./Cargo.toml — Rust workspace
+- ./package.json — the operator scripts (`npm run <name>`); ./Cargo.toml — Rust workspace
 - ./src/lib/action_specs.ts — action specs; the `*.gen.ts` beside it generate the action types
 - ./src/lib/fuz_forge/ — forge-domain helpers shared by server and UI: `repo/` (repo id + slug grammar, the repo-cell narrow `plan_repo`, storage, `seed_from`, the `repo list --since` grammar), `file_meta.ts`, `build_info.ts`
 - ./src/lib/server/ — the TS reference server: `server.ts` + `app_assembly.ts` (composition), `server_main.ts` (entry), `subprocess.ts` (the `git` / `chmod` subprocess primitives), `env/`, `db/` (migrations, token-policy schema + queries), `git/` (parse + read), `routes/` (RPC handlers, file store, git smart-HTTP, internal hook callbacks)
@@ -100,16 +100,12 @@ Then bootstrap the keeper account at `/admin` with the token in
 `/admin/account`, and write it to `.fuz_forge/api_token` so `dev:fuzf` can
 reach the server.
 
-Use `npm i`, never `deno install` (it creates duplicate module copies that
-break TS types). npm packages resolve through `package.json` and
-`node_modules`; `deno.json` has no import map.
-
 ### Commands
 
 `gro check` validates the TS side; `gro build` builds the site and both
 binaries. `rust-toolchain.toml` pins the Rust toolchain. CI
 (`.github/workflows/check.yml`) runs `gro check --build` (the site only: the
-cargo step skips without `fuz`), `deno task check`, and the Rust commands below
+cargo step skips without `fuz`) and the Rust commands below
 plus the `#[ignore]` Postgres suites, with `fuz` and `zap` checked out beside
 the repo.
 
@@ -156,12 +152,6 @@ The setup, status, and release scripts are Gro tasks in ./src/tasks/, so
 it; each takes no arguments and refuses any. `apply*` / `deploy*` need `zap`
 on `PATH` and `ZAP_FGRO` naming the fgro build the configs' locks pin, and are
 dry runs until `--wetrun`; see ./docs/deploy.md.
-
-### deno.json tasks
-
-| task | does |
-| --- | --- |
-| `check` | Deno type check |
 
 ## CLI
 
@@ -255,9 +245,8 @@ tokens.
 
 ## Type checking & testing
 
-- Deno (`deno task check`) — TS server, runtime helpers, `src/lib/fuz_forge/`
-- Node (`gro check`) — SvelteKit, tests, Svelte components, the operator tasks, root `*.ts` configs
+- TS (`gro check`) — the TS server, runtime helpers, `src/lib/fuz_forge/`,
+  SvelteKit, tests, Svelte components, the operator tasks, root `*.ts` configs
 - Rust (`cargo clippy --workspace --all-targets`) — the crates
 
-`deno.json` excludes `**/*.test.ts`, `**/*.svelte.ts`, `**/*.gen.ts`, and
-`src/test/` (vitest/Node). See ./src/test/CLAUDE.md for testing patterns.
+See ./src/test/CLAUDE.md for testing patterns.

@@ -1,6 +1,6 @@
 /**
  * Cross-process **RPC input shape parity** — run against BOTH fuz_forge
- * backends (Deno/Hono + Rust `fuz_forge_server`).
+ * backends (TS/Hono + Rust `fuz_forge_server`).
  *
  * The strict-object and strict-grammar half of the input contract: which keys
  * an input admits, which values a declared field's grammar admits, and what a

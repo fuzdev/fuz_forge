@@ -1,6 +1,6 @@
 /**
  * Cross-process **origin-check scope** suite — run against BOTH fuz_forge
- * backends (Deno/Hono + Rust `fuz_forge_server`) via the
+ * backends (TS/Hono + Rust `fuz_forge_server`) via the
  * `cross_backend_*` mechanism.
  *
  * The shared upstream `origin` suite (run in `spine_suites.cross.test.ts`) pins

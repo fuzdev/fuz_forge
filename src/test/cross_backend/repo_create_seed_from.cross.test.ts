@@ -1,6 +1,6 @@
 /**
  * Cross-process **`seed_from` grammar parity** — run against BOTH fuz_forge
- * backends (Deno/Hono + Rust `fuz_forge_server`).
+ * backends (TS/Hono + Rust `fuz_forge_server`).
  *
  * `fuz_forge_repo_create`'s `seed_from` becomes the remote of a
  * `git clone --bare`, and git's transport set is far wider than "an upstream

@@ -2,10 +2,11 @@
  * Node spawn entry for the fuz_forge cross-process test binary.
  *
  * Thin wiring of fuz_app's `create_node_testing_adapter` + `start_testing_server`
- * onto `build_fuz_forge_testing_app` — the Node twin of `server/testing_server_deno.ts`,
- * differing only in which runtime adapter + Hono middleware it binds. Spawned by
- * the cross-impl bench (`src/benchmarks/cross_impl.bench.ts`) so the TS reference
- * backend can be timed under Node V8 alongside Deno V8 + Bun JSC.
+ * onto `build_fuz_forge_testing_app`; it serves the real fuz_forge app over HTTP
+ * with the test seams (fast hasher, daemon-token rotation, `_testing_reset`).
+ * The TS leg of every `cross_backend_*` vitest project spawns it, as does the
+ * cross-impl bench (`src/benchmarks/cross_impl.bench.ts`), where it is the
+ * reference backend timed beside Bun (`server/testing_server_bun.ts`) and Rust.
  *
  * `/api/ws` mounts through `@hono/node-ws`: the adapter's `prepare_websocket`
  * builds the upgrade helper from the assembled app and caps its frames at
@@ -50,7 +51,7 @@ const start = async (): Promise<void> => {
 				daemon_token_path,
 				spawn_streaming,
 				spawn_collect,
-				// mounts `/api/ws`, as the Deno and Bun binaries do
+				// mounts `/api/ws` for the cross-process WS suites
 				create_upgrade_websocket: context.prepare_websocket()
 			})
 	});

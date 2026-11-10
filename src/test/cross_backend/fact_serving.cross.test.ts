@@ -1,6 +1,6 @@
 /**
  * Forge-local **fact-serving** cases, run against BOTH forge backends
- * (Deno/Hono + Rust `fuz_forge_server`). The shared `@fuzdev/fuz_app` suite,
+ * (TS/Hono + Rust `fuz_forge_server`). The shared `@fuzdev/fuz_app` suite,
  * its multi-actor case and its scope-narrowed bearer included, runs in the one
  * call (`spine_suites.cross.test.ts`); both backends mount the pair it drives —
  * TS through `create_serve_cell_fact_route_spec` /

@@ -1,6 +1,6 @@
 /**
  * Cross-process **CORS simple-request refusal** for fuz_forge, run against BOTH
- * forge backends (Deno/Hono + Rust `fuz_forge_server`).
+ * forge backends (TS/Hono + Rust `fuz_forge_server`).
  *
  * A `POST` with no `Content-Type`, or a `text/plain` / form / multipart one, is
  * what a browser sends cross-origin without a preflight. The shared

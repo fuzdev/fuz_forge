@@ -4,12 +4,12 @@
  * `describe_login_security_cross_tests` against BOTH forge backends.
  *
  * Unlike every other file in this directory it does **not** run in the
- * `cross_backend_ts_deno` / `cross_backend_rust` projects: it needs a backend
+ * `cross_backend_ts_node` / `cross_backend_rust` projects: it needs a backend
  * spawned with the login limiters **enabled** and loopback trusted as a proxy,
  * while those two disable every limiter by design (the standard suites fire
  * hundreds of logins from one host, far past the 5-per-15-min per-IP budget,
  * which successful logins deliberately don't refund). It runs instead in the
- * dedicated `cross_backend_login_security_ts_deno` /
+ * dedicated `cross_backend_login_security_ts_node` /
  * `cross_backend_login_security_rust` projects, whose `globalSetup`
  * (`login_security_global_setup.ts`) spawns the limiter-enabled config pair on
  * their own ports.

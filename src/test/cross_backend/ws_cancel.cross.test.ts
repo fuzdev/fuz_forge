@@ -1,6 +1,6 @@
 /**
  * Cross-process **`cancel` protocol-method** suite — run against BOTH
- * fuz_forge backends (Deno/Hono + Rust `fuz_forge_server`) via the
+ * fuz_forge backends (TS/Hono + Rust `fuz_forge_server`) via the
  * `cross_backend_*` mechanism. It pins what a `cancel` does, what it
  * answers, and what a `cancel`-shaped request that is not a cancel
  * answers instead.

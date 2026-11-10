@@ -1,6 +1,6 @@
 /**
  * Cross-process **`fuz_forge_repo_updated` WS broadcast** suite — run against
- * BOTH fuz_forge backends (Deno/Hono + Rust `fuz_forge_server`) via the
+ * BOTH fuz_forge backends (TS/Hono + Rust `fuz_forge_server`) via the
  * `cross_backend_*` mechanism. This is the only cross-process observation of a
  * domain broadcast: the standard cross bundle omits WS, and the shared
  * `describe_cross_process_ws_tests` drives request/response round trips

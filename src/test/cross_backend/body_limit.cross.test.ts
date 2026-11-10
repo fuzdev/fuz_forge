@@ -1,6 +1,6 @@
 /**
  * Cross-process **body-size-limit 413 wire-shape** suite — run against BOTH
- * fuz_forge backends (Deno/Hono + Rust `fuz_forge_server`) via the
+ * fuz_forge backends (TS/Hono + Rust `fuz_forge_server`) via the
  * `cross_backend_*` mechanism.
  *
  * The contract under test is the *shape* of the over-cap rejection: when a
@@ -83,9 +83,8 @@ const OVERSIZED_CONTENT_LENGTH = BODY_LIMIT_DEFAULT_BYTES + 1;
 /**
  * POST a request head to `path` (`/api/rpc` by default) declaring a body one
  * byte over the cap, and send none of it. Both backends answer the 413 on the
- * declared length; the Rust backend then closes the connection at once and the
- * Deno backend holds it open for the body, so the helper reads one whole
- * response and stops.
+ * declared length, and the helper reads one whole response and stops rather
+ * than wait on what the connection does next.
  */
 const post_over_cap = (
 	origin?: string,

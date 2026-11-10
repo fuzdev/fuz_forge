@@ -3,7 +3,7 @@
  * integration suites.
  *
  * fuz_forge is the ecosystem's canonical dual-impl cross-backend consumer —
- * its TS (Hono/Deno) and Rust (`fuz_forge_server`, Axum) backends are
+ * its TS (Hono on Node) and Rust (`fuz_forge_server`, Axum) backends are
  * measured against each other with full parity as the standing goal. This
  * file declares the per-backend spawn config; the shared shape (`/api/*`
  * paths, cookie name, bootstrap block) comes from the lifted upstream
@@ -18,15 +18,14 @@
  * **Port assignments** — fixed-but-distinct, no collision with the dev
  * daemon (`4041`):
  *
- * - Deno test binary → `14041`
- * - Node test binary → `14042`
- * - Bun test binary → `14043`
+ * - Node test binary → `14041`
+ * - Bun test binary → `14042`
  * - Rust test binary → `14141`
+ * - the login-security pair → `14051` (Node) / `14151` (Rust)
  *
- * The Node + Bun configs exist for the cross-impl bench
- * (`src/benchmarks/cross_impl.bench.ts`), which times the TS reference backend
- * under all three JS runtimes (Node V8 / Deno V8 / Bun JSC). The cross-backend
- * *correctness* suites still spawn only the Deno + Rust binaries.
+ * The correctness suites spawn the Node and Rust binaries. The Bun config
+ * exists for the cross-impl bench (`src/benchmarks/cross_impl.bench.ts`),
+ * which also times the TS reference backend under Bun JSC.
  *
  * **Cookie name** — both backends emit `fuz_forge_session`. The Rust spine
  * takes a per-app cookie-name override
@@ -94,13 +93,13 @@ export interface TsBackendConfigOptions {
 }
 
 /**
- * Shared TS-backend shape — every TS runtime (Deno / Node / Bun) serves the
- * same fuz_forge app over the same wire, so they share cookie name,
- * capabilities (bar `ws_refusal_body`), port-less env (per-backend store
- * paths, the tiny file-store cap), and the optional fair-DB
- * `database_url`. The per-runtime factories below supply only what genuinely
- * differs: `name`, `port`, `ws_refusal_body` (Node sends an empty WS refusal
- * body), and the `start_command` (which interpreter + entry).
+ * Shared TS-backend shape — both TS runtimes (Node / Bun) serve the same
+ * fuz_forge app over the same wire, so they share cookie name, capabilities
+ * (bar `ws_refusal_body`), port-less env (per-backend store paths, the tiny
+ * file-store cap), and the optional fair-DB `database_url`. The per-runtime
+ * factories below supply only what genuinely differs: `name`, `port`,
+ * `ws_refusal_body` (Node sends an empty WS refusal body), and the
+ * `start_command` (which interpreter + entry).
  */
 const make_ts_forge_backend_config = (opts: {
 	name: string;
@@ -108,8 +107,9 @@ const make_ts_forge_backend_config = (opts: {
 	start_command: Array<string>;
 	/**
 	 * Whether a refused WebSocket upgrade carries its refusal body — `true` on
-	 * Deno and Bun, which send the response as built; `false` on Node, whose
-	 * `@hono/node-ws` drops it (`BackendCapabilities.ws_refusal_body`).
+	 * Bun, which sends the response as built; `false` on Node, whose
+	 * `@hono/node-ws` answers the refusal's status with no body
+	 * (`BackendCapabilities.ws_refusal_body`).
 	 */
 	ws_refusal_body: boolean;
 	database_url?: string;
@@ -206,47 +206,19 @@ const make_ts_forge_backend_config = (opts: {
 };
 
 /**
- * The Deno test-server spawn argv, shared by the standard and login-security
- * backends. The `--allow-*` set mirrors the production daemon's plus
- * `--allow-run` / `--allow-ffi` (the `gro` transitive `oxc-parser` forces FFI;
- * the forge smart-HTTP routes spawn `git`, though the standard suite doesn't
- * exercise them).
+ * The Node test-server spawn argv, shared by the standard and login-security
+ * backends: `gro run` runs the `.ts` entry and its `.ts` source specifiers
+ * with Gro's loader.
  */
-const DENO_START_COMMAND = [
-	'deno',
-	'run',
-	'--allow-net',
-	'--allow-read',
-	'--allow-env',
-	'--allow-write',
-	'--allow-sys',
-	'--allow-ffi',
-	'--allow-run',
-	'--unstable-detect-cjs',
-	'src/lib/server/testing_server_deno.ts'
-];
+const NODE_START_COMMAND = ['gro', 'run', 'src/lib/server/testing_server_node.ts'];
 
-/** TS canonical backend on Deno V8. Spawns `testing_server_deno.ts`. */
-export const deno_backend_config = (options: TsBackendConfigOptions = {}): BackendConfig =>
-	make_ts_forge_backend_config({
-		name: 'deno',
-		port: 14041,
-		database_url: options.database_url,
-		start_command: DENO_START_COMMAND,
-		ws_refusal_body: true
-	});
-
-/**
- * TS backend on Node V8. Spawns `testing_server_node.ts` via `gro run` (Gro's
- * TS loader runs the `.ts` entry and its `.ts` source specifiers). Exists for
- * the cross-impl bench's runtime axis; the correctness suites don't spawn it.
- */
+/** TS backend on Node. Spawns `testing_server_node.ts`. */
 export const node_backend_config = (options: TsBackendConfigOptions = {}): BackendConfig =>
 	make_ts_forge_backend_config({
 		name: 'node',
-		port: 14042,
+		port: 14041,
 		database_url: options.database_url,
-		start_command: ['gro', 'run', 'src/lib/server/testing_server_node.ts'],
+		start_command: NODE_START_COMMAND,
 		ws_refusal_body: false
 	});
 
@@ -260,7 +232,7 @@ export const node_backend_config = (options: TsBackendConfigOptions = {}): Backe
 export const bun_backend_config = (options: TsBackendConfigOptions = {}): BackendConfig =>
 	make_ts_forge_backend_config({
 		name: 'bun',
-		port: 14043,
+		port: 14042,
 		database_url: options.database_url,
 		start_command: ['bun', 'run', 'src/lib/server/testing_server_bun.ts'],
 		ws_refusal_body: true
@@ -306,7 +278,7 @@ export const FORGE_CARGO_BINARY: CargoBinaryOptions = {
  * baseline (`PORT`, `HOST`, `FUZ_ALLOWED_ORIGINS` and its
  * `FUZ_ALLOW_ORIGIN_WILDCARDS` opt-in, `FUZ_BOOTSTRAP_TOKEN_PATH`)
  * flows straight through — `extra_env` carries only the forge-specific
- * paths, mirroring the Deno config. The `fuz_forge_server::env` drift test
+ * paths, mirroring the TS config. The `fuz_forge_server::env` drift test
  * guards against the names re-splitting.
  *
  * `daemon_token_dir_env` sets `FUZ_FORGE_DAEMON_TOKEN_DIR`, so the Rust
@@ -381,13 +353,13 @@ const make_rust_forge_backend_config = (opts: {
 		extra_env: {
 			FUZ_FORGE_FACT_STORE_PATH: join(paths.root, 'facts'),
 			FUZ_FORGE_REPO_STORE_PATH: join(paths.root, 'repos'),
-			// Same tiny file-store cap as the Deno backend — keeps the disk-budget
-			// suite's 413 case symmetric on both backends. See the Deno config.
+			// Same tiny file-store cap as the TS backend — keeps the disk-budget
+			// suite's 413 case symmetric on both backends. See the TS config.
 			FUZ_FORGE_FILE_STORE_MAX_BYTES: String(FILE_STORE_MAX_BYTES_TEST),
-			// Same zero free-space margin as the Deno backend. See the Deno config.
+			// Same zero free-space margin as the TS backend. See the TS config.
 			FUZ_FORGE_FILE_STORE_FREE_SPACE_MARGIN_BYTES: '0',
-			// Same loopback-seed override as the Deno backend, for the same two
-			// suites. See the Deno config.
+			// Same loopback-seed override as the TS backend, for the same two
+			// suites. See the TS config.
 			FUZ_FORGE_SEED_FROM_ALLOW_PRIVATE_HOSTS: 'true',
 			...opts.extra_env
 		}
@@ -426,7 +398,7 @@ const LOGIN_SECURITY_LIMITER_ENV: Record<string, string> = {
 };
 
 /**
- * The Deno backend with the login and action rate limiters **enabled** — the
+ * The Node backend with the login and action rate limiters **enabled** — the
  * spawn `describe_login_security_cross_tests` and
  * `describe_ws_action_rate_limit_cross_tests` need, the action pair capped at
  * `LOGIN_SECURITY_ACTION_RATE_LIMIT_MAX_ATTEMPTS`.
@@ -439,18 +411,18 @@ const LOGIN_SECURITY_LIMITER_ENV: Record<string, string> = {
  * loopback as trusted (`server.ts`'s `proxy.trusted_proxies`), so
  * `X-Forwarded-For` already keys the buckets.
  */
-export const deno_login_security_backend_config = (): BackendConfig =>
+export const node_login_security_backend_config = (): BackendConfig =>
 	make_ts_forge_backend_config({
-		name: 'login_security_deno',
+		name: 'login_security_node',
 		port: 14051,
-		start_command: DENO_START_COMMAND,
-		ws_refusal_body: true,
+		start_command: NODE_START_COMMAND,
+		ws_refusal_body: false,
 		extra_env: LOGIN_SECURITY_LIMITER_ENV
 	});
 
 /**
  * The Rust backend with the login and action rate limiters **enabled**. Twin of
- * `deno_login_security_backend_config`; see it for why this is a separate
+ * `node_login_security_backend_config`; see it for why this is a separate
  * spawn target.
  *
  * `FUZ_FORGE_TRUSTED_PROXIES` is stated explicitly even though loopback is

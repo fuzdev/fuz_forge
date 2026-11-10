@@ -1,6 +1,6 @@
 /**
  * Cross-process integration suite for the file-store **streaming + disk-budget**
- * contract — run against BOTH fuz_forge backends (the Deno/Hono server and the
+ * contract — run against BOTH fuz_forge backends (the TS/Hono server and the
  * Rust `fuz_forge_server`, Axum) via the shared `cross_backend_*` mechanism.
  *
  * This is the live-HTTP parity probe for the streaming upload path: the TS

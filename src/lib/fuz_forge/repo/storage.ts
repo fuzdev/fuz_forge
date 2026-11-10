@@ -129,12 +129,11 @@ export const seed_clone_args = (url: string, dest: string): Array<string> => [
  * The subprocess capability the storage module runs `git` and `chmod` through.
  *
  * `RuntimeDeps.run_command` is deliberately NOT used: its options carry no
- * `env`, and the Deno implementation sets neither `clearEnv` nor `stdin`, so
- * every subprocess would inherit the daemon's whole environment — `HOME` (and
- * with it `~/.gitconfig`'s `credential.helper` / `url.<base>.insteadOf`, which
- * would defeat the `seed_from` scheme allowlist and canonicalization outright)
- * plus an interactive stdin. `SpawnCollect` takes an explicit `env` and
- * closes stdin on both runtimes, which is what the read layer
+ * `env`, so every subprocess would inherit the daemon's whole environment —
+ * `HOME`, and with it `~/.gitconfig`'s `credential.helper` /
+ * `url.<base>.insteadOf`, which would defeat the `seed_from` scheme allowlist
+ * and canonicalization outright. `SpawnCollect` takes an explicit `env` and
+ * closes stdin, which is what the read layer
  * (`server/git/read.ts`) and the CGI proxy already use, and what the Rust twin
  * (`repo_storage.rs`) gets from its own `spawn_collect`.
  */
@@ -576,7 +575,7 @@ const path_exists = async (deps: Pick<FsReadDeps, 'stat'>, path: string): Promis
 export type HookSnapshot = Record<HookName, string | null>;
 
 /**
- * Whether a thrown filesystem error means the path does not exist. Deno, Node,
+ * Whether a thrown filesystem error means the path does not exist. Node, Bun,
  * and the fuz_app mock all set `code: 'ENOENT'`. `stat` can't answer this: it
  * returns `null` for every failure, a permission error included.
  */

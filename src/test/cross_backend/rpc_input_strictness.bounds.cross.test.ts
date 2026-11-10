@@ -1,6 +1,6 @@
 /**
  * Cross-process **RPC input bounds parity** — run against BOTH fuz_forge
- * backends (Deno/Hono + Rust `fuz_forge_server`).
+ * backends (TS/Hono + Rust `fuz_forge_server`).
  *
  * The declared-bounds half of the input contract — string lengths, list
  * counts, and numeric ranges — where the strict-object and strict-grammar

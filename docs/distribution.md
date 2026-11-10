@@ -15,7 +15,7 @@ byte store, and all trust lives in the consumer. The forge serves no download
 endpoint for its own binaries.
 
 Release binaries are built for Linux x86_64 only. `fuzf` and `fuzfd` are
-compiled Rust and need no Deno at runtime.
+compiled Rust and need no JS runtime.
 
 ## Installing from a release
 

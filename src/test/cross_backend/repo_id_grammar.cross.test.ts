@@ -1,6 +1,6 @@
 /**
  * Cross-process repo-id **grammar rejection parity** — run against BOTH
- * fuz_forge backends (Deno/Hono + Rust `fuz_forge_server`).
+ * fuz_forge backends (TS/Hono + Rust `fuz_forge_server`).
  *
  * The forge has exactly one repo-id wire grammar: the TS `RepoId` schema
  * (fuz_app's `Uuid` grammar — RFC 9562 version 1-8 + variant nibbles, plus

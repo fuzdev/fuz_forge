@@ -202,7 +202,7 @@ export default (zap: ZapBuilder): void => {
 	// git runs on every push.
 	zap.pkg({ id: 'python3', name: 'python3 (repo hooks)', from: { apk: 'python3' } });
 
-	// No Deno runtime on the host: `fuzfd` is a self-contained Rust binary and
+	// No JS runtime on the host: `fuzfd` is a self-contained Rust binary and
 	// provisioning runs through the standalone `zap` binary.
 
 	zap.pkg({ id: 'fail2ban', name: 'fail2ban intrusion prevention', from: { apk: 'fail2ban' } });

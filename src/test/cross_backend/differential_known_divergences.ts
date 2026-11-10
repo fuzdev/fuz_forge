@@ -2,7 +2,7 @@
  * The known-divergence ledger for the forge's TS-vs-Rust differential
  * (`differential.cross.test.ts`).
  *
- * An entry is a tracked, accepted difference between the Deno and Rust
+ * An entry is a tracked, accepted difference between the TS and Rust
  * forges' normalized responses to the same conformance case, naming the
  * paths it differs at (`KnownDivergence`). The differential asserts each
  * entry still differs there and nowhere else, and turns red when it closes,

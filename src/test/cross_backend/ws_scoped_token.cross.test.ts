@@ -1,6 +1,6 @@
 /**
  * Cross-process integration suite for the **scoped-token WS-upgrade reject** —
- * run against BOTH fuz_forge backends (Deno/Hono + Rust `fuz_forge_server`,
+ * run against BOTH fuz_forge backends (Hono on Node + Rust `fuz_forge_server`,
  * Axum) via the `cross_backend_*` mechanism. It pins the one branch the other
  * scoped-token suites never touch: a scoped bearer is refused at the `/api/ws`
  * upgrade, before any handshake.
@@ -20,7 +20,10 @@
  * Both close it in the same place — the spine's rule 3, which refuses every
  * non-RPC surface to a narrowed token — so the expected body is one constant,
  * `SCOPED_TOKEN_WS_DENIAL_BODY`. The upgrade is refused with an HTTP 403 and a
- * JSON body, before any handshake.
+ * JSON body, before any handshake — the body where the backend sends one with
+ * a refused upgrade (`capabilities.ws_refusal_body`; Node's `@hono/node-ws`
+ * answers with the status and an empty body, which the cases pin there
+ * instead).
  *
  * **How the upgrade is probed.** A rejected upgrade never completes the
  * WebSocket handshake — the gate returns an ordinary HTTP 403 *before* the
@@ -77,6 +80,25 @@ interface UpgradeRejection {
 	content_type: string | undefined;
 	body: string;
 }
+
+/**
+ * Assert `res` is the scoped-token denial: a 403 with `SCOPED_TOKEN_WS_DENIAL_BODY`
+ * as JSON, or with an empty body where the backend sends no refused upgrade's
+ * body.
+ */
+const assert_scoped_token_denial = (res: UpgradeRejection, message: string): void => {
+	assert.strictEqual(res.status, 403, message);
+	if (capabilities.ws_refusal_body) {
+		assert.strictEqual(res.content_type, 'application/json', 'reject body is JSON');
+		assert.deepStrictEqual(JSON.parse(res.body), SCOPED_TOKEN_WS_DENIAL_BODY);
+	} else {
+		assert.deepStrictEqual(
+			{ content_type: res.content_type, body: res.body },
+			{ content_type: undefined, body: '' },
+			'no refusal body'
+		);
+	}
+};
 
 /**
  * Attempt a WebSocket upgrade over a scoped bearer with NO Origin/Referer
@@ -140,9 +162,7 @@ describe('scoped-token WS upgrade reject (cross-process, both backends)', () => 
 			);
 
 			const res = await attempt_ws_upgrade(token);
-			assert.strictEqual(res.status, 403, 'scoped token must be refused at WS upgrade');
-			assert.strictEqual(res.content_type, 'application/json', 'reject body is JSON');
-			assert.deepStrictEqual(JSON.parse(res.body), SCOPED_TOKEN_WS_DENIAL_BODY);
+			assert_scoped_token_denial(res, 'scoped token must be refused at WS upgrade');
 		}
 	);
 
@@ -165,9 +185,7 @@ describe('scoped-token WS upgrade reject (cross-process, both backends)', () => 
 			);
 
 			const res = await attempt_ws_upgrade(token);
-			assert.strictEqual(res.status, 403, 'a narrow scoped token must also be refused');
-			assert.strictEqual(res.content_type, 'application/json');
-			assert.deepStrictEqual(JSON.parse(res.body), SCOPED_TOKEN_WS_DENIAL_BODY);
+			assert_scoped_token_denial(res, 'a narrow scoped token must also be refused');
 		}
 	);
 });

@@ -139,7 +139,7 @@ const is_generic_body_cap_path = (path: string): boolean =>
  * parser (hyper) refuses a malformed `Content-Length` before the router sees
  * the request, so the 400 here covers what a JS runtime's parser lets through.
  * One case differs across the twins: a repeated `Content-Length` with equal
- * values answers 400 here (Deno hands it over as `5, 5`) and is accepted as the
+ * values is refused 400 by Node's parser, before the app, and accepted as the
  * one value by hyper.
  */
 export const generic_body_cap_middleware = (): MiddlewareSpec => {

@@ -1,6 +1,6 @@
 /**
  * Cross-process **end-to-end git push** suite — run against BOTH fuz_forge
- * backends (Deno/Hono + Rust `fuz_forge_server`) via the `cross_backend_*`
+ * backends (TS/Hono + Rust `fuz_forge_server`) via the `cross_backend_*`
  * mechanism. This is the only test that drives the *whole* repo-hosting write
  * path over real wires:
  *
@@ -35,8 +35,7 @@
  * slug_prefix/since filters.
  *
  * Requires `git` + `python3` on the host (the hooks are python3); both are
- * present wherever the cross suites run (the Deno backend already needs
- * `--allow-run` for `git`).
+ * present wherever the cross suites run (both backends already spawn `git`).
  *
  * @module
  */

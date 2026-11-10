@@ -7,9 +7,8 @@
  * — keeping headroom for the DB, logs, and in-flight temps rather than letting
  * the file store fill the volume to zero.
  *
- * Cross-runtime: Node (18.15+) has `fs.statfs`, which both the Node server and
- * Deno's `node:` compat expose, so `statfs` is the single probe path. The probe
- * is **best-effort** and **fails open** — any error (no `statfs`, an
+ * `node:fs`'s `statfs` (Node 18.15+, and Bun) is the single probe path. The
+ * probe is **best-effort** and **fails open** — any error (no `statfs`, an
  * unprobeable path, a permission issue) returns `null` so the caller proceeds
  * (the mid-stream `ENOSPC` backstop is the real disk-full guarantee). Mirroring
  * the Rust handler's fail-open posture.

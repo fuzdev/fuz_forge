@@ -1,6 +1,6 @@
 /**
  * Cross-process **WebSocket JSON-RPC envelope** suite — run against BOTH
- * fuz_forge backends (Deno/Hono + Rust `fuz_forge_server`) via the
+ * fuz_forge backends (TS/Hono + Rust `fuz_forge_server`) via the
  * `cross_backend_*` mechanism.
  *
  * The socket's read loop classifies every inbound frame before anything

@@ -1,6 +1,6 @@
 /**
  * Cross-process **`GET /api/server/status`** suite — run against BOTH
- * fuz_forge backends (Deno/Hono + Rust `fuz_forge_server`).
+ * fuz_forge backends (TS/Hono + Rust `fuz_forge_server`).
  *
  * The route is authenticated (`auth: account required, actor none`) and
  * returns the server version + uptime (`{version: string, uptime_ms: number}`,

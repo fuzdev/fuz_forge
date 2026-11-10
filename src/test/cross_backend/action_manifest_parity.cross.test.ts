@@ -48,11 +48,11 @@ import { assert_action_manifests_equal } from '@fuzdev/fuz_app/testing/cross_bac
 const ACTION_MANIFEST_METHOD_FLOOR = 60;
 
 describe('cross-backend action-manifest parity', () => {
-	test('TS (deno) and Rust forge RPC method sets match', async () => {
-		const deno = inject_parity_handles().a;
+	test('TS and Rust forge RPC method sets match', async () => {
+		const ts = inject_parity_handles().a;
 		const rust = inject_parity_handles().b;
-		const [deno_manifest, rust_manifest] = await Promise.all([
-			capture_action_manifest(deno),
+		const [ts_manifest, rust_manifest] = await Promise.all([
+			capture_action_manifest(ts),
 			capture_action_manifest(rust)
 		]);
 		// Loud floor first: two *empty* manifests are trivially equal, so a
@@ -60,9 +60,9 @@ describe('cross-backend action-manifest parity', () => {
 		// was assembled) would pass the diff silently. The live surface is 67
 		// methods; the floor sits just under it.
 		assert.ok(
-			deno_manifest.methods.length >= ACTION_MANIFEST_METHOD_FLOOR,
-			`deno manifest has ${deno_manifest.methods.length} methods, expected at least ${ACTION_MANIFEST_METHOD_FLOOR}`
+			ts_manifest.methods.length >= ACTION_MANIFEST_METHOD_FLOOR,
+			`ts manifest has ${ts_manifest.methods.length} methods, expected at least ${ACTION_MANIFEST_METHOD_FLOOR}`
 		);
-		assert_action_manifests_equal(deno_manifest, rust_manifest, { a: 'deno', b: 'rust' });
+		assert_action_manifests_equal(ts_manifest, rust_manifest, { a: 'ts', b: 'rust' });
 	});
 });
