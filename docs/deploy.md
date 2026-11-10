@@ -120,7 +120,9 @@ forge2 needs static musl `fuzfd` / `fuzf`. `zap.forge2.ts`'s build command sets
 `FUZ_FORGE_BUILD_TARGET=x86_64-unknown-linux-musl`, so the `gro build` cargo
 plugin compiles with `cargo zigbuild --target <triple>`. The deploy machine
 needs `cargo-zigbuild` and `zig` on `PATH`; the rustup musl std is added on
-demand.
+demand. The variable is part of the build cache key, so `deploy:forge2` and a
+plain `gro build` (`deploy`, `release`) at the same commit each build their own
+target rather than reusing the other's binaries.
 
 ## On the host
 

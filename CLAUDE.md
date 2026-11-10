@@ -222,7 +222,11 @@ builds static musl binaries via `cargo zigbuild` (needs `cargo-zigbuild` + `zig`
 since a static binary is refused under a glibc publisher's default target;
 `FUZ_FORGE_BUILD_SKIP_SERVER=1` builds `fuzf` only. Every crate but
 `fuz_forge_wire` path-deps the sibling `fuz/` checkout (paths in
-`Cargo.toml`); when it is absent the cargo step skips with a warning.
+`Cargo.toml`); when it is absent the cargo step skips with a warning. Both
+variables and the checkout's presence are in the build cache key
+(`build_cache_config`), so a build under one setting is never reused for
+another at the same commit; changes inside `../fuz` aren't, so rebuild with
+`gro build --force_build` after the spine checkout changes.
 
 ## Deploy
 

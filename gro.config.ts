@@ -8,6 +8,11 @@ import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const config: CreateGroConfig = (cfg) => {
+	// what the cargo step reads, read once so the build and its cache key agree
+	const build_target = process.env.FUZ_FORGE_BUILD_TARGET || null;
+	const skip_server = process.env.FUZ_FORGE_BUILD_SKIP_SERVER === '1';
+	const has_fuz_checkout = existsSync('../fuz');
+
 	const base_plugins = cfg.plugins;
 	cfg.plugins = async (ctx) => {
 		const plugins = await base_plugins(ctx);
@@ -72,14 +77,13 @@ const config: CreateGroConfig = (cfg) => {
 			name: 'gro_plugin_cargo_compile',
 			adapt: async ({ log }) => {
 				const output_dir = 'dist_artifacts';
-				if (!existsSync('../fuz')) {
+				if (!has_fuz_checkout) {
 					log.warn(
 						'[cargo] sibling ../fuz spine workspace not found — skipping the Rust' +
 							' fuzf/fuzfd builds (no dist_artifacts binaries produced)'
 					);
 					return;
 				}
-				const skip_server = process.env.FUZ_FORGE_BUILD_SKIP_SERVER === '1';
 				const bins = skip_server ? ['fuzf'] : ['fuzf', 'fuzfd'];
 				if (skip_server) {
 					log.info('[cargo] FUZ_FORGE_BUILD_SKIP_SERVER=1 — building fuzf only (skipping fuzfd)');
@@ -92,7 +96,7 @@ const config: CreateGroConfig = (cfg) => {
 				// forge, unchanged). Mirrors zap's `xtask build-musl`: zig as the C cross-linker
 				// (`cargo install cargo-zigbuild`), the rustup musl std added on demand. The
 				// binaries land at `target/<triple>/release/` instead of `target/release/`.
-				const target = process.env.FUZ_FORGE_BUILD_TARGET;
+				const target = build_target;
 				const release_dir = target ? join('target', target, 'release') : join('target', 'release');
 
 				await mkdir(output_dir, { recursive: true });
@@ -132,6 +136,17 @@ const config: CreateGroConfig = (cfg) => {
 		});
 
 		return plugins;
+	};
+
+	// The build cache keys on the commit, so what else changes the build's output
+	// goes here: the cargo plugin's variables and whether the `../fuz` checkout
+	// it builds against is present. Without them one build is served from the cache
+	// to another at the same commit: `deploy:forge2`'s musl binaries to `deploy` or
+	// `release`, a glibc build to `deploy:forge2`, a `fuzf`-only build to either.
+	cfg.build_cache_config = {
+		build_target,
+		skip_server,
+		has_fuz_checkout
 	};
 
 	return cfg;
