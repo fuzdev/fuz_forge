@@ -58,8 +58,8 @@ import {
 } from '@fuzdev/zap/recipe_debian_certbot.ts';
 import { certbot_webroot_switch } from '@fuzdev/zap/recipe_certbot.ts';
 import { spa_csp } from '@fuzdev/zap/recipe_csp.ts';
-import { fuz_app_bootstrap_token } from '@fuzdev/zap/recipe_bootstrap.ts';
-import { fuz_app_env_base, fuz_app_trusted_proxies } from '@fuzdev/zap/recipe_env.ts';
+import { fuz_app_bootstrap_token } from '@fuzdev/zap/recipe_fuz_app_bootstrap.ts';
+import { fuz_app_env_base, fuz_app_trusted_proxies } from '@fuzdev/zap/recipe_fuz_app_env.ts';
 import {
 	FORGE_FILE_STORE_MAX_BYTES,
 	forge_nginx_locations
@@ -80,7 +80,7 @@ const CURRENT_LINK = `${APP_DIR}/current`;
 // Template Constants
 //
 
-// Environment template — the shared fuz_app base (`recipe_env`) + the forge's
+// Environment template — the shared fuz_app base (`recipe_fuz_app_env`) + the forge's
 // allowed-origins, trusted-proxies, and file-store-cap stanza.
 const ENV_BASE = {
 	user: DEPLOY_USER,
@@ -96,11 +96,11 @@ ${fuz_app_trusted_proxies({ env_prefix: 'FORGE' })}
 # File store - the upload cap, matching nginx's client_max_body_size
 FUZ_FORGE_FILE_STORE_MAX_BYTES=${FORGE_FILE_STORE_MAX_BYTES}`;
 
-// Content-Security-Policy for the prerendered SPA — the locked-down fuz_app
-// baseline. See `@fuzdev/zap/recipe_csp.ts` for the 'unsafe-inline' / blake3
-// 'wasm-unsafe-eval' rationale; connect-src carries the WS endpoint as the
+// Content-Security-Policy for the prerendered SPA — the recipe's baseline, with
+// 'wasm-unsafe-eval' for the blake3 WASM. See `@fuzdev/zap/recipe_csp.ts` for the
+// 'unsafe-inline' rationale; connect-src carries the WS endpoint as the
 // `wss://{{domain}}` template placeholder.
-const CSP = spa_csp();
+const CSP = spa_csp({ wasm_unsafe_eval: true });
 
 // Nginx config — the fuz_app SPA site recipe. zap owns the full config including
 // SSL directives (certbot only manages cert files, never `--nginx`, so it can't
@@ -113,6 +113,8 @@ const nginx_config = (site: { domain: string; port: string }) =>
 		root: `${CURRENT_LINK}/build`,
 		csp: CSP,
 		ssl: 'snippet',
+		// includeSubDomains on, which the recipe leaves off by default
+		hsts: { include_subdomains: true },
 		spa_try_files: '$uri /200.html',
 		extra_locations: forge_nginx_locations()
 	});
@@ -328,7 +330,7 @@ export default (zap: ZapBuilder): void => {
 	//
 
 	// Bootstrap token for first-time keeper account creation — the fuz_app
-	// bootstrap-token recipe. See `@fuzdev/zap/recipe_bootstrap.ts` for the
+	// bootstrap-token recipe. See `@fuzdev/zap/recipe_fuz_app_bootstrap.ts` for the
 	// token-file / `bootstrap_lock` check; to rotate a stuck token, remove the
 	// token file and reset the `bootstrap_lock` row so the next apply re-mints.
 	zap.script({
@@ -428,10 +430,18 @@ export default (zap: ZapBuilder): void => {
 		depends_on: ['create-user']
 	});
 
+	// the certificate's name, its registration email, and the addresses its names
+	// must resolve to, for both certbot scripts
+	const certificate = {
+		domain: zap.env('DEPLOY_DOMAIN'),
+		email: zap.env('DEPLOY_CERTBOT_EMAIL'),
+		expected_addresses: [zap.env('DEPLOY_HOST')]
+	};
+
 	zap.script({
 		id: 'ssl-certificate',
 		name: 'SSL certificate via certbot (bootstrap)',
-		...debian_certbot_standalone_issue(),
+		...debian_certbot_standalone_issue(certificate),
 		depends_on: ['nginx', 'certbot']
 	});
 
@@ -446,7 +456,7 @@ export default (zap: ZapBuilder): void => {
 	zap.script({
 		id: 'certbot-renewal-webroot',
 		name: 'Switch cert renewal to webroot',
-		...certbot_webroot_switch({ deploy_hook: certbot_reload_hook }),
+		...certbot_webroot_switch({ ...certificate, deploy_hook: certbot_reload_hook }),
 		depends_on: ['certbot-webroot-dir', 'nginx-service', 'certbot-deploy-hook']
 	});
 
@@ -471,7 +481,7 @@ export default (zap: ZapBuilder): void => {
 		id: 'nginx-ssl-params',
 		name: 'nginx shared SSL parameters',
 		path: SSL_PARAMS_PATH,
-		content: { type: 'inline', content: ssl_params() },
+		content: { type: 'inline', content: ssl_params({ session_cache_zone: 'fuz_app_SSL' }) },
 		validate: NGINX_VALIDATE,
 		depends_on: ['nginx']
 	});

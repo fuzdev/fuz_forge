@@ -75,8 +75,8 @@ import {
 } from '@fuzdev/zap/recipe_alpine_certbot.ts';
 import { certbot_webroot_switch } from '@fuzdev/zap/recipe_certbot.ts';
 import { spa_csp } from '@fuzdev/zap/recipe_csp.ts';
-import { fuz_app_bootstrap_token } from '@fuzdev/zap/recipe_bootstrap.ts';
-import { fuz_app_env_base, fuz_app_trusted_proxies } from '@fuzdev/zap/recipe_env.ts';
+import { fuz_app_bootstrap_token } from '@fuzdev/zap/recipe_fuz_app_bootstrap.ts';
+import { fuz_app_env_base, fuz_app_trusted_proxies } from '@fuzdev/zap/recipe_fuz_app_env.ts';
 import {
 	FORGE_FILE_STORE_MAX_BYTES,
 	forge_nginx_locations
@@ -102,7 +102,7 @@ const POSTGRES_VERSION = 18;
 // Template Constants
 //
 
-// Environment template — the shared fuz_app base (`recipe_env`) + the forge's
+// Environment template — the shared fuz_app base (`recipe_fuz_app_env`) + the forge's
 // allowed-origins, trusted-proxies, and file-store-cap stanza. Identical to the Debian config.
 const ENV_BASE = {
 	user: DEPLOY_USER,
@@ -118,9 +118,9 @@ ${fuz_app_trusted_proxies({ env_prefix: 'FORGE' })}
 # File store - the upload cap, matching nginx's client_max_body_size
 FUZ_FORGE_FILE_STORE_MAX_BYTES=${FORGE_FILE_STORE_MAX_BYTES}`;
 
-// Content-Security-Policy for the prerendered SPA — the locked-down fuz_app
-// baseline (distro-neutral; identical to the Debian config).
-const CSP = spa_csp();
+// Content-Security-Policy for the prerendered SPA — the recipe's baseline with
+// 'wasm-unsafe-eval' for the blake3 WASM (distro-neutral; identical to the Debian config).
+const CSP = spa_csp({ wasm_unsafe_eval: true });
 
 // Nginx config — the fuz_app SPA site recipe (Alpine wrapper: the SSL snippet
 // include resolves to `snippets/`, not the auto-included `http.d/`). zap owns the
@@ -134,6 +134,8 @@ const nginx_config = (site: { domain: string; port: string }) =>
 		root: `${CURRENT_LINK}/build`,
 		csp: CSP,
 		ssl: 'snippet',
+		// includeSubDomains on, which the recipe leaves off by default
+		hsts: { include_subdomains: true },
 		spa_try_files: '$uri /200.html',
 		extra_locations: forge_nginx_locations()
 	});
@@ -239,17 +241,19 @@ export default (zap: ZapBuilder): void => {
 	// Phase 4: Security
 	//
 
-	// The kernel's link and file protections; Alpine sets only the first two of them
+	// The kernel's link and file protections; Alpine sets only the first two of them.
+	// One object for the file and the script that loads it, so the two can't drift
+	const link_protection = { path: LINK_PROTECTION_SYSCTL_PATH, values: LINK_PROTECTION_SYSCTLS };
 	zap.file({
 		id: 'sysctl-link-protection',
 		name: 'kernel link protections',
-		path: LINK_PROTECTION_SYSCTL_PATH,
-		content: { type: 'inline', content: sysctl_conf(LINK_PROTECTION_SYSCTLS) }
+		path: link_protection.path,
+		content: { type: 'inline', content: sysctl_conf(link_protection) }
 	});
 	zap.script({
 		id: 'sysctl-link-protection-applied',
 		name: 'kernel link protections in force',
-		...sysctl_apply(LINK_PROTECTION_SYSCTL_PATH, LINK_PROTECTION_SYSCTLS),
+		...sysctl_apply(link_protection),
 		depends_on: ['sysctl-link-protection']
 	});
 
@@ -497,10 +501,18 @@ export default (zap: ZapBuilder): void => {
 		depends_on: ['create-user']
 	});
 
+	// the certificate's name, its registration email, and the addresses its names
+	// must resolve to, for both certbot scripts
+	const certificate = {
+		domain: zap.env('DEPLOY_DOMAIN'),
+		email: zap.env('DEPLOY_CERTBOT_EMAIL'),
+		expected_addresses: [zap.env('DEPLOY_HOST')]
+	};
+
 	zap.script({
 		id: 'ssl-certificate',
 		name: 'SSL certificate via certbot (bootstrap)',
-		...alpine_certbot_standalone_issue(),
+		...alpine_certbot_standalone_issue(certificate),
 		depends_on: ['nginx', 'certbot']
 	});
 
@@ -510,7 +522,7 @@ export default (zap: ZapBuilder): void => {
 	zap.script({
 		id: 'certbot-renewal-webroot',
 		name: 'Switch cert renewal to webroot',
-		...certbot_webroot_switch({ deploy_hook: certbot_reload_hook }),
+		...certbot_webroot_switch({ ...certificate, deploy_hook: certbot_reload_hook }),
 		depends_on: ['certbot-webroot-dir', 'nginx-service', 'certbot-deploy-hook']
 	});
 
@@ -554,7 +566,7 @@ export default (zap: ZapBuilder): void => {
 		id: 'nginx-ssl-params',
 		name: 'nginx shared SSL parameters',
 		path: SSL_PARAMS_PATH,
-		content: { type: 'inline', content: ssl_params() },
+		content: { type: 'inline', content: ssl_params({ session_cache_zone: 'fuz_app_SSL' }) },
 		validate: NGINX_VALIDATE,
 		depends_on: ['nginx']
 	});
