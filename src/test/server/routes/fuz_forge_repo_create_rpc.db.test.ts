@@ -58,7 +58,7 @@ import { build_rpc_endpoint_specs } from '#lib/server/routes/fuz_forge_route_spe
 import { hash_hook_secret } from '#lib/server/routes/fuz_forge_repo_cell.ts';
 import { REPO_CREATE_SEED_FAILED_MESSAGE } from '#lib/server/routes/fuz_forge_repo_write.ts';
 import { SEED_FROM_HOST_MESSAGE } from '#lib/fuz_forge/repo/seed_from.ts';
-import { spawn_collect_node } from '#lib/server/server_node.ts';
+import { spawn_collect } from '#lib/server/subprocess.ts';
 import { ISO8601_SECONDS } from '#lib/server/timestamp.ts';
 
 import { describe_db } from '../../db_fixture.ts';
@@ -101,7 +101,7 @@ describe_db('fuz_forge_repo_create', (get_db) => {
 					fuz_forge_deps: {
 						runtime: scoped_runtime,
 						query_deps: { db: ctx.deps.db },
-						spawn_collect: spawn_collect_node,
+						spawn_collect,
 						seed_from_allow_private_hosts: true,
 						log: new Logger('test', { level: 'off' })
 					},
@@ -433,7 +433,7 @@ describe_db('fuz_forge_repo_create seed_from host policy', (get_db) => {
 					fuz_forge_deps: {
 						runtime: scoped_runtime,
 						query_deps: { db: ctx.deps.db },
-						spawn_collect: spawn_collect_node,
+						spawn_collect,
 						// The shipped default — this is the whole point of the app.
 						seed_from_allow_private_hosts: false,
 						log: new Logger('test', { level: 'off' })

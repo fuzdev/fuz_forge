@@ -27,8 +27,9 @@ pass `PATH` to git.
 
 `fuzfd start` reads only its process env; on a host the service unit injects
 `shared/.env.production` (CLI contract: ../CLAUDE.md § CLI). The TS reference
-server loads a file (`server_main.ts start --env_file`); `deno task dev:start`
-and `gro dev` use `.env.development` with the project-local `.fuz_forge/`.
+server can load a file beneath its process env (`server_main.ts --env_file`);
+`npm run dev:server` and `gro dev` use `.env.development` with the
+project-local `.fuz_forge/`.
 
 `fuzfd` exits 2 when a start fails on configuration — a variable below, or a
 database whose `default_transaction_isolation` is not `read committed` (the

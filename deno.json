@@ -3,8 +3,7 @@
 	"nodeModulesDir": "manual",
 	"exclude": ["**/*.test.ts", "**/*.svelte.ts", "**/*.gen.ts", "src/test/"],
 	"tasks": {
-		"check": "deno check src/lib/runtime/**/*.ts src/lib/server/**/*.ts src/lib/fuz_forge/**/*.ts",
-		"dev:start": "NODE_ENV=development FUZ_FORGE_HOME=$PWD/.fuz_forge FUZ_BOOTSTRAP_TOKEN_PATH=$PWD/.fuz_forge/secret_bootstrap_token deno run --allow-all src/lib/server/server_main.ts start --env_file .env.development"
+		"check": "deno check src/lib/runtime/**/*.ts src/lib/server/**/*.ts src/lib/fuz_forge/**/*.ts"
 	},
 	"fmt": {
 		"useTabs": true,

@@ -1,9 +1,9 @@
 /**
- * Graceful shutdown on SIGINT / SIGTERM for the TS server entries.
+ * Graceful shutdown on SIGINT / SIGTERM for the TS server.
  *
- * Runtime-agnostic: `server/server_deno.ts` and `server/server_node.ts` each
- * bind the handler to their runtime's signal API and exit. The order mirrors
- * fuz_app's cross-process test binary: stop accepting connections, close the
+ * The server entry, `server/server_main.ts`, binds the handler to the
+ * process's signals and exit. The order mirrors fuz_app's cross-process test
+ * binary: stop accepting connections, close the
  * app (`ServerApp.close`, which closes every live WebSocket and audit stream —
  * they would otherwise hold the listener's drain open — then the database),
  * and wait for both before exiting, up to `SHUTDOWN_TIMEOUT_MS`.

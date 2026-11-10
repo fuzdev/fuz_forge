@@ -2,12 +2,13 @@
  * Runtime-agnostic Hono app factory for fuz_forge.
  *
  * This module creates the core Hono application without any runtime-specific code.
- * Runtime adapters (`server/server_deno.ts`, `server/server_node.ts`) import this and provide:
- * - `RuntimeDeps` implementation (Deno or Node)
- * - serve_static middleware (from @hono/deno or @hono/node-server)
- * - WebSocket upgrade factory (`upgradeWebSocket` from @hono/deno, or
- *   `createNodeWebSocket` from @hono/node-ws over the assembled app)
- * - HTTP server (Deno.serve or @hono/node-server)
+ * The entry (`server/server_main.ts`) and the cross-process test binaries
+ * (over `server/testing_server_build.ts`) import this and provide:
+ * - the `RuntimeDeps` implementation
+ * - serve_static middleware (from @hono/node-server, or @hono/bun)
+ * - the WebSocket upgrade factory (`createNodeWebSocket` from @hono/node-ws
+ *   over the assembled app)
+ * - the HTTP server (@hono/node-server, or `Bun.serve`)
  *
  * Architecture:
  * - Frontend: SvelteKit build output (prerendered HTML/CSS/JS in `./build/`)
@@ -82,9 +83,9 @@ export interface ServerDeps {
 	/**
 	 * Builds the runtime's Hono WebSocket upgrade helper from the assembled
 	 * app — passed through to `create_app_server`, which mounts `/api/ws`
-	 * (`build_ws_endpoint_specs`) with it. Deno passes
-	 * `() => upgradeWebSocket`; Node creates `@hono/node-ws`'s helper from
-	 * the app and injects it into the server after `serve()`. Required: every
+	 * (`build_ws_endpoint_specs`) with it. On Node the entry creates
+	 * `@hono/node-ws`'s helper from the app and injects it into the server
+	 * after `serve()`. Required: every
 	 * entry serves realtime, as the Rust twin always mounts its WS route.
 	 */
 	create_upgrade_websocket: (app: Hono) => UpgradeWebSocket;
@@ -187,10 +188,10 @@ export interface ServerApp {
 	 * closer), and closes the DB pool; a sweep or cleanup
 	 * pass in progress finishes first. Safe to call more than once: the sweep
 	 * and rotation stops tolerate a repeat, and the app server's close is
-	 * idempotent. The server entries (`server/server_deno.ts`,
-	 * `server/server_node.ts`) call it on SIGINT / SIGTERM, as the cross-process
-	 * test binary does on shutdown — after the listener stops accepting
-	 * connections and before awaiting its drain.
+	 * idempotent. The server entry (`server/server_main.ts`) calls it on
+	 * SIGINT / SIGTERM, as the cross-process test binary does on shutdown —
+	 * after the listener stops accepting connections and before awaiting its
+	 * drain.
 	 */
 	close: () => Promise<void>;
 }
@@ -199,7 +200,8 @@ export interface ServerApp {
  * Create the Hono application.
  *
  * This is the main entry point for creating a runtime-agnostic server.
- * Call this from runtime-specific entry points (`server/server_deno.ts`, `server/server_node.ts`).
+ * Called by the server entry (`server/server_main.ts`) and, through
+ * `server/testing_server_build.ts`, the cross-process test binaries.
  *
  * The body is a thin call-list over the setup stages in
  * `server/app_assembly.ts`; the call order (config → messaging → backend →

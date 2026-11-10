@@ -1,7 +1,7 @@
 /**
  * Subprocess streaming + buffered primitives for the forge server.
  *
- * Two runtime-provided capabilities the forge routes depend on:
+ * Two capabilities the forge routes depend on:
  * - `SpawnStreaming` bridges the git smart-HTTP body into
  *   `git http-backend` (used by `routes/git_cgi.ts`).
  * - `SpawnCollect` runs bounded `git` and `chmod` commands and buffers
@@ -11,27 +11,33 @@
  *   storage commands through it).
  *
  * Both share an env-isolation contract: the subprocess sees only
- * `options.env`, never the parent env. The Deno + Node implementations live
- * in `server/server_deno.ts` / `server/server_node.ts`.
+ * `options.env`, never the parent env. `spawn_streaming` and `spawn_collect`
+ * implement them over `node:child_process`, which Bun implements too; the
+ * routes take them injected, so tests substitute their own.
  *
  * Structural twin of the Rust backend's `crates/fuz_forge_server/src/subprocess.rs`,
- * kept in its own module on both backends. The data shapes carry the same names
- * there — `SpawnStreamingHandle`, `SpawnStreamingOptions`, `SpawnCollectResult`,
- * `SpawnCollectOptions`. The capability types `SpawnStreaming` and
- * `SpawnCollect` are TS-only by design: the Rust side calls its free
- * `spawn_streaming` / `spawn_collect` functions directly instead of injecting
- * them, so there is nothing on that side for the two to name.
+ * kept in its own module on both backends. The data shapes and the two
+ * functions carry the same names there — `SpawnStreamingHandle`,
+ * `SpawnStreamingOptions`, `SpawnCollectResult`, `SpawnCollectOptions`,
+ * `spawn_streaming`, `spawn_collect`. The capability types `SpawnStreaming` and
+ * `SpawnCollect` are TS-only by design: the Rust side calls its free functions
+ * directly instead of injecting them, so there is nothing on that side for the
+ * two to name.
  *
  * @module
  */
+
+import { spawn } from 'node:child_process';
+import { Readable, Writable } from 'node:stream';
+
+import { concat_uint8 } from '../runtime/bytes.ts';
 
 /**
  * Streaming subprocess handle used by the forge routes to bridge the
  * git smart-HTTP protocol into `git http-backend`.
  *
- * Web-stream-shaped on both runtimes:
- * - Deno: returned directly by `Deno.Command(...).spawn()`.
- * - Node: adapted via `Readable.toWeb` / `Writable.toWeb` (Node ≥ 18).
+ * Web-stream-shaped: `spawn_streaming` adapts the child's Node streams via
+ * `Readable.toWeb` / `Writable.toWeb`.
  *
  * The handle is intentionally narrow — `git http-backend` only needs
  * stdin/stdout/stderr streams, an exit status, and a kill switch.
@@ -56,10 +62,8 @@ export interface SpawnStreamingOptions {
 }
 
 /**
- * Runtime-provided streaming-subprocess primitive. Spawns `cmd` with the
- * given `args` and returns a `SpawnStreamingHandle`. Implementations
- * live in `server/server_deno.ts` (via `Deno.Command`) and `server/server_node.ts`
- * (via `node:child_process.spawn`).
+ * Streaming-subprocess capability. Spawns `cmd` with the given `args` and
+ * returns a `SpawnStreamingHandle`; `spawn_streaming` implements it.
  */
 export type SpawnStreaming = (
 	cmd: string,
@@ -93,7 +97,7 @@ export interface SpawnCollectOptions {
 }
 
 /**
- * Runtime-provided buffered-subprocess primitive. Spawns `cmd`, drains
+ * Buffered-subprocess capability. Spawns `cmd`, drains
  * stdout + stderr to memory, and resolves with the captured bytes and
  * exit code. No stdin — callers that need to pipe input use
  * `SpawnStreaming` instead.
@@ -109,8 +113,7 @@ export interface SpawnCollectOptions {
  * classifiers can map — the shape `SpawnOutputTooLargeError` /
  * `PayloadTooLarge` already set for the byte cap.
  *
- * Implementations live in `server/server_deno.ts` (via `Deno.Command(...).output()`)
- * and `server/server_node.ts` (via `node:child_process.spawn` + chunk accumulation).
+ * `spawn_collect` implements it.
  */
 export type SpawnCollect = (
 	cmd: string,
@@ -134,3 +137,125 @@ export class SpawnOutputTooLargeError extends Error {
 /** True when `err` is a `SpawnOutputTooLargeError` (a subprocess output-cap hit). */
 export const is_output_too_large = (err: unknown): boolean =>
 	err instanceof SpawnOutputTooLargeError;
+
+/**
+ * `SpawnCollect` over `node:child_process`. Buffers stdout/stderr to memory
+ * until exit. No stdin — closed immediately so the subprocess doesn't block
+ * waiting for input.
+ *
+ * `max_output_bytes` is enforced across each of stdout / stderr
+ * independently — exceeding either kills the subprocess and rejects.
+ * The cap is the only resource bound on this primitive, so callers
+ * with adversarial-or-buggy subprocesses MUST set one.
+ *
+ * `env` is passed explicitly — `spawn` would otherwise inherit `process.env`,
+ * which leaks server secrets.
+ */
+export const spawn_collect: SpawnCollect = (cmd, args, options) =>
+	new Promise((resolve, reject) => {
+		const proc = spawn(cmd, [...args], {
+			cwd: options.cwd,
+			env: options.env,
+			stdio: ['ignore', 'pipe', 'pipe']
+		});
+
+		const cap = options.max_output_bytes;
+		const stdout_chunks: Array<Uint8Array> = [];
+		const stderr_chunks: Array<Uint8Array> = [];
+		let stdout_bytes = 0;
+		let stderr_bytes = 0;
+		let killed = false;
+
+		const collect =
+			(
+				chunks: Array<Uint8Array>,
+				get_bytes: () => number,
+				add_bytes: (n: number) => void,
+				label: string
+			) =>
+			(chunk: Uint8Array) => {
+				if (killed) return;
+				add_bytes(chunk.length);
+				chunks.push(chunk);
+				if (cap !== undefined && get_bytes() > cap) {
+					killed = true;
+					proc.kill('SIGKILL');
+					reject(new SpawnOutputTooLargeError(label, cap));
+				}
+			};
+
+		proc.stdout.on(
+			'data',
+			collect(
+				stdout_chunks,
+				() => stdout_bytes,
+				(n) => {
+					stdout_bytes += n;
+				},
+				'stdout'
+			)
+		);
+		proc.stderr.on(
+			'data',
+			collect(
+				stderr_chunks,
+				() => stderr_bytes,
+				(n) => {
+					stderr_bytes += n;
+				},
+				'stderr'
+			)
+		);
+
+		proc.on('error', (err) => {
+			if (killed) return;
+			killed = true;
+			reject(err);
+		});
+
+		proc.on('close', (code, signal) => {
+			if (killed) return;
+			const resolved_code = code ?? (signal ? 128 : 1);
+			resolve({
+				stdout: concat_uint8(stdout_chunks),
+				stderr: concat_uint8(stderr_chunks),
+				code: resolved_code,
+				success: resolved_code === 0
+			});
+		});
+	});
+
+/**
+ * `SpawnStreaming` over `node:child_process`. `spawn` returns Node-shaped
+ * streams; `Readable.toWeb` / `Writable.toWeb` adapt them to the handle's web
+ * streams.
+ *
+ * `env` is passed explicitly, as in `spawn_collect`.
+ */
+export const spawn_streaming: SpawnStreaming = (cmd, args, options) => {
+	const proc = spawn(cmd, [...args], {
+		cwd: options.cwd,
+		env: options.env,
+		stdio: ['pipe', 'pipe', 'pipe']
+	});
+
+	const status: Promise<{ code: number; success: boolean }> = new Promise((resolve) => {
+		proc.on('exit', (code, signal) => {
+			// `code` is null when the process was killed by a signal; map to
+			// a non-zero sentinel so callers see `success: false` in either
+			// failure mode.
+			const resolved_code = code ?? (signal ? 128 : 1);
+			resolve({ code: resolved_code, success: resolved_code === 0 });
+		});
+	});
+
+	return {
+		stdin: Writable.toWeb(proc.stdin) as WritableStream<Uint8Array>,
+		stdout: Readable.toWeb(proc.stdout) as ReadableStream<Uint8Array>,
+		stderr: Readable.toWeb(proc.stderr) as ReadableStream<Uint8Array>,
+		status,
+		kill: (signal?: string) => {
+			proc.kill((signal as NodeJS.Signals | undefined) ?? 'SIGTERM');
+		}
+	};
+};

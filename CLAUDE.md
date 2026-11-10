@@ -19,7 +19,7 @@ The app's own schemas (action specs, route specs, the token policy, `RepoId`,
   and the shared parity fixtures (documented divergences aside). **Production
   runs the Rust `fuzfd`** (crate `fuz_forge_server`, Axum on the spine
   crates). The **TS Hono server is the reference twin** — run directly
-  (`deno run`) for tests, benchmarks, and local dev; never compiled or shipped.
+  for tests, benchmarks, and local dev; never compiled or shipped.
 - **Client**: the Rust `fuzf` CLI (crate `fuz_forge`) — a forge client, not a
   parity twin.
 - **Provisioning and deploy**: the standalone `zap` CLI, driven by `zap.ts` /
@@ -39,11 +39,11 @@ signed tool registry.
 ## Layout
 
 - ./zap.ts — forge (Debian/systemd) provisioning + deploy config; ./zap.forge2.ts — forge2 (Alpine/OpenRC)
-- ./gro.config.ts — Gro config: the Deno dev-server plugin and the cargo plugin that builds `fuzf` + `fuzfd`
+- ./gro.config.ts — Gro config: the dev-server plugin (`gro_plugin_server`) and the cargo plugin that builds `fuzf` + `fuzfd`
 - ./package.json — the operator scripts (`npm run <name>`); ./deno.json — the Deno reference server's tasks; ./Cargo.toml — Rust workspace
 - ./src/lib/action_specs.ts — action specs; the `*.gen.ts` beside it generate the action types
 - ./src/lib/fuz_forge/ — forge-domain helpers shared by server and UI: `repo/` (repo id + slug grammar, the repo-cell narrow `plan_repo`, storage, `seed_from`, the `repo list --since` grammar), `file_meta.ts`, `build_info.ts`
-- ./src/lib/server/ — the TS reference server: `server.ts` + `app_assembly.ts` (composition), `server_main.ts` / `server_deno.ts` / `server_node.ts` (entries), `env/`, `db/` (migrations, token-policy schema + queries), `git/` (parse + read), `routes/` (RPC handlers, file store, git smart-HTTP, internal hook callbacks)
+- ./src/lib/server/ — the TS reference server: `server.ts` + `app_assembly.ts` (composition), `server_main.ts` (entry), `subprocess.ts` (the `git` / `chmod` subprocess primitives), `env/`, `db/` (migrations, token-policy schema + queries), `git/` (parse + read), `routes/` (RPC handlers, file store, git smart-HTTP, internal hook callbacks)
 - ./src/lib/ui/ — Svelte state classes and the RPC/WS app wiring (`fuz_forge_app.svelte.ts`, `fuz_forge_notification_bus.ts`)
 - ./src/lib/runtime/ — platform-boundary helpers for the TS entries (tilde expansion, byte concat)
 - ./src/lib/nginx_locations.ts — the nginx `location` blocks both deploy configs share
@@ -92,7 +92,7 @@ npm i
 npm run dev:setup                      # copies .env, generates secrets, creates the DB
 createdb fuz_forge_test                # required to run the tests
 npm run dev:fuzf -- init --server http://localhost:4041   # writes the project-local .fuz_forge/config.json
-gro dev                                # Vite + the TS server on 127.0.0.1:4041 (`deno task dev:start` for the server alone)
+gro dev                                # Vite + the TS server on 127.0.0.1:4041 (`npm run dev:server` for the server alone)
 ```
 
 Then bootstrap the keeper account at `/admin` with the token in
@@ -142,6 +142,7 @@ Run each with `npm run <name>`. Arguments go after `--`
 | script | does |
 | --- | --- |
 | `dev:setup` / `dev:reset` | first-time dev setup / drop and recreate the dev DB and re-mint the bootstrap token; both use the project's `.fuz_forge/` as the forge home |
+| `dev:server` | run the TS reference server alone, with `.env.development` and the project-local home (sets `NODE_ENV=development`) |
 | `dev:fuzf` | run `fuzf` against the project-local home (`FUZ_FORGE_HOME=$PWD/.fuz_forge`) |
 | `prod:setup` | create forge's operator `.env.production` from its example |
 | `db:status` | dev-DB connectivity, tables, and migration state from `.env.development` (exits 1 when the URL is missing or unreachable) |
@@ -160,7 +161,6 @@ dry runs until `--wetrun`; see ./docs/deploy.md.
 
 | task | does |
 | --- | --- |
-| `dev:start` | run the TS reference server with `.env.development` (sets `NODE_ENV=development`) |
 | `check` | Deno type check |
 
 ## CLI

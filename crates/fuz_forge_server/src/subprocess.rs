@@ -12,8 +12,7 @@
 //!
 //! Both primitives **do not inherit parent env**. Callers pass exactly
 //! the variables the subprocess needs (`PATH`, `GIT_TERMINAL_PROMPT=0`,
-//! CGI vars). Mirrors the TS implementations' `clearEnv: true` (Deno)
-//! and explicit `env: options.env` (Node).
+//! CGI vars). Mirrors the TS implementations' explicit `env: options.env`.
 
 use std::collections::HashMap;
 use std::ffi::OsStr;
@@ -194,8 +193,8 @@ where
     // what deadlocks: when stdout trips the cap its drain returns, but the
     // child keeps writing into a pipe nobody reads and so never exits, so
     // stderr never EOFs and a `join!` on both would never complete — child
-    // alive, request hung. Both TS twins kill from inside the drain
-    // (`server_deno.ts`/`server_node.ts`); `try_join!` is the same shape here.
+    // alive, request hung. The TS twin kills from inside the drain
+    // (`subprocess.ts`'s `spawn_collect`); `try_join!` is the same shape here.
     let drain_stdout = async { drain_capped(&mut stdout_pipe, &mut stdout, cap).await };
     let drain_stderr = async { drain_capped(&mut stderr_pipe, &mut stderr, cap).await };
 

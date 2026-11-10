@@ -9,8 +9,8 @@
  * under Bun JSC alongside Node V8 + Deno V8.
  *
  * Bun implements `node:child_process`, so the git-route subprocess primitives
- * are reused straight from `server/server_node.ts` (`spawn_streaming_node` /
- * `spawn_collect_node`) — no Bun-specific spawn shim is needed. `Bun.serve` is
+ * are `server/subprocess.ts`'s own (`spawn_streaming` / `spawn_collect`) — no
+ * Bun-specific spawn shim is needed. `Bun.serve` is
  * built in; the static middleware comes from the `@hono/bun` dev dep, the Bun
  * counterpart of Node's `@hono/node-server`.
  *
@@ -31,7 +31,7 @@ import {
 	build_fuz_forge_testing_app,
 	resolve_fuz_forge_testing_config
 } from './testing_server_build.ts';
-import { spawn_collect_node, spawn_streaming_node } from './server_node.ts';
+import { spawn_collect, spawn_streaming } from './subprocess.ts';
 
 const DAEMON_NAME = 'fuz_forge_ts_bun';
 
@@ -49,9 +49,8 @@ const start = async (): Promise<void> => {
 				serve_static: serveStatic,
 				get_connection_ip: adapter.get_connection_ip,
 				daemon_token_path,
-				// Bun implements `node:child_process`; reuse the Node spawn shims.
-				spawn_streaming: spawn_streaming_node,
-				spawn_collect: spawn_collect_node,
+				spawn_streaming,
+				spawn_collect,
 				// mounts `/api/ws`, as the Deno and Node binaries do, so the
 				// spawned app is the same on every runtime
 				create_upgrade_websocket: context.prepare_websocket()

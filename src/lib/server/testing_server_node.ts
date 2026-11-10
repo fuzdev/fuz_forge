@@ -30,7 +30,7 @@ import {
 	build_fuz_forge_testing_app,
 	resolve_fuz_forge_testing_config
 } from './testing_server_build.ts';
-import { spawn_collect_node, spawn_streaming_node } from './server_node.ts';
+import { spawn_collect, spawn_streaming } from './subprocess.ts';
 
 const DAEMON_NAME = 'fuz_forge_ts_node';
 
@@ -48,8 +48,8 @@ const start = async (): Promise<void> => {
 				serve_static: serveStatic,
 				get_connection_ip: adapter.get_connection_ip,
 				daemon_token_path,
-				spawn_streaming: spawn_streaming_node,
-				spawn_collect: spawn_collect_node,
+				spawn_streaming,
+				spawn_collect,
 				// mounts `/api/ws`, as the Deno and Bun binaries do
 				create_upgrade_websocket: context.prepare_websocket()
 			})

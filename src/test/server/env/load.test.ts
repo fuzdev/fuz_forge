@@ -25,8 +25,8 @@ describe('load_env with no environment', () => {
 		assert.throws(() => load_env({ env_get: () => undefined }));
 		const output = lines.join('\n');
 		assert.include(output, 'No environment configured');
-		assert.include(output, 'deno task dev:start');
-		assert.include(output, 'server_main.ts start --env_file <path>');
+		assert.include(output, 'npm run dev:server');
+		assert.include(output, 'server_main.ts --env_file <path>');
 		assert.notInclude(output, 'fuzfd');
 	});
 });

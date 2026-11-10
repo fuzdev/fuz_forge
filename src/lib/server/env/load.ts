@@ -46,11 +46,9 @@ export const load_env = (runtime: Pick<RuntimeDeps, 'env_get'>): ServerEnv => {
 				console.error('[server] No environment configured.');
 				console.error('');
 				console.error('Options:');
-				console.error('  deno task dev:start                    Load .env.development');
-				console.error('  server_main.ts start --env_file <path> Load from an env file');
-				console.error(
-					'  Export vars directly                   NODE_ENV=... FUZ_ALLOWED_ORIGINS=...'
-				);
+				console.error('  npm run dev:server                Load .env.development');
+				console.error('  server_main.ts --env_file <path>  Load from an env file');
+				console.error('  Export vars directly              NODE_ENV=... FUZ_ALLOWED_ORIGINS=...');
 				console.error('');
 				console.error('Required variables:');
 				console.error('  NODE_ENV             development | production');

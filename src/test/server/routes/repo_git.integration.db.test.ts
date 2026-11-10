@@ -42,7 +42,7 @@ import { Logger } from '@fuzdev/fuz_util/log.ts';
 
 import { fuz_forge_session_config } from '#lib/server/routes/account.ts';
 import { create_fuz_forge_app_route_specs } from '#lib/server/routes/fuz_forge_route_specs.ts';
-import { spawn_collect_node, spawn_streaming_node } from '#lib/server/server_node.ts';
+import { spawn_collect, spawn_streaming } from '#lib/server/subprocess.ts';
 import { init_bare_repo, install_hooks } from '#lib/fuz_forge/repo/storage.ts';
 import { repo_cell_path, type RepoCellData } from '#lib/fuz_forge/repo/plan_repo.ts';
 import { hash_hook_secret } from '#lib/server/routes/fuz_forge_repo_cell.ts';
@@ -144,7 +144,7 @@ const boot_server = async (get_db: () => Db): Promise<BootedServer> => {
 			repo_git: {
 				runtime: scoped_runtime,
 				query_deps,
-				spawn_streaming: spawn_streaming_node,
+				spawn_streaming,
 				log
 			},
 			repo_internal: {
@@ -202,7 +202,7 @@ const boot_server = async (get_db: () => Db): Promise<BootedServer> => {
 	const created = await query_cell_create(deps, { path: repo_cell_path(SLUG), data, kind: 'repo' });
 	const repo_id = created.id;
 
-	const storage_deps = { ...scoped_runtime, spawn_collect: spawn_collect_node };
+	const storage_deps = { ...scoped_runtime, spawn_collect };
 	await init_bare_repo(storage_deps, repo_id);
 	await install_hooks(storage_deps, {
 		id: repo_id,

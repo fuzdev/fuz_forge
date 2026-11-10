@@ -19,7 +19,7 @@ import { assert, test, describe, beforeAll, afterAll, beforeEach } from 'vitest'
 import { assert_rejects } from '@fuzdev/fuz_util/testing.ts';
 import { create_node_runtime } from '@fuzdev/fuz_app/runtime/node.ts';
 
-import { spawn_collect_node } from '#lib/server/server_node.ts';
+import { spawn_collect } from '#lib/server/subprocess.ts';
 import {
 	create_redirect_server,
 	create_upstream_git_server,
@@ -208,7 +208,7 @@ describe('init / clone / install_hooks (filesystem)', () => {
 	// env, no stdin), not `RuntimeDeps.run_command` — see `RepoCommandDeps`.
 	const make_runtime_with_store = (store: string) => ({
 		...runtime,
-		spawn_collect: spawn_collect_node,
+		spawn_collect,
 		env_get: (name: string) => {
 			if (name === 'FUZ_FORGE_REPO_STORE_PATH') return store;
 			if (name === 'HOME') return runtime.env_get('HOME');
@@ -344,7 +344,7 @@ describe('init / clone / install_hooks (filesystem)', () => {
 				options: { env: Record<string, string> }
 			) => {
 				envs.push(options.env);
-				return spawn_collect_node(cmd, args, options);
+				return spawn_collect(cmd, args, options);
 			}
 		};
 		await init_bare_repo(recording_deps, id);

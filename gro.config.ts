@@ -1,5 +1,5 @@
 import type { CreateGroConfig } from '@fuzdev/gro/gro_config.ts';
-import { gro_plugin_deno_server } from '@fuzdev/gro/gro_plugin_deno_server.ts';
+import { gro_plugin_server } from '@fuzdev/gro/gro_plugin_server.ts';
 import { spawn_result_is_ok, to_spawn_result_message } from '@fuzdev/gro/cli.ts';
 import { spawn } from '@fuzdev/gro/spawn.ts';
 import { createHash } from 'node:crypto';
@@ -17,28 +17,17 @@ const config: CreateGroConfig = (cfg) => {
 	cfg.plugins = async (ctx) => {
 		const plugins = await base_plugins(ctx);
 
-		// Dev: run Deno server alongside Vite, with the same project-local home
-		// and bootstrap token as `deno task dev:start` (an env file can't
-		// expand the cwd, so they're set here)
+		// Dev: run the TS server beside Vite, restarted when its modules change.
+		// `PORT` and `HOST` come from `.env.development`, the plugin's default
+		// env file (`HOST` the IPv4 loopback, where the repo hooks call back,
+		// and the address `vite.config.ts` proxies `/api` to); the project-local
+		// home and bootstrap token are set here,
+		// as `npm run dev:server` sets them, since an env file can't expand the
+		// project path.
 		const fuz_forge_home = join(process.cwd(), '.fuz_forge');
 		plugins.push(
-			gro_plugin_deno_server({
-				entry: 'src/lib/server/server_deno.ts',
-				port: 4041,
-				// IPv4 loopback, where the repo hooks call back (the plugin's
-				// `localhost` default binds `::1` alone on some hosts)
-				host: '127.0.0.1',
-				permissions: [
-					'--allow-net',
-					'--allow-read',
-					'--allow-write',
-					'--allow-env',
-					'--allow-sys',
-					'--allow-ffi',
-					// the server spawns git (repo reads, smart-HTTP, repo creation) and
-					// chmod (repo permissions)
-					'--allow-run=git,chmod'
-				],
+			gro_plugin_server({
+				entry: 'src/lib/server/server_main.ts',
 				env: {
 					FUZ_FORGE_HOME: fuz_forge_home,
 					FUZ_BOOTSTRAP_TOKEN_PATH: join(fuz_forge_home, 'secret_bootstrap_token')
@@ -49,8 +38,8 @@ const config: CreateGroConfig = (cfg) => {
 		// Build: compile the `fuzf` client + `fuzfd` server binaries from the
 		// Rust workspace — `fuzf` is the forge client, `fuzfd` is the production
 		// server (held to cross-backend parity with the TS reference impl, which
-		// is not compiled or shipped — it is a run-directly twin via `deno run`
-		// for the cross-backend tests + benchmarks). `cargo build --release`
+		// is not compiled or shipped — it is run directly, for local dev and the
+		// cross-backend tests + benchmarks). `cargo build --release`
 		// emits `target/release/<bin>`; we copy each to `dist_artifacts/<bin>`
 		// (+ a sha512sum-format hash), which is where the zap deploy
 		// (`artifacts: ['dist_artifacts/']`, systemd `ExecStart=.../fuzfd start`) and
