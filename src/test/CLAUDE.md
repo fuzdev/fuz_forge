@@ -17,13 +17,16 @@ its readers are (§ Route / RPC Integration Tests).
 src/test/
 ├── CLAUDE.md                           # this file
 ├── runtime_mock.ts                     # RuntimeDeps mock
+├── capture_console.ts                  # collects a flow's console output
 ├── db_fixture.ts                       # describe_db + db_factories (Postgres)
 ├── git_upstream_server.ts              # loopback dumb-HTTP git origin for `seed_from` clones
 ├── action_spec_input_invariants.test.ts
 ├── nginx_locations.test.ts
+├── release.test.ts                     # the release flow over fake git/gh/build, the ELF platform check
 ├── fixtures/parity/                    # shared TS↔Rust case tables + the TS loader (§ Parity fixtures)
 ├── cross_backend/                      # *.cross.test.ts — a spawned backend over HTTP
 ├── runtime/                            # path/tilde expansion, byte-chunk concatenation
+├── setup/                              # the dev/prod setup flows and the dev-DB status, over the mock runtime
 ├── server/routes/                      # route/RPC integration, attack surface, files, repo_git, scoped tokens
 ├── server/git/                         # git parse + read (stderr classification chain)
 ├── server/env/                         # the `ServerEnv` contract (canonical vs. retired names)
@@ -492,9 +495,8 @@ Tests mix Node + Deno imports, so the Deno checker excludes `src/test/`
 (`deno.json` `exclude`). The Node side covers it: `tsconfig.json` includes
 `src/**/*.ts` plus the root `*.ts` configs (`zap.ts` and `zap.forge2.ts`
 included), and ESLint lints them too. Each inherits its exclusions from its
-base config, so the two sets differ slightly: `scripts/*.ts` is linted but
-outside the tsconfig project, and `src/test/fixtures/` is in the project but
-ESLint-ignored by the shared preset. Neither zap config is format-checked —
+base config, so the two sets differ slightly: `src/test/fixtures/` is in the
+project but ESLint-ignored by the shared preset. Neither zap config is format-checked —
 `gro format`'s root list does not name them.
 
 ## RuntimeDeps Mock (`runtime_mock.ts`)

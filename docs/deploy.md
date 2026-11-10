@@ -64,14 +64,14 @@ The `FUZ_*_RATE_LIMIT_*` vars affect only the test binaries
 
 ## Targets
 
-| target | host | OS | Zap config | operator env (gitignored) | committed template | tasks |
+| target | host | OS | Zap config | operator env (gitignored) | committed template | scripts |
 | --- | --- | --- | --- | --- | --- | --- |
 | forge | `<forge-host>` | Debian 13 / glibc, apt + systemd | `zap.ts` | `.env.production` | `.env.production.example` | `apply` / `deploy` |
 | forge2 | `<forge2-host>` | Alpine / musl, apk + OpenRC, nftables, bubblewrap | `zap.forge2.ts` | `.env.production.forge2` | `.env.production.forge2.example` | `apply:forge2` / `deploy:forge2` |
 
 Both serve the prerendered SPA via nginx and run `fuzfd` behind it. A new
 target `forgeN` is `zap.forgeN.ts` + `.env.production.forgeN` (+ `.example`) +
-`apply:forgeN` / `deploy:forgeN` tasks.
+`apply:forgeN` / `deploy:forgeN` scripts in `package.json`.
 
 ## Operator env files
 
@@ -97,9 +97,11 @@ restarts `fuzfd` under it, invalidating existing browser sessions.
 
 ## apply → deploy
 
-Each `apply*` / `deploy*` task is a dry run that prints its plan; the same task
-plus `--wetrun` executes only the plan that dry run showed (`deno task
-deploy:forge2`, then `deno task deploy:forge2 --wetrun`).
+Each `apply*` / `deploy*` script is a dry run that prints its plan; the same
+script plus `--wetrun` executes only the plan that dry run showed (`npm run
+deploy:forge2`, then `npm run deploy:forge2 -- --wetrun`). The `--` matters:
+npm takes a flag before it as its own, so `npm run deploy:forge2 --wetrun` is
+the dry run again.
 
 1. **apply** — converge the host: packages, users, swap, firewall, fail2ban,
    SSH hardening, nginx, the systemd/OpenRC unit, PostgreSQL, TLS, the
@@ -110,7 +112,7 @@ deploy:forge2`, then `deno task deploy:forge2 --wetrun`).
    DB-unreachable release answers 503 and rolls back.
 
 `deploy` refuses to run while the host's apply-managed state has drifted:
-preview with `deno task apply[:forge2]`, converge with `--wetrun`, then deploy.
+preview with `npm run apply[:forge2]`, converge with `-- --wetrun`, then deploy.
 
 ## forge2: musl binaries
 
@@ -141,10 +143,10 @@ demand.
 
 ## Fresh Alpine box
 
-A never-provisioned Alpine host runs `deno task apply:forge2:bootstrap`, then
-the same with `--wetrun`, once. `--bootstrap` connects as the stock
+A never-provisioned Alpine host runs `npm run apply:forge2:bootstrap`, then
+the same with `-- --wetrun`, once. `--bootstrap` connects as the stock
 cloud-image login user (`BOOTSTRAP_USER`, `alpine` on the official image),
 provisions and hardens, creates `fuz_forge`, and locks the bootstrap user out.
 Every later `apply:forge2` / `deploy:forge2` connects as `fuz_forge`.
 
-The Debian equivalent is `deno task apply:bootstrap`, which connects as `root`.
+The Debian equivalent is `npm run apply:bootstrap`, which connects as `root`.

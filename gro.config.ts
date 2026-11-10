@@ -49,12 +49,12 @@ const config: CreateGroConfig = (cfg) => {
 		// emits `target/release/<bin>`; we copy each to `dist_artifacts/<bin>`
 		// (+ a sha512sum-format hash), which is where the zap deploy
 		// (`artifacts: ['dist_artifacts/']`, systemd `ExecStart=.../fuzfd start`) and
-		// `scripts/release.ts` (which ships both) read them.
+		// `src/lib/release.ts` (which ships both) read them.
 		//
 		// `FUZ_FORGE_BUILD_SKIP_SERVER=1` builds `fuzf` only (skips `fuzfd`), for
 		// callers that want the client without paying the (slow, release-mode)
 		// server build or being blocked by a broken/in-progress server. Nothing in
-		// the repo sets it — `deno task install` sidesteps this plugin
+		// the repo sets it — `npm run install:fuzf` sidesteps this plugin
 		// entirely by running `cargo build --release --bin fuzf` directly — so it
 		// is an opt-in for ad-hoc `gro build` runs. `release` / `deploy` never set
 		// it, so they always build + ship both.

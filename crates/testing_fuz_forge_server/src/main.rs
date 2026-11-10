@@ -25,7 +25,7 @@
 //! Three layered guardrails keep this from leaking into production:
 //!
 //! 1. The build (`gro.config.ts`) and the GitHub release
-//!    (`scripts/release.ts`) name their binaries by an exact allowlist, and
+//!    (`src/lib/release.ts`) name their binaries by an exact allowlist, and
 //!    `fuzf tool publish` refuses a source binary named `testing_*`.
 //! 2. `cargo xtask check-release` walks `cargo metadata` and asserts
 //!    no production binary reaches `fuz_testing` through a runtime

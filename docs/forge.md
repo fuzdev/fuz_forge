@@ -149,7 +149,7 @@ cell grant on it, admins, and anyone if the cell's visibility is `public`.
 A repo cell holding a plaintext `hook_secret` and no `hook_secret_hash` does not
 narrow: it is skipped on list, a 404 on read, and its hooks' callbacks are
 refused. Pre-release, the fix is to re-create such a repo, or reset a dev
-database with `deno task dev:reset`; either removes the plaintext with the
+database with `npm run dev:reset`; either removes the plaintext with the
 cell. A cell given a `hook_secret_hash` by hand instead narrows with the
 plaintext still in it, until its next rotation drops the `hook_secret` key.
 

@@ -5,7 +5,7 @@ server), and moves bytes through three channels:
 
 | channel | what | trust | how |
 | --- | --- | --- | --- |
-| the forge's own binaries | `fuzf`, `fuzfd` | SHA-512 sidecar | [GitHub Releases](#github-releases) (authoritative); `deno task deploy` also uploads `dist_artifacts/` to a host. `fuzf` / `fuzfd` are first-party fuz tools, so `fuz tool install` can fetch them too |
+| the forge's own binaries | `fuzf`, `fuzfd` | SHA-512 sidecar | [GitHub Releases](#github-releases) (authoritative); `npm run deploy` also uploads `dist_artifacts/` to a host. `fuzf` / `fuzfd` are first-party fuz tools, so `fuz tool install` can fetch them too |
 | first-party signed tools | fuzd, zap, zzz, tsv, … | ed25519 signature + blake3, verified by `fuz` | `fuzf tool publish` → file store → `fuz tool install` ([Signed tool artifacts](#signed-tool-artifacts)) |
 | arbitrary files | deno, ghostty, zig, … | blake3 only | `fuzf file put` / `get` ([Arbitrary files](#arbitrary-files)) |
 
@@ -193,19 +193,23 @@ segment, is `400 invalid_route_params`.
 
 To cut a release, bump `version` in `package.json` and in `Cargo.toml`'s
 `[workspace.package]` (kept equal, so `fuzf version` matches the tag), commit,
-and run `deno task release`. It runs `gro build`, then
-`scripts/release.ts`, which:
+and run `npm run release` (the Gro task `src/tasks/release.task.ts`, over
+`src/lib/release.ts`), which:
 
 1. reads the version from `package.json` (tag `v{version}`) and refuses
    unless `Cargo.toml`'s `[workspace.package]` version is the same;
-2. checks both binaries and their sidecars exist, git is clean, and `gh` is
-   authenticated;
-3. refuses if the tag already has a release;
-4. copies each binary to its asset name, refuses one that isn't an x86-64
-   glibc build (a musl build can't ship as `-linux-x86_64`), and writes a
-   sidecar naming it from the hash of the copied bytes, refusing when the
-   build's own sidecar disagrees;
-5. runs `gh release create --latest` with generated notes.
+2. refuses when `gro build` would not build both binaries for the host:
+   `FUZ_FORGE_BUILD_TARGET` set, `FUZ_FORGE_BUILD_SKIP_SERVER=1`, or no
+   sibling `../fuz` checkout;
+3. refuses unless git is clean and `gh` is installed and authenticated, and if
+   the tag already has a release;
+4. runs `gro build`, refuses if it left the working tree dirty, then checks
+   both binaries and their sidecars exist, refuses one that isn't an x86-64
+   glibc build (a musl build can't ship as `-linux-x86_64`) or whose build
+   sidecar disagrees with its bytes, and writes each under its asset name with
+   a sidecar naming it, hashed from the bytes shipped;
+5. runs `gh release create --latest` with generated notes, then removes the
+   asset copies.
 
 | asset | contents |
 | --- | --- |
@@ -220,6 +224,6 @@ remote tag), fix, and re-run.
 
 ## Code references
 
-- release: `scripts/release.ts`
+- release: `src/lib/release.ts`, run by `src/tasks/release.task.ts`
 - build: the cargo plugin in `gro.config.ts`
 - file store: `src/lib/server/routes/files.ts` (TS), `crates/fuz_forge_server/src/files/` (Rust), `crates/fuz_forge/src/client.rs` (CLI), `src/lib/ui/files_state.svelte.ts` (UI)

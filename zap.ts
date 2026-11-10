@@ -126,8 +126,8 @@ export default (zap: ZapBuilder): void => {
 	// Target: remote server via SSH
 	// Uses fuz_forge user after initial setup (root login is disabled after SSH hardening)
 	// Fresh servers: the fuz_forge user doesn't exist yet, and zap never falls back to
-	// another user. The first apply runs with `--bootstrap` (`deno task apply:bootstrap`,
-	// preview, then --wetrun) and connects as `bootstrap_user`, root on a stock Debian
+	// another user. The first apply runs with `--bootstrap` (`npm run apply:bootstrap`,
+	// preview, then `-- --wetrun`) and connects as `bootstrap_user`, root on a stock Debian
 	// image; every later run omits it and connects as fuz_forge.
 
 	zap.target({

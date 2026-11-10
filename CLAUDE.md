@@ -40,7 +40,7 @@ signed tool registry.
 
 - ./zap.ts — forge (Debian/systemd) provisioning + deploy config; ./zap.forge2.ts — forge2 (Alpine/OpenRC)
 - ./gro.config.ts — Gro config: the Deno dev-server plugin and the cargo plugin that builds `fuzf` + `fuzfd`
-- ./deno.json — Deno tasks and import map; ./Cargo.toml — Rust workspace
+- ./package.json — the operator scripts (`npm run <name>`); ./deno.json — the Deno reference server's tasks; ./Cargo.toml — Rust workspace
 - ./src/lib/action_specs.ts — action specs; the `*.gen.ts` beside it generate the action types
 - ./src/lib/fuz_forge/ — forge-domain helpers shared by server and UI: `repo/` (repo id + slug grammar, the repo-cell narrow `plan_repo`, storage, `seed_from`, the `repo list --since` grammar), `file_meta.ts`, `build_info.ts`
 - ./src/lib/server/ — the TS reference server: `server.ts` + `app_assembly.ts` (composition), `server_main.ts` / `server_deno.ts` / `server_node.ts` (entries), `env/`, `db/` (migrations, token-policy schema + queries), `git/` (parse + read), `routes/` (RPC handlers, file store, git smart-HTTP, internal hook callbacks)
@@ -49,7 +49,7 @@ signed tool registry.
 - ./src/lib/nginx_locations.ts — the nginx `location` blocks both deploy configs share
 - ./src/routes/ — the landing, about, signup and `docs/` pages, and the `/admin/*` dashboard
 - ./src/test/ — tests, see ./src/test/CLAUDE.md; `fixtures/parity/` holds the TS↔Rust case tables both backends assert against
-- ./scripts/ — `dev_setup`, `prod_setup`, `dev_reset`, `db_status`, `release`
+- ./src/tasks/ — the Gro tasks behind the operator scripts (`dev_setup`, `dev_reset`, `prod_setup`, `db_status`, `release`), thin roots over ./src/lib/setup/ (the env files, the dev and prod setup flows, the dev-DB status) and ./src/lib/release.ts; outside `src/lib/` so their `task` and `Args` exports stay out of the docs' flat namespace
 - ./docs/ — `forge.md` (repo hosting), `distribution.md` (artifacts + file store), `auth_walkthrough.md` (auth checklist), `deploy.md` (server env + fleet)
 - ./crates/fuz_forge_server/ — the Rust backend + `fuzfd` binary
 - ./crates/testing_fuz_forge_server/ — the `testing_fuzfd` binary for cross-process tests (fast hasher + the `fuz_testing` seams)
@@ -61,7 +61,7 @@ signed tool registry.
 TS ↔ Rust twins pair file for file, for example `server/routes/fuz_forge_repo_{read,write,cell}.ts` + `fuz_forge_token.ts` ↔ `handlers/{repo_read,repo_write,repo_cell,token}.rs`; `repo_git.ts` / `repo_git_auth.ts` / `git_cgi.ts` ↔ `forge_git/{mod,auth,cgi}.rs`; `fuz_forge_token_surfaces.ts` ↔ `token_surfaces.rs`; `subprocess.ts`, `query_params.ts` ↔ the same names in `.rs`.
 
 `testing_fuzfd` never ships: the build and the release name their binaries by
-an exact allowlist (`gro.config.ts`, `scripts/release.ts`), and
+an exact allowlist (`gro.config.ts`, `src/lib/release.ts`), and
 `cargo xtask check-release` audits the release dep graph (no production binary
 links `fuz_testing` / `fuz_audit`, plus layering and test-only features).
 
@@ -89,9 +89,9 @@ links `fuz_testing` / `fuz_audit`, plus layering and test-only features).
 
 ```bash
 npm i
-deno task dev:setup                    # copies .env, generates secrets, creates the DB
+npm run dev:setup                      # copies .env, generates secrets, creates the DB
 createdb fuz_forge_test                # required to run the tests
-deno task dev:fuzf init --server http://localhost:4041   # writes the project-local .fuz_forge/config.json
+npm run dev:fuzf -- init --server http://localhost:4041   # writes the project-local .fuz_forge/config.json
 gro dev                                # Vite + the TS server on 127.0.0.1:4041 (`deno task dev:start` for the server alone)
 ```
 
@@ -102,7 +102,7 @@ reach the server.
 
 Use `npm i`, never `deno install` (it creates duplicate module copies that
 break TS types). npm packages resolve through `package.json` and
-`node_modules`; `deno.json` `imports` holds only JSR packages.
+`node_modules`; `deno.json` has no import map.
 
 ### Commands
 
@@ -133,24 +133,35 @@ Run the rustdoc command when a doc comment's links move. Keep
 It passes at zero warnings; `private_intra_doc_links` is allowed in
 `Cargo.toml`, since module headers point at private members on purpose.
 
+### package.json scripts
+
+Run each with `npm run <name>`. Arguments go after `--`
+(`npm run deploy -- --wetrun`): npm reads a flag before it as its own, so
+`npm run deploy --wetrun` runs the dry run.
+
+| script | does |
+| --- | --- |
+| `dev:setup` / `dev:reset` | first-time dev setup / drop and recreate the dev DB and re-mint the bootstrap token; both use the project's `.fuz_forge/` as the forge home |
+| `dev:fuzf` | run `fuzf` against the project-local home (`FUZ_FORGE_HOME=$PWD/.fuz_forge`) |
+| `prod:setup` | create forge's operator `.env.production` from its example |
+| `db:status` | dev-DB connectivity, tables, and migration state from `.env.development` (exits 1 when the URL is missing or unreachable) |
+| `apply` / `apply:bootstrap` / `deploy` | provision / first-provision / deploy **forge** via `zap` |
+| `apply:forge2` / `apply:forge2:bootstrap` / `deploy:forge2` | the same for **forge2** |
+| `install:fuzf` | build `fuzf` and copy it to `~/.local/bin/` |
+| `release` | check the version, the build env, the tree, and `gh`, then `gro build` and a GitHub release |
+
+The setup, status, and release scripts are Gro tasks in ./src/tasks/, so
+`gro task src/tasks/<name>.task.ts` runs one directly and `--help` describes
+it; each takes no arguments and refuses any. `apply*` / `deploy*` need `zap`
+on `PATH` and `ZAP_FGRO` naming the fgro build the configs' locks pin, and are
+dry runs until `--wetrun`; see ./docs/deploy.md.
+
 ### deno.json tasks
 
 | task | does |
 | --- | --- |
-| `dev:setup` / `dev:reset` | first-time dev setup / drop and recreate the dev DB and re-mint the bootstrap token |
 | `dev:start` | run the TS reference server with `.env.development` (sets `NODE_ENV=development`) |
-| `dev:fuzf` | run `fuzf` against the project-local home (`FUZ_FORGE_HOME=$PWD/.fuz_forge`) |
-| `prod:setup` | create forge's operator `.env.production` from its example |
-| `db:status` | dev-DB connectivity, tables, and migration state from `.env.development` (exits 1 when the URL is missing or unreachable) |
 | `check` | Deno type check |
-| `apply` / `apply:bootstrap` / `deploy` | provision / first-provision / deploy **forge** via `zap` |
-| `apply:forge2` / `apply:forge2:bootstrap` / `deploy:forge2` | the same for **forge2** |
-| `install` | build `fuzf` and copy it to `~/.local/bin/` |
-| `release` | `gro build`, then a GitHub release |
-
-`apply*` / `deploy*` need `zap` on `PATH` and `ZAP_FGRO` naming the fgro
-build the configs' locks pin, and are dry runs until `--wetrun`; see
-./docs/deploy.md.
 
 ## CLI
 
@@ -170,7 +181,7 @@ config, credentials) and `1` otherwise — the contract is in the crate doc
 `fuzfd` takes one of two commands: `fuzfd start` runs the server in the
 foreground (the service units pass it), and `fuzfd db-status` reports
 migration status for the `DATABASE_URL` in its process env (the same report as
-`deno task db:status`, which reads `.env.development`). `--help` prints usage;
+`npm run db:status`, which reads `.env.development`). `--help` prints usage;
 anything else prints usage and exits 2.
 
 ### Client state
@@ -240,8 +251,8 @@ tokens.
 
 ## Type checking & testing
 
-- Deno (`deno task check`) — TS server, runtime helpers, `src/lib/fuz_forge/`, scripts
-- Node (`gro check`) — SvelteKit, tests, Svelte components, root `*.ts` configs
+- Deno (`deno task check`) — TS server, runtime helpers, `src/lib/fuz_forge/`
+- Node (`gro check`) — SvelteKit, tests, Svelte components, the operator tasks, root `*.ts` configs
 - Rust (`cargo clippy --workspace --all-targets`) — the crates
 
 `deno.json` excludes `**/*.test.ts`, `**/*.svelte.ts`, `**/*.gen.ts`, and

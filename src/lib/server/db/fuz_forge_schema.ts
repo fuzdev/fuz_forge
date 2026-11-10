@@ -46,7 +46,7 @@ export const fuz_forge_own_migration_namespaces = [FACT_MIGRATION_NS, CELL_MIGRA
 /**
  * Every migration namespace fuz_forge records in `schema_version`, in canonical
  * order (auth first). The single source the `db:status` reader
- * (`scripts/db_status.ts`) shares with the migration chain so the two never
+ * (`setup/db_status.ts`) shares with the migration chain so the two never
  * drift — the TS twin of the Rust `run_db_status_cli` consumers' shared
  * `*_migration_namespaces()`. The `fuz_forge_api_token_policy` table is
  * direct-DDL, not a tracked namespace, so it's absent here.

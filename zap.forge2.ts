@@ -10,8 +10,8 @@
  *
  * Apply it against a forge2-specific operator env (the `DEPLOY_*` /
  * `SECRET_*` references resolve from a `--env-file` pointing at `<forge2-host>`),
- * i.e. `deno task apply:forge2` (the dry run, which records the plan) then
- * `deno task apply:forge2 --wetrun` (which runs only that plan).
+ * i.e. `npm run apply:forge2` (the dry run, which records the plan) then
+ * `npm run apply:forge2 -- --wetrun` (which runs only that plan).
  *
  * ## Alpine divergences from `zap.ts` (all distro-shaped, no engine difference)
  *

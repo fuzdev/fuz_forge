@@ -8,7 +8,7 @@
 #   features off the `fuzf` / `fuzfd` release graph), and rustdoc held at zero
 #   warnings.
 # - `ts` — `gro check` (types, tests, format, lint, and the static site build)
-#   and `deno task check` (the Deno-run server and scripts), against a
+#   and `deno task check` (the Deno-run server), against a
 #   Postgres service for the DB-backed tests.
 #
 # Not run here: the cross-backend vitest projects, which spawn both backends

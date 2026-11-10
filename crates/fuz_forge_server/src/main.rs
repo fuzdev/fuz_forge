@@ -19,7 +19,7 @@
 //! migration-tracker report — connectivity, table row counts, and per-namespace
 //! applied/pending migration state (spine + the `fuz_forge` namespace), with
 //! name-divergence detection. Delegates to the shared
-//! [`fuz_db::status::run_db_status_cli`]; the Rust twin of the TS `deno task
+//! [`fuz_db::status::run_db_status_cli`]; the Rust twin of the TS `npm run
 //! db:status`. Safe in any environment; it never mutates.
 
 use std::process::ExitCode;
