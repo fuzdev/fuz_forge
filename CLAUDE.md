@@ -106,8 +106,8 @@ reach the server.
 binaries. `rust-toolchain.toml` pins the Rust toolchain. CI
 (`.github/workflows/check.yml`) runs `gro check --build` (the site only: the
 cargo step skips without `fuz`) and the Rust commands below
-plus the `#[ignore]` Postgres suites, with `fuz` and `zap` checked out beside
-the repo.
+plus the `#[ignore]` Postgres suites, with `fuz` checked out beside the
+repo.
 
 ```bash
 cargo build --workspace

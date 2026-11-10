@@ -5,6 +5,11 @@ through the standalone `zap` CLI (required on `PATH`); its resource types,
 `zap.env('NAME')` deferred references, and config authoring are documented
 with Zap.
 
+The configs import their recipes from `@fuzdev/zap`, which `npm install` fetches
+at the exact version `package.json` pins. The `zap` binary and `fgro` are built
+from source ([install guide](https://zap.fuz.dev/docs/install)), and the
+binary must be the same 0.x minor as the package.
+
 Zap evaluates each config with `fgro`, Gro's runtime (Zap's `docs/install.md`
 § Getting fgro), and only with the build whose blake3 the config's committed
 lock pins (`zap.lock` for `zap.ts`, `zap.forge2.lock` for `zap.forge2.ts`).
@@ -142,7 +147,7 @@ target rather than reusing the other's binaries.
   added to the config's `read_write_paths`, or the sandbox keeps it read-only.
 - **Deploy machine** — the sibling `fuz/` checkout must be present (without
   it `gro build` skips the cargo step with a warning and ships no `fuzfd`), and
-  `npm i` must have linked the `@fuzdev/zap` package.
+  `npm i` must have installed the `@fuzdev/zap` package.
 
 ## Fresh Alpine box
 
