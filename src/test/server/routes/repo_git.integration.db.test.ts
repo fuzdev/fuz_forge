@@ -27,6 +27,7 @@ import { join } from 'node:path';
 import type { AddressInfo } from 'node:net';
 
 import { assert, test, beforeAll, afterAll } from 'vitest';
+import { assert_rejects } from '@fuzdev/fuz_util/testing.ts';
 import { serve, type ServerType } from '@hono/node-server';
 import { ROLE_ADMIN } from '@fuzdev/fuz_app/auth/role_schema.ts';
 import {
@@ -48,6 +49,7 @@ import { repo_cell_path, type RepoCellData } from '#lib/fuz_forge/repo/plan_repo
 import { hash_hook_secret } from '#lib/server/routes/fuz_forge_repo_cell.ts';
 import { query_cell_create, query_cell_get_by_path } from '@fuzdev/fuz_app/db/cell_queries.ts';
 
+import { git } from '../../cross_backend/git_helpers.ts';
 import { describe_db } from '../../db_fixture.ts';
 import {
 	test_file_route_deps,
@@ -69,28 +71,13 @@ beforeAll(async () => {
 
 	// Build a small upstream with one commit on main.
 	upstream_path = join(store_root, '__upstream.git');
-	const init_upstream = await runtime.run_command('git', ['init', '--bare', upstream_path]);
-	if (!init_upstream.success) {
-		throw new Error(`upstream git init failed: ${init_upstream.stderr}`);
-	}
+	await git(store_root, ['init', '--bare', upstream_path]);
 	const work_tree = join(store_root, '__upstream_work');
 	await mkdir(work_tree, { recursive: true });
-	const cmds: Array<[string, Array<string>]> = [
-		['git', ['init', work_tree]],
-		['git', ['-C', work_tree, 'config', 'user.email', 'test@example.com']],
-		['git', ['-C', work_tree, 'config', 'user.name', 'Test']],
-		['git', ['-C', work_tree, 'config', 'commit.gpgsign', 'false']],
-		['git', ['-C', work_tree, 'commit', '--allow-empty', '-m', 'seed']],
-		['git', ['-C', work_tree, 'branch', '-M', 'main']],
-		['git', ['-C', work_tree, 'remote', 'add', 'origin', upstream_path]],
-		['git', ['-C', work_tree, 'push', 'origin', 'main']]
-	];
-	for (const [cmd, args] of cmds) {
-		const result = await runtime.run_command(cmd, args);
-		if (!result.success) {
-			throw new Error(`${cmd} ${args.join(' ')} failed: ${result.stderr}`);
-		}
-	}
+	await git(work_tree, ['init', '-b', 'main']);
+	await git(work_tree, ['commit', '--allow-empty', '-m', 'seed']);
+	await git(work_tree, ['remote', 'add', 'origin', upstream_path]);
+	await git(work_tree, ['push', 'origin', 'main']);
 });
 
 afterAll(async () => {
@@ -211,7 +198,7 @@ const boot_server = async (get_db: () => Db): Promise<BootedServer> => {
 	});
 	// Seed initial HEAD ref to refs/heads/main so symbolic-ref matches.
 	const bare_path = join(scoped_store, `${repo_id}.git`);
-	await runtime.run_command('git', ['-C', bare_path, 'symbolic-ref', 'HEAD', 'refs/heads/main']);
+	await git(bare_path, ['symbolic-ref', 'HEAD', 'refs/heads/main']);
 
 	return { test_app, admin, port, server, broadcast_calls, scoped_store, repo_id };
 };
@@ -233,30 +220,14 @@ describe_db('repo_git real git protocol round-trip', (get_db) => {
 		const booted = await boot_server(get_db);
 		try {
 			const work = join(booted.scoped_store, 'work');
-			const clone_result = await runtime.run_command('git', [
-				'clone',
-				remote_url(booted.port, booted.admin),
-				work
-			]);
 			// Empty bare repo — clone succeeds with a "warning: You appear to
 			// have cloned an empty repository" message on stderr but exit 0.
-			assert.isTrue(clone_result.success, `clone failed: ${clone_result.stderr}`);
+			await git(booted.scoped_store, ['clone', remote_url(booted.port, booted.admin), work]);
 
-			// Build a commit on main and push.
-			const work_cmds: Array<[string, Array<string>]> = [
-				['git', ['-C', work, 'config', 'user.email', 'a@b.c']],
-				['git', ['-C', work, 'config', 'user.name', 'A']],
-				['git', ['-C', work, 'config', 'commit.gpgsign', 'false']],
-				['git', ['-C', work, 'checkout', '-b', 'main']],
-				['git', ['-C', work, 'commit', '--allow-empty', '-m', 'first']]
-			];
-			for (const [cmd, args] of work_cmds) {
-				const r = await runtime.run_command(cmd, args);
-				assert.isTrue(r.success, `${cmd} ${args.join(' ')} failed: ${r.stderr}`);
-			}
-
-			const push_result = await runtime.run_command('git', ['-C', work, 'push', 'origin', 'main']);
-			assert.isTrue(push_result.success, `push failed: ${push_result.stderr}`);
+			// Build a commit on main and push; a failing step rejects with its stderr.
+			await git(work, ['checkout', '-b', 'main']);
+			await git(work, ['commit', '--allow-empty', '-m', 'first']);
+			await git(work, ['push', 'origin', 'main']);
 
 			// Cell reflects the push.
 			const deps: QueryDeps = { db: get_db() };
@@ -282,31 +253,18 @@ describe_db('repo_git real git protocol round-trip', (get_db) => {
 		const booted = await boot_server(get_db);
 		try {
 			const work = join(booted.scoped_store, 'work');
-			await runtime.run_command('git', ['clone', remote_url(booted.port, booted.admin), work]);
-			const setup: Array<[string, Array<string>]> = [
-				['git', ['-C', work, 'config', 'user.email', 'a@b.c']],
-				['git', ['-C', work, 'config', 'user.name', 'A']],
-				['git', ['-C', work, 'config', 'commit.gpgsign', 'false']],
-				['git', ['-C', work, 'checkout', '-b', 'main']],
-				['git', ['-C', work, 'commit', '--allow-empty', '-m', 'first']],
-				['git', ['-C', work, 'push', 'origin', 'main']],
-				// Rewrite the only commit so the new tip is a divergent history.
-				['git', ['-C', work, 'commit', '--allow-empty', '--amend', '-m', 'rewrite']]
-			];
-			for (const [cmd, args] of setup) {
-				await runtime.run_command(cmd, args);
-			}
+			await git(booted.scoped_store, ['clone', remote_url(booted.port, booted.admin), work]);
+			await git(work, ['checkout', '-b', 'main']);
+			await git(work, ['commit', '--allow-empty', '-m', 'first']);
+			await git(work, ['push', 'origin', 'main']);
+			// Rewrite the only commit so the new tip is a divergent history.
+			await git(work, ['commit', '--allow-empty', '--amend', '-m', 'rewrite']);
 
-			const force_push = await runtime.run_command('git', [
-				'-C',
-				work,
-				'push',
-				'--force',
-				'origin',
-				'main'
-			]);
-			assert.isFalse(force_push.success);
-			assert.match(force_push.stderr, /non-fast-forward/i);
+			// A rejected push exits non-zero, rejecting with git's stderr in the message.
+			await assert_rejects(
+				() => git(work, ['push', '--force', 'origin', 'main']),
+				/non-fast-forward/i
+			);
 		} finally {
 			await teardown_server(booted);
 		}
@@ -316,32 +274,14 @@ describe_db('repo_git real git protocol round-trip', (get_db) => {
 		const booted = await boot_server(get_db);
 		try {
 			const work = join(booted.scoped_store, 'work');
-			await runtime.run_command('git', ['clone', remote_url(booted.port, booted.admin), work]);
-			const setup: Array<[string, Array<string>]> = [
-				['git', ['-C', work, 'config', 'user.email', 'a@b.c']],
-				['git', ['-C', work, 'config', 'user.name', 'A']],
-				['git', ['-C', work, 'config', 'commit.gpgsign', 'false']],
-				['git', ['-C', work, 'checkout', '-b', 'feature']],
-				['git', ['-C', work, 'commit', '--allow-empty', '-m', 'feature 1']],
-				['git', ['-C', work, 'push', 'origin', 'feature']],
-				['git', ['-C', work, 'commit', '--allow-empty', '--amend', '-m', 'rewrite']]
-			];
-			for (const [cmd, args] of setup) {
-				await runtime.run_command(cmd, args);
-			}
+			await git(booted.scoped_store, ['clone', remote_url(booted.port, booted.admin), work]);
+			await git(work, ['checkout', '-b', 'feature']);
+			await git(work, ['commit', '--allow-empty', '-m', 'feature 1']);
+			await git(work, ['push', 'origin', 'feature']);
+			await git(work, ['commit', '--allow-empty', '--amend', '-m', 'rewrite']);
 
-			const force_push = await runtime.run_command('git', [
-				'-C',
-				work,
-				'push',
-				'--force',
-				'origin',
-				'feature'
-			]);
-			assert.isTrue(
-				force_push.success,
-				`expected force-push to feature to succeed: ${force_push.stderr}`
-			);
+			// a rejected push would reject here, with git's stderr
+			await git(work, ['push', '--force', 'origin', 'feature']);
 		} finally {
 			await teardown_server(booted);
 		}

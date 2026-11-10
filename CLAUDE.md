@@ -137,7 +137,7 @@ Run each with `npm run <name>`. Arguments go after `--`
 
 | script | does |
 | --- | --- |
-| `dev:setup` / `dev:reset` | first-time dev setup / drop and recreate the dev DB and re-mint the bootstrap token; both use the project's `.fuz_forge/` as the forge home |
+| `dev:setup` / `dev:reset` | first-time dev setup / drop and recreate the dev DB and re-mint the bootstrap token; both use the project's `.fuz_forge/` as the forge home, and run `createdb` / `dropdb` against the server `.env.development`'s `DATABASE_URL` names (libpq `PG*` variables fill what the URL leaves out), failing unless that Postgres database ends up created or reset (`memory://` needs neither) |
 | `dev:server` | run the TS reference server alone, with `.env.development` and the project-local home (sets `NODE_ENV=development`) |
 | `dev:fuzf` | run `fuzf` against the project-local home (`FUZ_FORGE_HOME=$PWD/.fuz_forge`) |
 | `prod:setup` | create forge's operator `.env.production` from its example |

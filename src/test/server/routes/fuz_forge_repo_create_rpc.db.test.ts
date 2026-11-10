@@ -61,6 +61,7 @@ import { SEED_FROM_HOST_MESSAGE } from '#lib/fuz_forge/repo/seed_from.ts';
 import { spawn_collect } from '#lib/server/subprocess.ts';
 import { ISO8601_SECONDS } from '#lib/server/timestamp.ts';
 
+import { git } from '../../cross_backend/git_helpers.ts';
 import { describe_db } from '../../db_fixture.ts';
 import { create_upstream_git_server, type UpstreamGitServer } from '../../git_upstream_server.ts';
 import { create_fuz_forge_test_app } from './fuz_forge_test_helpers.ts';
@@ -167,7 +168,7 @@ describe_db('fuz_forge_repo_create', (get_db) => {
 			assert.strictEqual(hash_hook_secret(embedded[1]!), data.hook_secret_hash, name);
 		}
 		// HEAD points at the requested default branch.
-		const head = await runtime.run_command('git', ['-C', bare, 'symbolic-ref', 'HEAD']);
+		const head = await git(bare, ['symbolic-ref', 'HEAD']);
 		assert.strictEqual(head.stdout.trim(), 'refs/heads/main');
 		// The digest never appears in the wire payload.
 		assert.notInclude(JSON.stringify(res.result), data.hook_secret_hash);
@@ -220,12 +221,7 @@ describe_db('fuz_forge_repo_create', (get_db) => {
 		assert.isTrue(res.ok, JSON.stringify(res));
 		const { repo } = res.result as { repo: { id: string; default_branch: string } };
 		assert.strictEqual(repo.default_branch, 'trunk');
-		const head = await runtime.run_command('git', [
-			'-C',
-			join(store_root, `${repo.id}.git`),
-			'symbolic-ref',
-			'HEAD'
-		]);
+		const head = await git(join(store_root, `${repo.id}.git`), ['symbolic-ref', 'HEAD']);
 		assert.strictEqual(head.stdout.trim(), 'refs/heads/trunk');
 	});
 
@@ -259,13 +255,7 @@ describe_db('fuz_forge_repo_create', (get_db) => {
 		// the Rust twin stamps this from `fuz_sys::rfc3339_now`.
 		assert.match(repo.seed_completed_at, ISO8601_SECONDS);
 		// The clone carried the upstream's commit.
-		const rev = await runtime.run_command('git', [
-			'-C',
-			join(store_root, `${repo.id}.git`),
-			'rev-parse',
-			'main'
-		]);
-		assert.isTrue(rev.success, rev.stderr);
+		const rev = await git(join(store_root, `${repo.id}.git`), ['rev-parse', 'main']);
 		assert.strictEqual(rev.stdout.trim(), upstream.head_sha);
 		// A seeded create resolves that tip into the cell before it answers, so
 		// the mirrored repo is browsable without a resync.

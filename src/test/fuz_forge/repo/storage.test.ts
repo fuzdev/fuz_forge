@@ -25,6 +25,7 @@ import {
 	create_upstream_git_server,
 	type UpstreamGitServer
 } from '../../git_upstream_server.ts';
+import { git } from '../../cross_backend/git_helpers.ts';
 import { load_parity_fixture, parity_rows, parity_string } from '../../fixtures/parity/load.ts';
 
 import {
@@ -205,7 +206,8 @@ describe('init / clone / install_hooks (filesystem)', () => {
 	const runtime = create_node_runtime([]);
 
 	// Storage runs git/chmod through the forge's own `SpawnCollect` (explicit
-	// env, no stdin), not `RuntimeDeps.run_command` — see `RepoCommandDeps`.
+	// env, no stdin) — see `RepoCommandDeps`. The assertions read the repos
+	// back with the test `git` runner.
 	const make_runtime_with_store = (store: string) => ({
 		...runtime,
 		spawn_collect,
@@ -254,35 +256,17 @@ describe('init / clone / install_hooks (filesystem)', () => {
 		assert.isTrue(await file_exists(`${result.path}/objects`));
 
 		// `core.bare` should be true for a bare repo.
-		const config_check = await runtime.run_command('git', [
-			'-C',
-			result.path,
-			'config',
-			'core.bare'
-		]);
-		assert.isTrue(config_check.success);
+		const config_check = await git(result.path, ['config', 'core.bare']);
 		assert.strictEqual(config_check.stdout.trim(), 'true');
 
 		// http.receivepack must be enabled — git http-backend uses this
 		// gate to decide whether the repo accepts HTTP push. Per-repo
 		// opt-in (vs blanket GIT_HTTP_EXPORT_ALL) is the locked-down
 		// posture for forge repos.
-		const http_receive = await runtime.run_command('git', [
-			'-C',
-			result.path,
-			'config',
-			'http.receivepack'
-		]);
-		assert.isTrue(http_receive.success);
+		const http_receive = await git(result.path, ['config', 'http.receivepack']);
 		assert.strictEqual(http_receive.stdout.trim(), 'true');
 
-		const http_upload = await runtime.run_command('git', [
-			'-C',
-			result.path,
-			'config',
-			'http.uploadpack'
-		]);
-		assert.isTrue(http_upload.success);
+		const http_upload = await git(result.path, ['config', 'http.uploadpack']);
 		assert.strictEqual(http_upload.stdout.trim(), 'true');
 
 		// `git-daemon-export-ok` marker — the per-repo opt-in gate that
@@ -393,29 +377,13 @@ describe('init / clone / install_hooks (filesystem)', () => {
 		const result = await clone_bare_repo(deps, id, upstream.url);
 		assert.strictEqual(result.path, `${scoped_store}/${id}.git`);
 
-		const refs_result = await runtime.run_command('git', [
-			'-C',
-			result.path,
-			'for-each-ref',
-			'--format=%(refname)'
-		]);
-		assert.isTrue(refs_result.success);
+		const refs_result = await git(result.path, ['for-each-ref', '--format=%(refname)']);
 		assert.include(refs_result.stdout, 'refs/heads/main');
 
-		const config_check = await runtime.run_command('git', [
-			'-C',
-			result.path,
-			'config',
-			'core.bare'
-		]);
+		const config_check = await git(result.path, ['config', 'core.bare']);
 		assert.strictEqual(config_check.stdout.trim(), 'true');
 
-		const http_receive = await runtime.run_command('git', [
-			'-C',
-			result.path,
-			'config',
-			'http.receivepack'
-		]);
+		const http_receive = await git(result.path, ['config', 'http.receivepack']);
 		assert.strictEqual(http_receive.stdout.trim(), 'true');
 	});
 

@@ -43,7 +43,6 @@ describe('run_prod_setup', () => {
 		assert.notInclude(logs.join('\n'), '[todo] DEPLOY_USER');
 		assert.include(logs, '3 values still needed in .env.production.');
 		assert.include(logs, 'Edit the file, then re-run to verify: npm run prod:setup');
-		assert.deepEqual(runtime.command_calls, []);
 	});
 
 	test('keeps a filled file as it is and prints the deploy steps with -- before --wetrun', async () => {

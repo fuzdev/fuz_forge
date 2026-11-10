@@ -1,7 +1,7 @@
 /**
- * Shared git push/clone helpers for the cross-backend suites that drive the
- * forge's smart-HTTP write path against the spawned binary (TS/Hono + Rust
- * `fuz_forge_server`).
+ * Shared git helpers for the suites that build or inspect real repos, chiefly
+ * the cross-backend ones that drive the forge's smart-HTTP write path against
+ * the spawned binary (TS/Hono + Rust `fuz_forge_server`).
  *
  * Every suite that seeds history builds it the same way — a work tree under
  * the system temp dir, one commit per file, a push over Basic auth — so the

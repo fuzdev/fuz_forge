@@ -8,30 +8,52 @@
  * @module
  */
 
+import { parse_db_name } from '@fuzdev/fuz_app/db/postgres_url.ts';
 import {
 	create_database,
-	parse_db_name,
 	read_env_var,
 	reset_bootstrap_token,
 	reset_database,
-	setup_bootstrap_token
+	setup_bootstrap_token,
+	type PostgresProgramDeps
 } from '@fuzdev/fuz_app/dev/setup.ts';
 import type {
-	CommandDeps,
 	EnvDeps,
 	FsReadDeps,
 	FsRemoveDeps,
 	FsWriteDeps
 } from '@fuzdev/fuz_app/runtime/deps.ts';
+import type { Spawn } from '@fuzdev/gro/spawn.ts';
 import { TaskError } from '@fuzdev/gro/task.ts';
 
 import { DEV_ENV_PATH, ensure_env_file } from './env_file.ts';
 
-/** The database `npm run dev:setup` creates, the one the example's `DATABASE_URL` names. */
-const DEV_DATABASE_NAME = 'fuz_forge_dev';
-
 /** The `RuntimeDeps` slice fuz_app's setup helpers take for these flows. */
-export type DevSetupRuntimeDeps = FsReadDeps & FsWriteDeps & FsRemoveDeps & EnvDeps & CommandDeps;
+export type DevSetupRuntimeDeps = FsReadDeps & FsWriteDeps & FsRemoveDeps & EnvDeps;
+
+/** Capabilities for the development setup and reset flows. */
+export interface DevSetupDeps {
+	/** The env file, the bootstrap token, and the home's files. */
+	runtime: DevSetupRuntimeDeps;
+	/** `createdb` and `dropdb`, which create and reset the database `DATABASE_URL` names. */
+	postgres: PostgresProgramDeps;
+}
+
+/**
+ * The Postgres client programs, found on `PATH` through a task's spawn root.
+ *
+ * Each gets the libpq variables (`PG*`, so a host's `PGHOST` or `PGSSLMODE`
+ * still applies where the URL is silent) plus the `env` fuz_app's helpers
+ * pass, which carries the URL's password; spawn's base set passes `HOME`, for
+ * `~/.pgpass`.
+ *
+ * @param spawn - the task's spawn root
+ * @returns the factories, each making `null` when its program isn't installed
+ */
+export const to_postgres_programs = (spawn: Spawn): PostgresProgramDeps => ({
+	createdb: (env) => spawn.find('createdb', { pass_env: ['PG*'], env }),
+	dropdb: (env) => spawn.find('dropdb', { pass_env: ['PG*'], env })
+});
 
 /**
  * The dev forge home of the project at `project_dir`.
@@ -51,16 +73,25 @@ export interface DevSetupOptions {
  * First-time development environment setup: the env file, the bootstrap
  * token, and the database. Idempotent, skipping each step already done.
  *
- * @param runtime - fuz_app's setup helpers' capabilities
+ * The database is the one `.env.development`'s `DATABASE_URL` names, created
+ * on the server it names when it's missing. An in-memory URL needs no
+ * `createdb`; any other URL that doesn't end with a Postgres database
+ * existing fails the setup.
+ *
+ * @param deps - fuz_app's setup helpers' capabilities and the Postgres programs
  * @param options - the dev forge home
  * @throws `TaskError` - when `.env.development` and its example are both missing
+ * @throws `TaskError` - when `.env.development` has no `DATABASE_URL`, before the token
+ * @throws `TaskError` - when its database isn't there at the end: `createdb` failed or isn't
+ * installed, or the URL is no database the server opens
  * @mutates filesystem - writes `.env.development` and `<fuz_forge_home>/secret_bootstrap_token`
- * @mutates external database - creates `fuz_forge_dev` when `createdb` is on `PATH`
+ * @mutates external database - creates the Postgres database `DATABASE_URL` names when it's missing
  */
 export const run_dev_setup = async (
-	runtime: DevSetupRuntimeDeps,
+	deps: DevSetupDeps,
 	options: DevSetupOptions
 ): Promise<void> => {
+	const { runtime, postgres } = deps;
 	const { fuz_forge_home } = options;
 
 	console.log('fuz_forge dev setup');
@@ -69,6 +100,12 @@ export const run_dev_setup = async (
 
 	console.log('Environment file:');
 	await ensure_env_file(runtime, DEV_ENV_PATH);
+	const database_url = await read_env_var(runtime, DEV_ENV_PATH, 'DATABASE_URL');
+	if (!database_url) {
+		throw new TaskError(
+			`${DEV_ENV_PATH} has no DATABASE_URL. Set one, as its example does, and re-run \`npm run dev:setup\`.`
+		);
+	}
 	console.log();
 
 	console.log('Bootstrap token:');
@@ -76,7 +113,28 @@ export const run_dev_setup = async (
 	console.log();
 
 	console.log('Database:');
-	await create_database(runtime, DEV_DATABASE_NAME);
+	const created = await create_database(postgres, database_url);
+	// `create_database` has just logged why; fuz_forge opens no PGlite
+	// `file://` database, so only `memory://` needs no Postgres one
+	if (
+		created.kind === 'skipped' &&
+		created.db_type !== 'postgres' &&
+		created.db_type !== 'memory'
+	) {
+		throw new TaskError(
+			`The DATABASE_URL in ${DEV_ENV_PATH} names no Postgres database, the only kind dev:setup creates (fuz_forge opens no file:// PGlite database; use postgres:// or memory://).`
+		);
+	}
+	if (created.kind === 'skipped' && created.db_type === 'postgres') {
+		throw new TaskError(
+			`createdb isn't installed. Install PostgreSQL, or set the DATABASE_URL in ${DEV_ENV_PATH} to memory:// (fuz_forge opens no file:// PGlite database), and re-run \`npm run dev:setup\`.`
+		);
+	}
+	if (created.kind === 'failed') {
+		throw new TaskError(
+			`The database the DATABASE_URL in ${DEV_ENV_PATH} names was not created. Fix that and re-run \`npm run dev:setup\`.`
+		);
+	}
 	console.log();
 
 	console.log('Done. Next: gro dev');
@@ -92,17 +150,21 @@ export const run_dev_setup = async (
  * database `.env.development` names and re-mint the bootstrap token, keeping
  * the env file's existing secrets. For a forgotten password or a fresh start.
  *
- * @param runtime - fuz_app's setup helpers' capabilities
+ * Only a Postgres database is reset, on the server `DATABASE_URL` names; an
+ * in-memory URL has nothing to reset, and any other URL refuses.
+ *
+ * @param deps - fuz_app's setup helpers' capabilities and the Postgres programs
  * @param options - the dev forge home
  * @throws `TaskError` - when `.env.development` has no `DATABASE_URL`, before changing anything
- * @throws `TaskError` - when its Postgres database can't be dropped and recreated, before the token
+ * @throws `TaskError` - when its database isn't dropped and recreated, before the token
  * @mutates filesystem - replaces `<fuz_forge_home>/secret_bootstrap_token`
  * @mutates external database - drops and recreates the database `DATABASE_URL` names
  */
 export const run_dev_reset = async (
-	runtime: DevSetupRuntimeDeps,
+	deps: DevSetupDeps,
 	options: DevSetupOptions
 ): Promise<void> => {
+	const { runtime, postgres } = deps;
 	const { fuz_forge_home } = options;
 
 	console.log('fuz_forge dev reset');
@@ -117,15 +179,18 @@ export const run_dev_reset = async (
 	}
 
 	console.log('Database:');
-	const reset = await reset_database(runtime, database_url);
-	// a Postgres URL whose database wasn't dropped and recreated, which
-	// `reset_database` has just logged why
-	if (!reset.reset && reset.db_type === 'postgres') {
+	const reset = await reset_database({ ...runtime, ...postgres }, database_url);
+	// a database that wasn't dropped and recreated, which `reset_database` has
+	// just logged why; fuz_forge names no PGlite directory, so a `file://` URL
+	// is skipped and refused here too
+	if (!reset.reset && reset.db_type !== 'memory') {
 		const db_name = parse_db_name(database_url);
 		throw new TaskError(
-			db_name
-				? `The database ${db_name} was not dropped and recreated.`
-				: `The DATABASE_URL in ${DEV_ENV_PATH} names no database.`
+			reset.db_type !== 'postgres'
+				? `The DATABASE_URL in ${DEV_ENV_PATH} names no Postgres database, the only kind dev:reset resets.`
+				: db_name
+					? `The database ${db_name} was not dropped and recreated.`
+					: `The DATABASE_URL in ${DEV_ENV_PATH} names no database.`
 		);
 	}
 	console.log();

@@ -30,7 +30,7 @@ export type MockFuzForgeRuntime = MockRuntime & RuntimeDeps;
  *
  * await some_function(runtime);
  *
- * assert.ok(runtime.command_calls.length === 1);
+ * assert.strictEqual(runtime.mock_fs.get('/home/test/out.txt'), 'done');
  * assert.deepStrictEqual(runtime.exit_calls, [0]);
  * ```
  */

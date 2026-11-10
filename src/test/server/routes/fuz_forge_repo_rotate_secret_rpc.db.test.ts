@@ -137,8 +137,8 @@ describe_db('fuz_forge_repo_rotate_secret', (get_db) => {
 						runtime,
 						query_deps: { db: ctx.deps.db },
 						// `install_hooks`' `chmod 0700` goes through the forge's own
-						// `SpawnCollect` (explicit env, no stdin), not the mock
-						// runtime's `run_command` — so the mock records the calls here.
+						// `SpawnCollect` (explicit env, no stdin), so the fake records
+						// the calls here.
 						spawn_collect: async (cmd, args) => {
 							spawn_calls.push({ cmd, args: [...args] });
 							return {
@@ -161,7 +161,6 @@ describe_db('fuz_forge_repo_rotate_secret', (get_db) => {
 	beforeEach(async () => {
 		runtime.mock_fs.clear();
 		runtime.mock_dirs.clear();
-		runtime.command_calls.length = 0;
 		spawn_calls.length = 0;
 		inject_write_fault = null;
 		admin = await test_app.create_account({ roles: [ROLE_ADMIN] });

@@ -14,8 +14,8 @@
  *
  * Repo hosting is server-local, so this module operates against `RuntimeDeps`
  * for filesystem + env access. Subprocesses go through the forge's own
- * `SpawnCollect` instead (`RepoCommandDeps`) — see that type for
- * why `run_command` is not usable here.
+ * `SpawnCollect` (`RepoCommandDeps`), which is handed each subprocess's
+ * environment explicitly — see that type for why.
  *
  * Structural twin of `crates/fuz_forge_server/src/repo_storage.rs`, which
  * carries the same operations over the same `git_env` isolation.
@@ -128,12 +128,11 @@ export const seed_clone_args = (url: string, dest: string): Array<string> => [
 /**
  * The subprocess capability the storage module runs `git` and `chmod` through.
  *
- * `RuntimeDeps.run_command` is deliberately NOT used: its options carry no
- * `env`, so every subprocess would inherit the daemon's whole environment —
- * `HOME`, and with it `~/.gitconfig`'s `credential.helper` /
- * `url.<base>.insteadOf`, which would defeat the `seed_from` scheme allowlist
- * and canonicalization outright. `SpawnCollect` takes an explicit `env` and
- * closes stdin, which is what the read layer
+ * Every subprocess gets an explicit `env`, never the daemon's whole
+ * environment: its `HOME`, and with it `~/.gitconfig`'s `credential.helper` /
+ * `url.<base>.insteadOf`, would defeat the `seed_from` scheme allowlist and
+ * canonicalization outright. `SpawnCollect` takes that `env` and closes
+ * stdin, which is what the read layer
  * (`server/git/read.ts`) and the CGI proxy already use, and what the Rust twin
  * (`repo_storage.rs`) gets from its own `spawn_collect`.
  */

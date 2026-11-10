@@ -499,11 +499,14 @@ project but ESLint-ignored by the shared preset. Neither zap config is format-ch
 ## RuntimeDeps Mock (`runtime_mock.ts`)
 
 Wraps `create_mock_runtime` from `@fuzdev/fuz_app/runtime/mock.ts` with the
-`MockFuzForgeRuntime` type alias. `run_command` records to `command_calls`,
-`stdout_write` to `stdout_writes`, `stdin_read` reads `stdin_buffer`,
-`env_get` reads `mock_env`, `exit` records `exit_calls` and throws
-`MockExitError`, and `stat` / `read_file` / `write_file` use `mock_fs` /
-`mock_dirs`.
+`MockFuzForgeRuntime` type alias. `stdout_write` records to `stdout_writes`,
+`stdin_read` reads `stdin_buffer`, `env_get` reads `mock_env`, `exit` records
+`exit_calls` and throws `MockExitError`, and `stat` / `read_file` /
+`write_file` use `mock_fs` / `mock_dirs`. The runtime runs no programs: a flow
+that does takes each as its own handle (the setup flows' `createdb` /
+`dropdb`), faked with fuz_app's `create_mock_program` /
+`create_mock_program_factory`, while a test that runs `git` itself uses the
+`git` runner in `cross_backend/git_helpers.ts`.
 
 ```typescript
 import {create_mock_runtime, type MockFuzForgeRuntime} from '../../runtime_mock.ts';
