@@ -29,6 +29,7 @@
 //!   `--target` it is for, and a statically linked one (a musl build?) needs
 //!   the target named unless `fuzf` itself is a musl build.
 
+use std::borrow::Cow;
 use std::path::PathBuf;
 
 use argh::FromArgs;
@@ -37,7 +38,6 @@ use fuz_artifact::platform::ReleaseTarget;
 use fuz_release::{ManifestError, ReleaseError, is_test_binary_name};
 use fuz_sign::{KeyFileError, LogRepo, PublishOptions, load_signing_key, publish_tool};
 use fuz_storage::{ForgeStorage, StorageError};
-use fuz_sys::cli::HintMessage;
 use thiserror::Error;
 
 use crate::CliError;
@@ -160,11 +160,11 @@ impl PublishError {
     }
 
     /// User-facing hint, if any.
-    pub fn hint(&self) -> Option<HintMessage> {
+    pub fn hint(&self) -> Option<Cow<'static, str>> {
         match self {
             Self::Release(e) => e.hint(),
-            Self::Storage(e) => e.hint().map(HintMessage::Static),
-            Self::Key(e) => e.hint().map(HintMessage::Static),
+            Self::Storage(e) => e.hint().map(Cow::Borrowed),
+            Self::Key(e) => e.hint().map(Cow::Borrowed),
         }
     }
 }
@@ -290,7 +290,7 @@ mod tests {
             "failed to resolve fuz config directory: \
              FUZ_HOME must be an absolute path, got relhome"
         );
-        let hint = error.hint().expect("a hint").to_string();
+        let hint = error.hint().expect("a hint");
         assert!(hint.contains("FUZ_HOME"), "{hint}");
     }
 
@@ -328,10 +328,7 @@ mod tests {
             let error = PublishError::Key(key_error);
             assert_eq!(error.exit_code(), 2, "{message}");
             assert_eq!(error.to_string(), message);
-            assert_eq!(
-                error.hint().map(|hint| hint.to_string()).as_deref(),
-                Some(hint)
-            );
+            assert_eq!(error.hint().as_deref(), Some(hint));
         }
     }
 
@@ -357,7 +354,7 @@ mod tests {
         );
         assert_eq!(mismatch.exit_code(), 2);
         assert_eq!(
-            mismatch.hint().unwrap().to_string(),
+            mismatch.hint().unwrap(),
             "pass --target x86_64-unknown-linux-musl, or --target x86_64-unknown-linux-gnu for \
              a static glibc build"
         );

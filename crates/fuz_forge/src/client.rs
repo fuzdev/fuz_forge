@@ -25,7 +25,6 @@ use fuz_crypto::{HashAlgo, Hasher};
 use fuz_http::JsonrpcErrorCode;
 use fuz_storage::base_url::BaseUrl;
 use fuz_storage::{MAX_FORGE_LIST_SIZE, Redirects, forge_client_builder, read_error_text};
-use fuz_sys::cli::HintMessage;
 use fuz_sys::limits::{MAX_METADATA_SIZE, MAX_TRANSFER_SIZE};
 use fuz_sys::text::{escape_untrusted, truncate};
 use reqwest::StatusCode;
@@ -179,27 +178,27 @@ impl ClientError {
     }
 
     /// User-facing hint, if any.
-    pub const fn hint(&self) -> Option<HintMessage> {
+    pub const fn hint(&self) -> Option<&'static str> {
         match self {
             Self::Rpc { code, .. } if *code == JsonrpcErrorCode::NotFound.as_i32() as i64 => {
-                Some(HintMessage::Static("the target was not found on the forge"))
+                Some("the target was not found on the forge")
             }
-            Self::Redirected { .. } => Some(HintMessage::Static(
+            Self::Redirected { .. } => Some(
                 "set the server URL (`fuzf init --server` or FUZ_FORGE_BASE_URL) to the \
                  https:// origin the forge serves from",
-            )),
-            Self::Forbidden(_) => Some(HintMessage::Static(
-                "the token lacks files.read scope for that file; use a token with read access",
-            )),
+            ),
+            Self::Forbidden(_) => {
+                Some("the token lacks files.read scope for that file; use a token with read access")
+            }
             // A 401 is the forge's one generic refusal for every credential
             // problem — including a token past its `expires_at` (every mint
             // names a lifetime, and a `ttl` one expires). Name the expiry
             // possibility so recovery doesn't require guessing.
-            Self::Status { status, .. } if status.as_u16() == 401 => Some(HintMessage::Static(
+            Self::Status { status, .. } if status.as_u16() == 401 => Some(
                 "the token was refused — it may be invalid, revoked, or expired; \
                  mint a new one in the web UI at /admin/account and update \
                  FUZ_FORGE_TOKEN or the api_token file",
-            )),
+            ),
             _ => None,
         }
     }

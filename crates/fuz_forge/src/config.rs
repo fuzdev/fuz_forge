@@ -21,7 +21,6 @@ use fuz_storage::forge_home::{
     ForgeBaseUrlNotUnicode, ForgeHomeError, ForgeTokenError, forge_base_url_env, forge_home_dir,
     resolve_forge_token,
 };
-use fuz_sys::cli::HintMessage;
 use fuz_sys::fs::write_atomic;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -99,16 +98,12 @@ impl ConfigError {
     }
 
     /// User-facing hint, if any.
-    pub const fn hint(&self) -> Option<HintMessage> {
+    pub const fn hint(&self) -> Option<&'static str> {
         match self {
-            Self::NoForgeServer | Self::InvalidServerUrl(_) => {
-                Some(HintMessage::Static(SERVER_URL_HINT))
-            }
-            Self::BaseUrlEnv(_) => Some(HintMessage::Static(
-                "unset or fix FUZ_FORGE_BASE_URL (it must be UTF-8)",
-            )),
-            Self::Home(e) => Some(HintMessage::Static(e.hint())),
-            Self::Token(e) => Some(HintMessage::Static(e.hint())),
+            Self::NoForgeServer | Self::InvalidServerUrl(_) => Some(SERVER_URL_HINT),
+            Self::BaseUrlEnv(_) => Some("unset or fix FUZ_FORGE_BASE_URL (it must be UTF-8)"),
+            Self::Home(e) => Some(e.hint()),
+            Self::Token(e) => Some(e.hint()),
             _ => None,
         }
     }

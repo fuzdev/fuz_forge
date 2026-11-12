@@ -7,7 +7,8 @@
 //! prompt to stdout, returns `Declined`, and `main` exits 2 with no `error:`
 //! line.
 
-use fuz_sys::cli::HintMessage;
+use std::borrow::Cow;
+
 use thiserror::Error;
 
 use crate::client::ClientError;
@@ -73,10 +74,10 @@ impl CliError {
     }
 
     /// User-facing hint, if any.
-    pub fn hint(&self) -> Option<HintMessage> {
+    pub fn hint(&self) -> Option<Cow<'static, str>> {
         match self {
-            Self::Config(e) => e.hint(),
-            Self::Client(e) => e.hint(),
+            Self::Config(e) => e.hint().map(Cow::Borrowed),
+            Self::Client(e) => e.hint().map(Cow::Borrowed),
             Self::Publish(e) => e.hint(),
             Self::Usage(_) | Self::Declined | Self::RepoId(_) | Self::Command(_) => None,
         }
