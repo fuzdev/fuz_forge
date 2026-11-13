@@ -55,10 +55,10 @@ struct TokenCreateInput {
     name: String,
     template: TokenTemplateInput,
     #[serde(default)]
-    #[allow(dead_code, reason = "parsed off the raw params by the spine")]
+    #[expect(dead_code, reason = "parsed off the raw params by the spine")]
     lifetime: Option<Value>,
     #[serde(default, deserialize_with = "fuz_http::deserialize_optional_wire_uuid")]
-    #[allow(dead_code, reason = "resolved by the dispatcher, not the handler")]
+    #[expect(dead_code, reason = "resolved by the dispatcher, not the handler")]
     acting: Option<Uuid>,
 }
 
@@ -70,7 +70,7 @@ struct TokenCreateInput {
 #[serde(deny_unknown_fields)]
 struct TokenPolicyListInput {
     #[serde(default, deserialize_with = "fuz_http::deserialize_optional_wire_uuid")]
-    #[allow(dead_code, reason = "resolved by the dispatcher, not the handler")]
+    #[expect(dead_code, reason = "resolved by the dispatcher, not the handler")]
     acting: Option<Uuid>,
 }
 

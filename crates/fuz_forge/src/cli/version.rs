@@ -11,7 +11,10 @@ use crate::CliError;
 #[argh(subcommand, name = "version")]
 pub struct Version {}
 
-#[allow(clippy::unnecessary_wraps)] // uniform handler signature
+#[expect(
+    clippy::unnecessary_wraps,
+    reason = "every subcommand handler returns `Result<(), CliError>` for `run`'s dispatch `match`"
+)]
 pub fn cmd_version(_args: &Version) -> Result<(), CliError> {
     println!(
         "fuzf {} ({})",

@@ -7,7 +7,11 @@
 //! cwd-relative `.fuz_forge` would find it, so a regression shows as that
 //! read rather than the refusal. The server is the discard port on loopback,
 //! so even a regression that read some other token sends it nowhere.
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#![expect(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "test helpers outside `#[test]` fns panic on a failed setup or check"
+)]
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};

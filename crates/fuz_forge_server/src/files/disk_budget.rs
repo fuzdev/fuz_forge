@@ -41,7 +41,7 @@ const fn has_sufficient_free_space(free: u64, declared: u64, margin: u64) -> boo
 /// *open* (logs, proceeds — the backstop still catches a real ENOSPC, and we
 /// don't reject a valid upload because the probe couldn't run). Races the
 /// concurrency semaphore (TOCTOU) under load, which the ENOSPC backstop closes.
-#[allow(
+#[expect(
     clippy::result_large_err,
     reason = "Err is the ready-to-return axum Response — the crate-wide REST handler idiom"
 )]

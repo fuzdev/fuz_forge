@@ -54,7 +54,10 @@ pub type FinalActionSpecsFactory =
 /// Options for [`run_app`].
 ///
 /// The spine's shared run options plus the forge's own swap points.
-#[allow(missing_debug_implementations)] // Arc-of-dyn + boxed-closure fields
+#[expect(
+    missing_debug_implementations,
+    reason = "the spine options and the boxed action-spec factories have no `Debug`"
+)]
 pub struct RunAppOptions {
     /// The spine's swap points. Production: the [`fuz_auth::Argon2idHasher`],
     /// [`DEFAULT_ADDR`], [`fuz_http::DEFAULT_DRAIN_TIMEOUT`], the auth limiters

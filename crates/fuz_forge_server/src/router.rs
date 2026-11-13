@@ -152,7 +152,10 @@ pub const FUZ_FORGE_BACKEND_SPEC: AppBackendSpec = AppBackendSpec {
 ///
 /// The field docs on [`crate::runtime::RunAppOptions`] (which forwards each of
 /// these verbatim) carry the production-vs-test rationale.
-#[allow(missing_debug_implementations)] // Arc-of-dyn + boxed-closure fields
+#[expect(
+    missing_debug_implementations,
+    reason = "the spine options and the boxed action-spec factories have no `Debug`"
+)]
 pub struct BuildRouterOptions {
     /// The spine's swap points: hasher, auth limiter mode, daemon-token state,
     /// pre-migration hook, in-flight audit tracking.

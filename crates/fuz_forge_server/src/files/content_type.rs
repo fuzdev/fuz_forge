@@ -76,7 +76,7 @@ pub fn filename_from_cell_path(path: &str) -> &str {
 
 /// Infer a content type from the filename extension (mirrors the TS
 /// `infer_content_type`).
-#[allow(
+#[expect(
     clippy::case_sensitive_file_extension_comparisons,
     reason = "matches the TS handler's case-sensitive endsWith checks for wire parity"
 )]

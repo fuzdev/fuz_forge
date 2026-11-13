@@ -51,7 +51,7 @@ pub struct SpawnCollectOptions {
 ///
 /// Callers destructure this into the owned stdio handles + [`Child`] and drive
 /// the pipes themselves (see [`crate::forge_git`]).
-#[allow(missing_debug_implementations)] // child handles aren't Debug
+#[derive(Debug)]
 pub struct SpawnStreamingHandle {
     pub stdin: ChildStdin,
     pub stdout: ChildStdout,

@@ -130,8 +130,11 @@ fn create_testing_await_signal_action_spec() -> ActionSpec {
                     None,
                 ));
             }
-            // integral and within 1..=60_000, so the cast is exact
-            #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+            #[expect(
+                clippy::cast_possible_truncation,
+                clippy::cast_sign_loss,
+                reason = "integral and within 1..=60_000, so the cast is exact"
+            )]
             let timeout_ms = timeout_ms as u64;
             let cancelled = tokio::time::timeout(
                 std::time::Duration::from_millis(timeout_ms),

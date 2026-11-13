@@ -84,7 +84,7 @@ struct RepoCreateInput {
     /// handler runs. Declared so `deny_unknown_fields` admits it; never read
     /// here.
     #[serde(default, deserialize_with = "fuz_http::deserialize_optional_wire_uuid")]
-    #[allow(dead_code, reason = "resolved by the dispatcher, not the handler")]
+    #[expect(dead_code, reason = "resolved by the dispatcher, not the handler")]
     acting: Option<Uuid>,
 }
 
@@ -109,7 +109,7 @@ struct RepoMutationInput {
     /// Dispatcher-owned actor selector; declared so `deny_unknown_fields`
     /// admits it, never read here.
     #[serde(default, deserialize_with = "fuz_http::deserialize_optional_wire_uuid")]
-    #[allow(dead_code, reason = "resolved by the dispatcher, not the handler")]
+    #[expect(dead_code, reason = "resolved by the dispatcher, not the handler")]
     acting: Option<Uuid>,
 }
 

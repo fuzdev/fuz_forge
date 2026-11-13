@@ -5,7 +5,11 @@
 //!
 //! Every run sets `HOME`, `FUZ_HOME` and `FUZ_FORGE_HOME` to paths under one
 //! scratch directory, and pins the server to the discard port on loopback.
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#![expect(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "test helpers outside `#[test]` fns panic on a failed setup or check"
+)]
 
 use std::ffi::OsStr;
 use std::os::unix::fs::PermissionsExt;

@@ -32,11 +32,9 @@
 //! established: walk `crates/` at runtime off `CARGO_MANIFEST_DIR`, skipping
 //! `target/`.
 
-#![allow(
-    clippy::unwrap_used,
+#![expect(
     clippy::expect_used,
-    clippy::panic,
-    reason = "tests panic on assertion failure by design"
+    reason = "test helpers outside `#[test]` fns panic on a failed setup or check"
 )]
 
 use std::collections::BTreeSet;

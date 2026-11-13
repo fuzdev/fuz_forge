@@ -133,7 +133,7 @@ pub async fn proxy_to_git_http_backend(
 
 /// Spawn `git http-backend` with the CGI `env`, mapping a spawn failure to the
 /// 503 response. Parent env is NOT inherited (see [`crate::subprocess`]).
-#[allow(
+#[expect(
     clippy::result_large_err,
     reason = "Err is the ready-to-return axum Response — the crate-wide REST handler idiom"
 )]
@@ -171,7 +171,7 @@ fn pipe_request_body(mut stdin: ChildStdin, body: Body) {
 /// the accumulated bytes (through the separator). On a cap overflow, a read
 /// error, or EOF before the separator, kills the child and returns the matching
 /// 502 response.
-#[allow(
+#[expect(
     clippy::result_large_err,
     reason = "Err is the ready-to-return axum Response — the crate-wide REST handler idiom"
 )]

@@ -262,7 +262,7 @@ impl<'de> Deserialize<'de> for PolicyVersion1 {
         // the channel rather than into the grammar.
         let version = value.as_u64().or_else(|| {
             value.as_f64().and_then(|f| {
-                #[allow(
+                #[expect(
                     clippy::cast_possible_truncation,
                     clippy::cast_sign_loss,
                     reason = "guarded to a finite non-negative integral f64 inside u64 range"

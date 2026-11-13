@@ -4,7 +4,10 @@
 //! a configuration failure exits `2` with its error, so none of these needs a
 //! database.
 
-#![allow(clippy::expect_used)]
+#![expect(
+    clippy::expect_used,
+    reason = "test helpers outside `#[test]` fns panic on a failed setup or check"
+)]
 
 use std::process::{Command, Output};
 

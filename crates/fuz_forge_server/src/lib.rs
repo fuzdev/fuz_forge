@@ -1,14 +1,6 @@
-// Crate-root lint posture. The handler + query layer is complete (no stubs);
-// these pedantic doc-lints are relaxed crate-wide as a deliberate choice —
-// `# Errors` sections live on the public-facing helpers, not every internal
-// `async fn`, and `unused_async` fires on handlers whose signature is fixed by
-// axum. Real handler bodies document their errors per ecosystem convention.
-#![allow(
-    clippy::missing_errors_doc,
-    clippy::missing_panics_doc,
+#![expect(
     clippy::doc_markdown,
-    clippy::unused_async,
-    reason = "deliberate crate-wide doc-lint posture; handler/query layer is complete"
+    reason = "doc prose writes project names, wire field names, and CIDR ranges like fuz_forge, author_email, and fe80::/10 as plain words"
 )]
 
 //! `fuz_forge_server` — Rust backend for fuz_forge.

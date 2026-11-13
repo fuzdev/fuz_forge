@@ -1,7 +1,11 @@
 //! `fuzf init --server` through the real binary: it saves the normalized URL
 //! the server-URL policy returns, and refuses one every later command would
 //! refuse before writing anything.
-#![allow(clippy::unwrap_used, clippy::expect_used, clippy::panic)]
+#![expect(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "test helpers outside `#[test]` fns panic on a failed setup or check"
+)]
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};

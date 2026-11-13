@@ -933,7 +933,7 @@ mod tests {
     /// upload back to the `?meta` metadata shape — which every real upload
     /// would then fail to deserialize, after the bytes had already landed —
     /// stops compiling here.
-    #[allow(dead_code, reason = "compile-time assertion, never called")]
+    #[expect(dead_code, reason = "compile-time assertion, never called")]
     async fn upload_file_decodes_the_upload_body(
         client: &ForgeClient,
         filename: &str,
@@ -944,7 +944,7 @@ mod tests {
 
     /// The same pin for the metadata probe: `fetch_file_meta` reads the `?meta`
     /// body, the one shape that does resolve `uploaded_at`.
-    #[allow(dead_code, reason = "compile-time assertion, never called")]
+    #[expect(dead_code, reason = "compile-time assertion, never called")]
     fn file_meta_lookup_carries_the_metadata_body(
         lookup: FileMetaLookup,
     ) -> Option<FileMetaOutput> {

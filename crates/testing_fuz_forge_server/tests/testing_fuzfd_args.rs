@@ -3,7 +3,10 @@
 //! with usage on stderr before the env is read — the strict server command
 //! line, with no arguments serving as the cross-process harness spawns it.
 
-#![allow(clippy::expect_used)]
+#![expect(
+    clippy::expect_used,
+    reason = "test helpers outside `#[test]` fns panic on a failed setup or check"
+)]
 
 use std::process::{Command, Output};
 

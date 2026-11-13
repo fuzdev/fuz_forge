@@ -71,7 +71,7 @@ struct RepoListInput {
     /// handler runs ([`fuz_actions`]). Declared so `deny_unknown_fields`
     /// admits it; never read here.
     #[serde(default, deserialize_with = "fuz_http::deserialize_optional_wire_uuid")]
-    #[allow(dead_code, reason = "resolved by the dispatcher, not the handler")]
+    #[expect(dead_code, reason = "resolved by the dispatcher, not the handler")]
     acting: Option<Uuid>,
 }
 
@@ -193,7 +193,7 @@ struct RepoGetInput {
     /// Dispatcher-owned actor selector; declared so `deny_unknown_fields`
     /// admits it, never read here.
     #[serde(default, deserialize_with = "fuz_http::deserialize_optional_wire_uuid")]
-    #[allow(dead_code, reason = "resolved by the dispatcher, not the handler")]
+    #[expect(dead_code, reason = "resolved by the dispatcher, not the handler")]
     acting: Option<Uuid>,
 }
 
@@ -254,7 +254,7 @@ struct RepoLogInput {
     /// Dispatcher-owned actor selector; declared so `deny_unknown_fields`
     /// admits it, never read here.
     #[serde(default, deserialize_with = "fuz_http::deserialize_optional_wire_uuid")]
-    #[allow(dead_code, reason = "resolved by the dispatcher, not the handler")]
+    #[expect(dead_code, reason = "resolved by the dispatcher, not the handler")]
     acting: Option<Uuid>,
 }
 
@@ -267,7 +267,7 @@ struct RepoCommitInput {
     /// Dispatcher-owned actor selector; declared so `deny_unknown_fields`
     /// admits it, never read here.
     #[serde(default, deserialize_with = "fuz_http::deserialize_optional_wire_uuid")]
-    #[allow(dead_code, reason = "resolved by the dispatcher, not the handler")]
+    #[expect(dead_code, reason = "resolved by the dispatcher, not the handler")]
     acting: Option<Uuid>,
 }
 
@@ -381,7 +381,7 @@ struct RepoRefsInput {
     /// Dispatcher-owned actor selector; declared so `deny_unknown_fields`
     /// admits it, never read here.
     #[serde(default, deserialize_with = "fuz_http::deserialize_optional_wire_uuid")]
-    #[allow(dead_code, reason = "resolved by the dispatcher, not the handler")]
+    #[expect(dead_code, reason = "resolved by the dispatcher, not the handler")]
     acting: Option<Uuid>,
 }
 
@@ -397,7 +397,7 @@ struct RepoTreeInput {
     /// Dispatcher-owned actor selector; declared so `deny_unknown_fields`
     /// admits it, never read here.
     #[serde(default, deserialize_with = "fuz_http::deserialize_optional_wire_uuid")]
-    #[allow(dead_code, reason = "resolved by the dispatcher, not the handler")]
+    #[expect(dead_code, reason = "resolved by the dispatcher, not the handler")]
     acting: Option<Uuid>,
 }
 
@@ -412,7 +412,7 @@ struct RepoBlobInput {
     /// Dispatcher-owned actor selector; declared so `deny_unknown_fields`
     /// admits it, never read here.
     #[serde(default, deserialize_with = "fuz_http::deserialize_optional_wire_uuid")]
-    #[allow(dead_code, reason = "resolved by the dispatcher, not the handler")]
+    #[expect(dead_code, reason = "resolved by the dispatcher, not the handler")]
     acting: Option<Uuid>,
 }
 

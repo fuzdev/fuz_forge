@@ -12,6 +12,10 @@
 //! enforces force-push protection on the default branch; `post-receive`
 //! records push metadata on the repo cell (the `/internal/*` routes in
 //! [`crate::internal_routes`], mounted by [`crate::router`]).
+#![expect(
+    clippy::missing_errors_doc,
+    reason = "the storage fns fail with a `String` naming the failed git or filesystem step, which their summaries don't enumerate"
+)]
 
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};

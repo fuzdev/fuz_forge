@@ -16,7 +16,10 @@ pub const SHORT_HASH_LEN: usize = 12;
 /// `fuz_forge_wire::output::FileMetaOutput` / `FileUploadOutput` is the `i64`
 /// the server already holds, so no conversion sits between the server and the
 /// wire. A local file's `u64` size converts here at the render site instead.
-#[allow(clippy::cast_precision_loss)]
+#[expect(
+    clippy::cast_precision_loss,
+    reason = "f64 is exact to 2^53 bytes, and the output keeps one decimal"
+)]
 pub fn format_bytes(bytes: i64) -> String {
     const UNITS: [&str; 6] = ["B", "KB", "MB", "GB", "TB", "PB"];
     if bytes < 1024 {

@@ -128,7 +128,7 @@ struct VerifiedRepoCell {
 /// twin) rather than bare `Uuid::parse_str`, which would also accept the
 /// non-hyphenated/braced/URN spellings of a real id that the TS twin
 /// (`repo_internal.ts`) 401s — the hooks always send the canonical form.
-#[allow(
+#[expect(
     clippy::result_large_err,
     reason = "Err is the ready-to-return axum Response — the crate-wide REST handler idiom"
 )]
@@ -250,7 +250,7 @@ struct RepoReceiveCallbackBody {
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct RefUpdate {
-    #[allow(dead_code, reason = "wire field; only `new`/`ref` drive cell state")]
+    #[expect(dead_code, reason = "wire field; only `new`/`ref` drive cell state")]
     old: String,
     /// The ref's new object id: a full 40-hex sha, or the all-zero id for a
     /// deleted ref. It becomes the cell's `head_sha` on a default-branch

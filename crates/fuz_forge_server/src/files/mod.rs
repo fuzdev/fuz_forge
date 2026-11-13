@@ -140,7 +140,7 @@ impl FilesRouteState {
     /// The `admin` role gate, taken **after** the acting actor resolves — the
     /// mutation handlers run the TS route runner's phase order (401 → the
     /// `acting` 400s → the role 403).
-    #[allow(
+    #[expect(
         clippy::result_large_err,
         reason = "Err is the ready-to-return axum Response — the crate-wide REST handler idiom"
     )]
@@ -152,7 +152,7 @@ impl FilesRouteState {
     ///
     /// `client_ip` is the XFF-resolved address the handler extracted from its
     /// `ClientIp` extension — see [`require_auth`].
-    #[allow(
+    #[expect(
         clippy::result_large_err,
         reason = "Err is the ready-to-return axum Response — the crate-wide REST handler idiom"
     )]
@@ -174,7 +174,7 @@ impl FilesRouteState {
     /// A failed pool checkout answers the spine's flat 503, as the TS
     /// `get_request_policy` rethrows the middleware's stored
     /// `DbCheckoutError`.
-    #[allow(
+    #[expect(
         clippy::result_large_err,
         reason = "Err is the ready-to-return axum Response — the crate-wide REST handler idiom"
     )]

@@ -45,11 +45,9 @@
 //! `policy_check(None, …)` returns `true`, and only its scope is left to
 //! answer. See [`fuz_forge_server::token_surfaces`].
 
-#![allow(
-    clippy::unwrap_used,
+#![expect(
     clippy::expect_used,
-    clippy::panic,
-    reason = "tests panic on assertion failure by design"
+    reason = "test helpers outside `#[test]` fns panic on a failed setup or check"
 )]
 
 use std::collections::BTreeSet;

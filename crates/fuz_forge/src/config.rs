@@ -140,8 +140,10 @@ pub fn save_config(config: &FuzForgeConfig) -> Result<(), ConfigError> {
     let dir = fuz_forge_dir()?;
     std::fs::create_dir_all(&dir).map_err(|e| ConfigError::ConfigWrite(dir.clone(), e))?;
     let path = dir.join(CONFIG_FILE);
-    // unwrap is safe: a struct of owned strings always serializes.
-    #[allow(clippy::unwrap_used)]
+    #[expect(
+        clippy::unwrap_used,
+        reason = "a struct of owned strings always serializes"
+    )]
     let body = serde_json::to_vec_pretty(config).unwrap();
     write_atomic(&path, &body, 0o644).map_err(|e| ConfigError::ConfigWrite(path, e))?;
     Ok(())

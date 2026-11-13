@@ -65,7 +65,7 @@ struct ServerStatusResponse {
 /// Mirrors the TS `create_server_status_route_spec` (`auth: account
 /// required, actor none`; body `{version, uptime_ms}`). The frontend
 /// (`capabilities.svelte.ts`) fetches it after login.
-#[allow(
+#[expect(
     clippy::result_large_err,
     reason = "Err is the ready-to-return axum Response — the crate-wide REST handler idiom"
 )]

@@ -83,7 +83,7 @@ const ACTING_QUERY_KEY: &str = "acting";
 /// Returns the 400 `invalid_query_params` `Response` for an unknown key or an
 /// `acting` value that isn't a UUID — the one body the TS strict `object`
 /// answers for either.
-#[allow(
+#[expect(
     clippy::result_large_err,
     reason = "Err is the ready-to-return axum Response — the crate-wide REST handler idiom"
 )]
@@ -119,7 +119,7 @@ fn capability_forbidden(capability: &FuzForgeCapability<'_>) -> Response {
 /// Port of the TS `enforce_surface`, which takes the surface as a parameter
 /// because it lives in the shared policy middleware; this one is a private
 /// helper in the file-store module and names its own.
-#[allow(
+#[expect(
     clippy::result_large_err,
     reason = "Err is the ready-to-return axum Response — the crate-wide REST handler idiom"
 )]
@@ -149,7 +149,7 @@ fn enforce_surface(
 ///
 /// See [`crate::token_surfaces`] for why it splits that way. Port of the TS
 /// `enforce_capability` gate.
-#[allow(
+#[expect(
     clippy::result_large_err,
     reason = "Err is the ready-to-return axum Response — the crate-wide REST handler idiom"
 )]
@@ -202,7 +202,7 @@ fn file_too_large(message: &str) -> Response {
 /// paths — bytes are content-addressed by blake3 in the fact store — so this is
 /// key hygiene + producer parity, not the FS-escape defense (there is no
 /// filename-derived filesystem path to traverse).
-#[allow(
+#[expect(
     clippy::result_large_err,
     reason = "Err is the ready-to-return axum Response — the crate-wide REST handler idiom"
 )]
@@ -210,7 +210,7 @@ fn validate_file_key(filename: &str) -> Result<(), Response> {
     fuz_storage::validate_forge_key(filename).map_err(|_| invalid_route_params_response())
 }
 
-#[allow(
+#[expect(
     clippy::result_large_err,
     reason = "Err is the ready-to-return axum Response — the crate-wide REST handler idiom"
 )]
@@ -453,7 +453,7 @@ fn upload_response(
 /// surface between a separate meta route and the download route), and is what
 /// lets the metadata endpoint live on the terminal catch-all. The TS twin is
 /// the same single GET handler branching on the `meta` query.
-#[allow(
+#[expect(
     clippy::result_large_err,
     reason = "Err is the ready-to-return axum Response — the crate-wide REST handler idiom"
 )]
@@ -553,7 +553,7 @@ pub(super) async fn handle_get(
     }
 }
 
-#[allow(
+#[expect(
     clippy::result_large_err,
     reason = "Err is the ready-to-return axum Response — the crate-wide REST handler idiom"
 )]
@@ -643,7 +643,7 @@ pub(super) async fn handle_list(
     Ok(Json(FileListOutput { files }).into_response())
 }
 
-#[allow(
+#[expect(
     clippy::result_large_err,
     reason = "Err is the ready-to-return axum Response — the crate-wide REST handler idiom"
 )]

@@ -79,7 +79,7 @@ fn insufficient_permissions() -> Response {
 ///
 /// Returns the 403 denial `Response` (`Err`) when no actor on the account is
 /// an admin, or a logged 500 on a DB failure.
-#[allow(
+#[expect(
     clippy::result_large_err,
     reason = "Err is the ready-to-return axum Response — the crate-wide REST handler idiom"
 )]
@@ -134,7 +134,7 @@ pub(crate) async fn require_admin_role(pool: &Pool, auth: &ResolvedAuth) -> Resu
 /// Returns the 403 origin refusal `Response` (`Err`) for a disallowed
 /// `Origin`, the 401 denial when auth is absent, or the spine's
 /// `fuz_auth::CredentialReadFault` 500 when a credential read fails.
-#[allow(
+#[expect(
     clippy::result_large_err,
     reason = "Err is the ready-to-return axum Response — the crate-wide REST handler idiom"
 )]
@@ -166,7 +166,7 @@ pub(crate) async fn require_auth(
 ///
 /// Returns a denial `Response` (`Err`) for each non-resolving outcome, or a
 /// logged 500 on a pool / DB failure.
-#[allow(
+#[expect(
     clippy::result_large_err,
     reason = "Err is the ready-to-return axum Response — the crate-wide REST handler idiom"
 )]

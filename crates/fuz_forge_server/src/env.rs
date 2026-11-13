@@ -188,6 +188,8 @@ impl std::fmt::Debug for FuzForgeEnv {
 impl FuzForgeEnv {
     /// Read + validate the env from the current process.
     ///
+    /// # Errors
+    ///
     /// Returns `StartupError::Config` on malformed values; absent
     /// optional fields fall through to defaults.
     pub fn from_process() -> Result<Self, StartupError> {

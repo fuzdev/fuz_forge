@@ -41,7 +41,7 @@ pub const COMMIT_DETAIL_FORMAT: &str =
 /// a `-`flag/pathspec. A plain character allowlist (`[A-Za-z0-9_/.-]`) would
 /// be stricter than git itself and reject git-valid exotic names (e.g.
 /// `feat@2`), diverging from TS.
-#[allow(
+#[expect(
     clippy::case_sensitive_file_extension_comparisons,
     reason = "`.lock` is a git ref suffix, not a file extension — git check-ref-format is case-sensitive"
 )]

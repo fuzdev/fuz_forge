@@ -10,9 +10,11 @@
 //! the spine's `fuz_testing::fresh_db`; this module holds the suites' openings
 //! of it, bare and migrated.
 
-// `columns` carries no crate-level allow, and the carve-out for tests does
-// not reach a helper fn
-#![allow(clippy::expect_used)]
+// `columns` carries no crate-level `expect`, so this module needs its own.
+#![expect(
+    clippy::expect_used,
+    reason = "test helpers outside `#[test]` fns panic on a failed setup or check"
+)]
 
 use fuz_db::Pool;
 use fuz_forge_server::router::fuz_forge_migration_namespaces;
@@ -36,14 +38,14 @@ const MIGRATED_DB: TestingDbOptions<'static> = TestingDbOptions {
 
 /// The test database's URL: `FUZ_FORGE_SERVER_TEST_URL`, or the default — what
 /// a suite booting `build_router` hands it as `database_url`.
-#[allow(dead_code)] // each suite opens the database one way
+#[allow(dead_code, reason = "each test binary uses only part of this module")]
 pub fn test_url() -> String {
     BARE_DB.url()
 }
 
 /// Reset the `public` schema and run nothing: a pool over an empty database,
 /// for a suite whose `build_router` call runs the migration chain itself.
-#[allow(dead_code)]
+#[allow(dead_code, reason = "each test binary uses only part of this module")]
 pub async fn bare_db_pool() -> Pool {
     let pool = fresh_test_db_pool(BARE_DB).await;
     // the bare form is what makes these suites the in-crate guard that
@@ -65,7 +67,7 @@ pub async fn bare_db_pool() -> Pool {
 
 /// Reset the `public` schema, then run the chain `build_router` runs — a fresh
 /// bootstrap of what `fuzfd` migrates on boot.
-#[allow(dead_code)]
+#[allow(dead_code, reason = "each test binary uses only part of this module")]
 pub async fn fresh_db_pool() -> Pool {
     fresh_test_db_pool(MIGRATED_DB).await
 }
