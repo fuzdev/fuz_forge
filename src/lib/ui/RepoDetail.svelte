@@ -49,7 +49,7 @@
 {#if repo}
 	<div class="panel p_md mb_md column gap_sm">
 		<RepoCloneUrl url={clone_url} />
-		<p class="font_size_sm text_50" style:margin="0">
+		<p class="font_size_sm text_50">
 			HTTP Basic auth: username = your account username, password = an API token from
 			<a href={resolve('/admin/account')}>account settings</a>.
 		</p>

@@ -60,7 +60,7 @@
 
 	{#if tokens_state.created_token}
 		<aside class="panel p_md mb_md column gap_sm">
-			<p class="mb_0">
+			<p>
 				<strong>token created</strong>
 				{#if tokens_state.created_template && tokens_state.created_template !== 'admin'}
 					— <span class="chip palette_b">{tokens_state.created_template}</span>
