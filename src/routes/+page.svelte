@@ -1,4 +1,4 @@
-<main class="column align-items:center mx_auto gap_xl3 pt_xl5 pb_xl9">
+<main class="box mx_auto pt_xl5 pb_xl9">
 	<section class="box">
 		<header class="box">
 			<h1 class="mt_0 font_size_xl5">fuz_forge</h1>
