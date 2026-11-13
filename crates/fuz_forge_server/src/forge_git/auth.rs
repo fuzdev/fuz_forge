@@ -72,11 +72,12 @@ pub fn refusal_response(err: &FuzForgeError) -> Response {
         return unauthorized_response();
     }
     if matches!(err, FuzForgeError::Pool(_)) {
-        tracing::error!(error = ?err, "forge_git: the auth chain's pool checkout failed");
-        return fuz_http::db_unavailable_response();
+        return fuz_http::db_unavailable_response_with_source(
+            "forge_git: the auth chain's pool checkout failed",
+            err,
+        );
     }
-    tracing::error!(error = ?err, "forge_git: the auth chain's read failed");
-    fuz_http::internal_error_response()
+    fuz_http::internal_error_response_with_source("forge_git: the auth chain's read failed", err)
 }
 
 /// Per-request data extracted by [`authenticate_git_request`].

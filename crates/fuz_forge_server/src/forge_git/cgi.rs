@@ -140,7 +140,10 @@ pub async fn proxy_to_git_http_backend(
 fn spawn_http_backend(env: HashMap<String, String>) -> Result<SpawnStreamingHandle, Response> {
     let spawn_opts = SpawnStreamingOptions { env, cwd: None };
     spawn_streaming("git", ["http-backend"], &spawn_opts).map_err(|e| {
-        tracing::error!(error = %e, "forge: git http-backend spawn failed");
+        tracing::error!(
+            error = %fuz_sys::cli::format_error_chain(&e),
+            "forge: git http-backend spawn failed"
+        );
         (
             StatusCode::SERVICE_UNAVAILABLE,
             "Forge subprocess unavailable\n",
@@ -159,10 +162,16 @@ fn pipe_request_body(mut stdin: ChildStdin, body: Body) {
     tokio::spawn(async move {
         let mut reader = StreamReader::new(body.into_data_stream().map_err(std::io::Error::other));
         if let Err(e) = tokio::io::copy(&mut reader, &mut stdin).await {
-            tracing::warn!(error = %e, "forge: stdin pipe failed");
+            tracing::warn!(
+                error = %fuz_sys::cli::format_error_chain(&e),
+                "forge: stdin pipe failed"
+            );
         }
         if let Err(e) = stdin.shutdown().await {
-            tracing::warn!(error = %e, "forge: stdin shutdown failed");
+            tracing::warn!(
+                error = %fuz_sys::cli::format_error_chain(&e),
+                "forge: stdin shutdown failed"
+            );
         }
     });
 }
@@ -199,7 +208,10 @@ async fn read_cgi_head(stdout: &mut ChildStdout, child: &mut Child) -> Result<Ve
             }
             Err(e) => {
                 let _ = child.kill().await;
-                tracing::warn!(error = %e, "forge: stdout read failed");
+                tracing::warn!(
+                    error = %fuz_sys::cli::format_error_chain(&e),
+                    "forge: stdout read failed"
+                );
                 return Err(
                     (StatusCode::BAD_GATEWAY, "Forge subprocess read error\n").into_response()
                 );

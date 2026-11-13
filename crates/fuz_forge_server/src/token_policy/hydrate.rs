@@ -137,7 +137,7 @@ pub async fn hydrate_policy(
         Err(e) => {
             tracing::warn!(
                 api_token_id = id,
-                error = ?e,
+                error = %fuz_sys::cli::format_error_chain(&e),
                 "fuz_forge_token_policy: policy lookup failed; falling through unscoped",
             );
             Ok(None)

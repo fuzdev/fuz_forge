@@ -148,7 +148,7 @@ pub fn policy_from_stored(policy_text: &str, api_token_id: &str) -> FuzForgeToke
     serde_json::from_str(policy_text).unwrap_or_else(|e| {
         tracing::error!(
             api_token_id,
-            error = %e,
+            error = %fuz_sys::cli::format_error_chain(&e),
             "fuz_forge_token_policy: stored policy is unreadable; denying every capability",
         );
         DENY_ALL_POLICY

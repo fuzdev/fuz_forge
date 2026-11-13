@@ -36,7 +36,8 @@ use axum::response::{IntoResponse, Json, Response};
 use axum::routing::{get, post};
 use fuz_db::Pool;
 use fuz_http::{
-    db_unavailable_response, internal_error_response, internal_error_response_with_source,
+    db_unavailable_response_with_source, internal_error_response,
+    internal_error_response_with_source,
 };
 use fuz_realtime::ConnectionRegistry;
 use fuz_sys::rfc3339_now;
@@ -144,8 +145,10 @@ async fn verify_repo_secret(
         return Ok(None);
     };
     let client = pool.get().await.map_err(|e| {
-        tracing::error!(error = ?e, "internal_routes: the repo cell lookup's pool checkout failed");
-        db_unavailable_response()
+        db_unavailable_response_with_source(
+            "internal_routes: the repo cell lookup's pool checkout failed",
+            &e,
+        )
     })?;
     // Only a cell the forge serves as a repo: `kind = 'repo'` at a
     // `repos/<slug>` path, the address git auth resolves, so a hook exists for
@@ -307,8 +310,10 @@ async fn handle_repo_receive_callback(
     let client = match state.pool.get().await {
         Ok(client) => client,
         Err(e) => {
-            tracing::error!(error = ?e, "internal_routes: pool checkout failed");
-            return db_unavailable_response();
+            return db_unavailable_response_with_source(
+                "internal_routes: pool checkout failed",
+                &e,
+            );
         }
     };
     if client

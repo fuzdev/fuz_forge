@@ -66,7 +66,7 @@ pub fn check_disk_budget(
         }
         Err(e) => {
             tracing::warn!(
-                error = %e,
+                error = %fuz_sys::cli::format_error_chain(&e),
                 "files.upload free-space preflight probe failed; proceeding (ENOSPC backstop applies)",
             );
             Ok(())

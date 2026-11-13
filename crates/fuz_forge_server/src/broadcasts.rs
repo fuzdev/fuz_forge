@@ -73,7 +73,11 @@ fn broadcast<T: Serialize>(realtime: &Arc<ConnectionRegistry>, method: &str, par
     let params_value = match serde_json::to_value(&params) {
         Ok(v) => v,
         Err(e) => {
-            tracing::warn!(error = %e, method, "broadcast params serialization failed");
+            tracing::warn!(
+                error = %fuz_sys::cli::format_error_chain(&e),
+                method,
+                "broadcast params serialization failed"
+            );
             return 0;
         }
     };
