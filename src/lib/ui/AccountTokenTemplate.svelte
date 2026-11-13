@@ -108,7 +108,7 @@
 </script>
 
 <div class="column gap_sm">
-	<label class="column gap_xs">
+	<label class="column gap_xs mb_0">
 		<span class="font_size_sm text_50">template</span>
 		<select
 			value={template.kind}

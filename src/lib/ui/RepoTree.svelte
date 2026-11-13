@@ -112,7 +112,7 @@
 {#if !tree_slot.loading && entries.length === 0 && !tree_slot.failed}
 	<p class="text_50" style:font-style="italic">empty tree.</p>
 {:else}
-	<ul class="column" style:list-style="none" style:padding="0" style:margin="0">
+	<ul class="unstyled">
 		{#if has_parent}
 			<li class="row gap_sm p_sm tree-row">
 				<span>📁</span>

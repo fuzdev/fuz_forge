@@ -58,7 +58,7 @@
 		{#if branches.length === 0}
 			<p class="text_50" style:font-style="italic">no branches.</p>
 		{:else}
-			<ul class="column gap_xs" style:list-style="none" style:padding="0" style:margin="0">
+			<ul class="unstyled column gap_xs">
 				{#each branches as ref (ref.name)}
 					{@const name = ref_short_name(ref.name)}
 					<li class="row gap_sm panel p_sm" style:align-items="baseline">
@@ -93,7 +93,7 @@
 		{#if tags.length === 0}
 			<p class="text_50" style:font-style="italic">no tags.</p>
 		{:else}
-			<ul class="column gap_xs" style:list-style="none" style:padding="0" style:margin="0">
+			<ul class="unstyled column gap_xs">
 				{#each tags as ref (ref.name)}
 					{@const name = ref_short_name(ref.name)}
 					{@const target = ref.target_sha || ref.sha}

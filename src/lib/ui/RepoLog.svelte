@@ -138,7 +138,7 @@
 			: 'no commits match the current filters.'}
 	</p>
 {:else}
-	<ul class="column gap_xs" style:list-style="none" style:padding="0" style:margin="0">
+	<ul class="unstyled column gap_xs">
 		{#each log_state.commits as commit (commit.sha)}
 			<CommitListItem {commit} repo_id={id} />
 		{/each}
