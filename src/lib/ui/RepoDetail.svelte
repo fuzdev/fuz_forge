@@ -50,8 +50,8 @@
 	<div class="panel p_md mb_md column gap_sm">
 		<RepoCloneUrl url={clone_url} />
 		<p class="font_size_sm text_50">
-			HTTP Basic auth: username = your account username, password = an API token from
-			<a href={resolve('/admin/account')}>account settings</a>.
+			HTTP Basic auth: any non-empty username, with an API token from
+			<a href={resolve('/admin/account')}>account settings</a> as the password.
 		</p>
 	</div>
 

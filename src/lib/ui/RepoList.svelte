@@ -24,7 +24,7 @@
 <div class="column gap_xs">
 	{#if repos.length === 0}
 		<p class="p_lg text_50" style:text-align="center">
-			No repos hosted yet. Create one with <code>fuz_forge repo create &lt;org/repo&gt;</code>.
+			No repos hosted yet. Create one with <code>fuzf repo create &lt;org/repo&gt;</code>.
 		</p>
 	{:else}
 		{#each repos as repo (repo.id)}
