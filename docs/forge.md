@@ -12,8 +12,10 @@ The UX is held to three use cases:
 1. **Mirror git repos behind auth** — keep repos current by fanning an
    ordinary `git push` out to the forge alongside other remotes; the forge only
    receives, and there is no anonymous read.
-2. **Review commits and diffs** — the commit log and single-commit diffs, as a
-   reader; not a code-review workflow.
+2. **Review commits and diffs** — the commit log and single-commit diffs of
+   one repo at a time, as a reader; not a code-review workflow. The goal is a
+   view of what landed across every hosted repo, which is
+   [not built](#not-built).
 3. **Move files and self-host the first-party registry** — `fuzf file put/get`
    and the signed tool artifacts `fuz tool install` pulls; see
    [distribution.md](./distribution.md).
@@ -191,7 +193,7 @@ All pages are under `/admin/repos/` and need `admin`.
 
 | page | shows |
 | --- | --- |
-| `/admin/repos` | catalog: slug, last push, copy-clone-URL |
+| `/admin/repos` | catalog, newest created first: slug, default branch, head SHA, last push and pusher, clone URL |
 | `[id]` | cell metadata and recent commits on the default branch |
 | `[id]/refs` | branches and tags with timestamps and SHAs |
 | `[id]/log` | cursor-paginated log, filtered by ref, author, since, path |
@@ -204,8 +206,9 @@ The `[...rest]` splat splits on the first `:` into ref and path — git's own
 (`release/1.x`) address cleanly. A splat with no `:` is all ref: the tree root
 under `/tree/`, a "missing ref or path" notice under `/blob/`. Dot segments
 after the colon (`main:../etc`) survive URL normalization and are refused
-server-side by `is_safe_path` on both backends. The UI re-fetches on a
-`fuz_forge_repo_updated` broadcast for the visible repo.
+server-side by `is_safe_path` on both backends. Each repo page re-fetches on a
+`fuz_forge_repo_updated` broadcast for its repo, and the catalog re-fetches on
+every one.
 
 ## On-disk layout
 
@@ -298,8 +301,12 @@ back and the transaction rolls back.
   and cell/disk/config drift reporting.
 - A forensic event log: per-push history with `{old, new, ref}`, rejected
   pushes and bad auth, non-default ref movement, secret rotations and resyncs.
-- Reader features: syntax highlighting, diff ranges, a cross-repo commit feed,
-  a raw blob endpoint with image preview.
+- Reader features: syntax highlighting, diff ranges, a raw blob endpoint with
+  image preview.
+- A cross-repo review surface: a view of commits across every hosted repo as
+  they are pushed, in a dashboard whose tabs the reader arranges. Ordering by
+  when a commit landed needs the per-push history above; today a push keeps
+  only `head_sha` and the last-push fields.
 - Repo metadata RPCs (description, README, tags, visibility).
 - Compare views, per-file history and blame, content search, public reads,
   outbound mirroring, PRs and issues, SSH push, per-branch protection beyond

@@ -32,7 +32,8 @@ The app's own schemas (action specs, route specs, the token policy, `RepoId`,
 
 Three use cases (./docs/forge.md § Initial focus) — hold the UX to these:
 (1) **mirroring** git repos behind auth (push-primary, no anonymous read),
-(2) **reviewing** commits and diffs as a reader (no PR/comment workflow),
+(2) **reviewing** commits and diffs as a reader (no PR/comment workflow; one
+repo at a time today, with a cross-repo view of what landed as the goal),
 (3) **moving files** to/from the server and self-hosting Fuz's first-party
 signed tool registry.
 

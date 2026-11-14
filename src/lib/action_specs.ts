@@ -91,7 +91,7 @@ export const FuzForgeRepoOutput = object({
 });
 export type FuzForgeRepoOutput = Infer<typeof FuzForgeRepoOutput>;
 
-// Remote notifications (backend → frontend via SSE)
+// Remote notifications (backend → frontend over the `/api/ws` WebSocket)
 
 /**
  * Broadcast emitted by the post-receive callback when a push
@@ -99,10 +99,12 @@ export type FuzForgeRepoOutput = Infer<typeof FuzForgeRepoOutput>;
  * list without re-fetching the cell. Fan-out is admin-only, gated by
  * the upgrade-time `require_role(ROLE_ADMIN)` on `/api/ws`.
  *
- * `head_sha` is non-null only when the push touched the cell's
- * `default_branch`; otherwise the field stays at its prior value and
- * is echoed here unchanged. `last_pushed_by` is the account_id behind
- * the API token that authenticated the push.
+ * `head_sha` is the cell's default-branch tip after this push: the pushed
+ * sha when the push moved `default_branch`, `null` when it deleted it, and
+ * otherwise the prior value echoed unchanged. The message carries none of
+ * the push's ref updates, so a consumer can't tell which refs moved.
+ * `last_pushed_by` is the account_id behind the API token that
+ * authenticated the push.
  */
 export const fuz_forge_repo_updated_action_spec = {
 	method: 'fuz_forge_repo_updated',
@@ -125,7 +127,8 @@ export const fuz_forge_repo_updated_action_spec = {
 
 /**
  * Input for `fuz_forge_repo_list`. All filters optional; default returns every
- * repo cell under the `repos` hub ordered newest-first.
+ * repo cell under the `repos` hub ordered by creation, newest first (not by
+ * last push).
  *
  * - `slug_prefix`: exact, case-sensitive prefix match against `data.slug`
  *   (which is already lowercase-canonicalized by `RepoSlug`). Useful for
