@@ -2,7 +2,7 @@ import * as s from '@fuzdev/fuz_schema/schema.ts';
 import { fs } from '@fuzdev/gro/fs.ts';
 import { create_fs_paths } from '@fuzdev/gro/fs_paths.ts';
 import { GIT_LOCAL_PASS_ENV, to_git_program } from '@fuzdev/gro/git.ts';
-import { process } from '@fuzdev/gro/process.ts';
+import { env } from '@fuzdev/gro/env.ts';
 import { spawn } from '@fuzdev/gro/spawn.ts';
 import type { Task } from '@fuzdev/gro/task.ts';
 
@@ -16,7 +16,7 @@ export const task: Task<Args> = {
 	summary: 'build fuzf and fuzfd and publish them as a GitHub release',
 	Args,
 	run: async ({ invoke_task }) => {
-		const env = process.env.narrow(['FUZ_FORGE_BUILD_TARGET', 'FUZ_FORGE_BUILD_SKIP_SERVER']);
+		const build_env = env.narrow(['FUZ_FORGE_BUILD_TARGET', 'FUZ_FORGE_BUILD_SKIP_SERVER']);
 		await run_release({
 			project: fs.project,
 			paths: create_fs_paths(fs),
@@ -25,8 +25,8 @@ export const task: Task<Args> = {
 			gh: spawn.find('gh', GH_PROGRAM_OPTIONS),
 			build: () => invoke_task('build'),
 			build_env: {
-				FUZ_FORGE_BUILD_TARGET: env.get('FUZ_FORGE_BUILD_TARGET'),
-				FUZ_FORGE_BUILD_SKIP_SERVER: env.get('FUZ_FORGE_BUILD_SKIP_SERVER')
+				FUZ_FORGE_BUILD_TARGET: build_env.get('FUZ_FORGE_BUILD_TARGET'),
+				FUZ_FORGE_BUILD_SKIP_SERVER: build_env.get('FUZ_FORGE_BUILD_SKIP_SERVER')
 			}
 		});
 	}

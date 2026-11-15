@@ -1,6 +1,6 @@
 import { create_node_runtime } from '@fuzdev/fuz_app/runtime/node.ts';
 import * as s from '@fuzdev/fuz_schema/schema.ts';
-import { process } from '@fuzdev/gro/process.ts';
+import { cwd } from '@fuzdev/gro/cwd.ts';
 import { spawn } from '@fuzdev/gro/spawn.ts';
 import type { Task } from '@fuzdev/gro/task.ts';
 
@@ -20,7 +20,7 @@ export const task: Task<Args> = {
 	run: async () => {
 		await run_dev_reset(
 			{ runtime: create_node_runtime([]), postgres: to_postgres_programs(spawn) },
-			{ fuz_forge_home: to_dev_fuz_forge_home(process.cwd()) }
+			{ fuz_forge_home: to_dev_fuz_forge_home(cwd()) }
 		);
 	}
 };
