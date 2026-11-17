@@ -9,10 +9,9 @@
 */
 
 /*
- * Tab bar — mirrors a sibling app's `.tab*` styles. Lives here (not in a
+ * Tab bar for `ui/Tabs.svelte` and `ui/Tab.svelte`. Lives here (not in a
  * component) so `<a class="tab">` works from any markup without scoped
- * styles. Lift to `fuz_css/src/lib/css_class_composites.ts` once a
- * second consumer validates the API.
+ * styles. TODO maybe a `.tab*` composite in fuz_css.
  */
 .tabs {
 	display: flex;
