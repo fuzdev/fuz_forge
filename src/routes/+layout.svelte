@@ -9,7 +9,7 @@
 
 	import ThemeRoot from '@fuzdev/fuz_ui/ThemeRoot.svelte';
 	import { SiteState, site_context } from '@fuzdev/fuz_ui/site.svelte.ts';
-	import AppShell from '@fuzdev/fuz_app/ui/AppShell.svelte';
+	import AppShell from '@fuzdev/fuz_ui/AppShell.svelte';
 	import pkg_json from 'virtual:pkg.json';
 
 	import FuzForgeNav from '#lib/ui/FuzForgeNav.svelte';

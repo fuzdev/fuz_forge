@@ -5,8 +5,8 @@
 	import { AuthState, auth_state_context } from '@fuzdev/fuz_app/ui/auth_state.svelte.ts';
 	import LoginForm from '@fuzdev/fuz_app/ui/LoginForm.svelte';
 	import BootstrapForm from '@fuzdev/fuz_app/ui/BootstrapForm.svelte';
-	import ColumnLayout from '@fuzdev/fuz_app/ui/ColumnLayout.svelte';
-	import MenuLink from '@fuzdev/fuz_app/ui/MenuLink.svelte';
+	import ColumnLayout from '@fuzdev/fuz_ui/ColumnLayout.svelte';
+	import MenuLink from '@fuzdev/fuz_ui/MenuLink.svelte';
 	import {
 		create_admin_rpc_adapters,
 		provide_admin_rpc_contexts
@@ -74,21 +74,23 @@
 		<ColumnLayout class="flex:1 overflow:hidden" toggle_label="admin">
 			{#snippet aside()}
 				<nav aria-label="admin">
-					<MenuLink path="/admin" class="menuitem font_size_lg">admin</MenuLink>
+					<MenuLink href={resolve('/admin')} exact class="menuitem font_size_lg">admin</MenuLink>
 					<hr class="nav-separator" />
-					<MenuLink path="/admin/files" class="menuitem">files</MenuLink>
-					<MenuLink path="/admin/repos" class="menuitem">repos</MenuLink>
+					<MenuLink href={resolve('/admin/files')} class="menuitem">files</MenuLink>
+					<MenuLink href={resolve('/admin/repos')} class="menuitem">repos</MenuLink>
 					<hr class="nav-separator" />
-					<MenuLink path="/admin/db" class="menuitem">db</MenuLink>
-					<MenuLink path="/admin/capabilities" class="menuitem">capabilities</MenuLink>
+					<MenuLink href={resolve('/admin/db')} class="menuitem">db</MenuLink>
+					<MenuLink href={resolve('/admin/capabilities')} class="menuitem">capabilities</MenuLink>
 					<hr class="nav-separator" />
-					<MenuLink path="/admin/accounts" class="menuitem">accounts</MenuLink>
-					<MenuLink path="/admin/invites" class="menuitem">invites</MenuLink>
-					<MenuLink path="/admin/sessions" class="menuitem">sessions</MenuLink>
-					<MenuLink path="/admin/audit-log" class="menuitem">audit log</MenuLink>
-					<MenuLink path="/admin/role-grant-history" class="menuitem">role grant history</MenuLink>
+					<MenuLink href={resolve('/admin/accounts')} class="menuitem">accounts</MenuLink>
+					<MenuLink href={resolve('/admin/invites')} class="menuitem">invites</MenuLink>
+					<MenuLink href={resolve('/admin/sessions')} class="menuitem">sessions</MenuLink>
+					<MenuLink href={resolve('/admin/audit-log')} class="menuitem">audit log</MenuLink>
+					<MenuLink href={resolve('/admin/role-grant-history')} class="menuitem">
+						role grant history
+					</MenuLink>
 					<hr class="nav-separator" />
-					<MenuLink path="/admin/account" class="menuitem">account</MenuLink>
+					<MenuLink href={resolve('/admin/account')} class="menuitem">account</MenuLink>
 				</nav>
 			{/snippet}
 			<main class="admin-content">

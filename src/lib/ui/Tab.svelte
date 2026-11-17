@@ -6,16 +6,12 @@
 	 * subroute highlighting the parent `tree` tab) or, by default,
 	 * exact-match against `page.url.pathname`.
 	 *
-	 * Intentionally NOT a wrapper over `MenuLink`: `MenuLink` derives
-	 * `selected` itself with no override hook, so tab routes whose
-	 * selection isn't pathname-derivable (e.g. a blob view highlighting
-	 * the parent `tree` tab) can't use it.
+	 * Not a wrapper over fuz_ui's `MenuLink`. TODO consider wrapping it with
+	 * `exact` and `selected`, which also adds `aria-current`.
 	 *
-	 * Parallel impl note: another app built on fuz_app has a sibling
-	 * `Tab.svelte` that wraps `MenuLink` directly — no override hook
-	 * because none of its callsites need one yet. The two impls will
-	 * reconcile when both lift to `@fuzdev/fuz_app/ui/`; until then keep
-	 * them in sync API-wise.
+	 * Parallel impl note: other apps on fuz_app have a sibling `Tab.svelte`
+	 * that inlines its `<a>` the same way. The impls will reconcile when
+	 * they lift to `@fuzdev/fuz_ui`; until then keep them in sync API-wise.
 	 *
 	 * @module
 	 */
