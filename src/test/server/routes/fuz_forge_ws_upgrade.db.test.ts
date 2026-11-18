@@ -4,7 +4,7 @@
  *
  * The cross-process WS suites (`cross_backend/ws_role_gate.cross.test.ts`,
  * `cross_backend/ws_scoped_token.cross.test.ts`) pin these bodies on the Rust
- * backend only: on Node, `@hono/node-ws` answers a refused upgrade with its
+ * backend only: on Node, `@hono/node-server` answers a refused upgrade with its
  * status and an empty body. Here the forge's own WS endpoint
  * (`build_ws_endpoint_specs`) mounts over a stub upgrade, so the refusal is
  * the response the guard chain returns, before any socket.
@@ -39,7 +39,7 @@ describe_db('fuz_forge /api/ws upgrade refusals', (get_db) => {
 		test_app = await create_fuz_forge_admin_test_app(get_db, {
 			app_options: {
 				ws_endpoints: build_ws_endpoint_specs(new ConnectionRegistry()),
-				create_upgrade_websocket: () => stub.upgradeWebSocket
+				upgrade_websocket: stub.upgradeWebSocket
 			}
 		});
 	});

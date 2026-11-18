@@ -108,7 +108,7 @@ const make_ts_forge_backend_config = (opts: {
 	/**
 	 * Whether a refused WebSocket upgrade carries its refusal body — `true` on
 	 * Bun, which sends the response as built; `false` on Node, whose
-	 * `@hono/node-ws` answers the refusal's status with no body
+	 * `@hono/node-server` answers the refusal's status and headers with no body
 	 * (`BackendCapabilities.ws_refusal_body`).
 	 */
 	ws_refusal_body: boolean;

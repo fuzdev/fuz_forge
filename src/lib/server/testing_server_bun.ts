@@ -53,7 +53,7 @@ const start = async (): Promise<void> => {
 				spawn_collect,
 				// mounts `/api/ws`, as the Node binary does, so the
 				// spawned app is the same on every runtime
-				create_upgrade_websocket: context.prepare_websocket()
+				upgrade_websocket: context.prepare_websocket()
 			})
 	});
 };

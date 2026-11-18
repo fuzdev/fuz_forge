@@ -8,10 +8,9 @@
  * cross-impl bench (`src/benchmarks/cross_impl.bench.ts`), where it is the
  * reference backend timed beside Bun (`server/testing_server_bun.ts`) and Rust.
  *
- * `/api/ws` mounts through `@hono/node-ws`: the adapter's `prepare_websocket`
- * builds the upgrade helper from the assembled app and caps its frames at
- * twice the endpoint's message limit, and the core injects it into the server
- * after `serve`.
+ * `/api/ws` mounts through `@hono/node-server`'s `upgradeWebSocket`: the
+ * adapter's `prepare_websocket` builds the `ws` server, its frames capped at
+ * twice the endpoint's message limit, and hands it to `serve`.
  *
  * Run with:
  *   gro run src/lib/server/testing_server_node.ts
@@ -52,7 +51,7 @@ const start = async (): Promise<void> => {
 				spawn_streaming,
 				spawn_collect,
 				// mounts `/api/ws` for the cross-process WS suites
-				create_upgrade_websocket: context.prepare_websocket()
+				upgrade_websocket: context.prepare_websocket()
 			})
 	});
 };

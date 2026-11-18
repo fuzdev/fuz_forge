@@ -21,9 +21,9 @@
  * non-RPC surface to a narrowed token — so the expected body is one constant,
  * `SCOPED_TOKEN_WS_DENIAL_BODY`. The upgrade is refused with an HTTP 403 and a
  * JSON body, before any handshake — the body where the backend sends one with
- * a refused upgrade (`capabilities.ws_refusal_body`; Node's `@hono/node-ws`
- * answers with the status and an empty body, which the cases pin there
- * instead).
+ * a refused upgrade (`capabilities.ws_refusal_body`; Node's `@hono/node-server`
+ * answers with the status and headers but an empty body, which the cases pin
+ * there instead).
  *
  * **How the upgrade is probed.** A rejected upgrade never completes the
  * WebSocket handshake — the gate returns an ordinary HTTP 403 *before* the
@@ -83,8 +83,8 @@ interface UpgradeRejection {
 
 /**
  * Assert `res` is the scoped-token denial: a 403 with `SCOPED_TOKEN_WS_DENIAL_BODY`
- * as JSON, or with an empty body where the backend sends no refused upgrade's
- * body.
+ * as JSON, or with the JSON content type and an empty body where the backend
+ * sends no refused upgrade's body.
  */
 const assert_scoped_token_denial = (res: UpgradeRejection, message: string): void => {
 	assert.strictEqual(res.status, 403, message);
@@ -94,8 +94,8 @@ const assert_scoped_token_denial = (res: UpgradeRejection, message: string): voi
 	} else {
 		assert.deepStrictEqual(
 			{ content_type: res.content_type, body: res.body },
-			{ content_type: undefined, body: '' },
-			'no refusal body'
+			{ content_type: 'application/json', body: '' },
+			'the refusal headers without its body'
 		);
 	}
 };

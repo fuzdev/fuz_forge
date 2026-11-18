@@ -6,8 +6,8 @@
  * (over `server/testing_server_build.ts`) import this and provide:
  * - the `RuntimeDeps` implementation
  * - serve_static middleware (from @hono/node-server, or @hono/bun)
- * - the WebSocket upgrade factory (`createNodeWebSocket` from @hono/node-ws
- *   over the assembled app)
+ * - the WebSocket upgrade helper (`upgradeWebSocket` from @hono/node-server,
+ *   or @hono/bun)
  * - the HTTP server (@hono/node-server, or `Bun.serve`)
  *
  * Architecture:
@@ -81,14 +81,13 @@ export interface ServerDeps {
 	/** Extract the raw TCP connection IP from the Hono context. Adapter-specific. */
 	get_connection_ip: (c: Context) => string | undefined;
 	/**
-	 * Builds the runtime's Hono WebSocket upgrade helper from the assembled
-	 * app — passed through to `create_app_server`, which mounts `/api/ws`
-	 * (`build_ws_endpoint_specs`) with it. On Node the entry creates
-	 * `@hono/node-ws`'s helper from the app and injects it into the server
-	 * after `serve()`. Required: every
-	 * entry serves realtime, as the Rust twin always mounts its WS route.
+	 * The runtime's Hono WebSocket upgrade helper, passed through to
+	 * `create_app_server`, which mounts `/api/ws` (`build_ws_endpoint_specs`)
+	 * with it. On Node the entry also hands `serve()` the `ws` server that
+	 * upgrades the sockets. Required: every entry serves realtime, as the
+	 * Rust twin always mounts its WS route.
 	 */
-	create_upgrade_websocket: (app: Hono) => UpgradeWebSocket;
+	upgrade_websocket: UpgradeWebSocket;
 	/**
 	 * Streaming subprocess primitive. Required for the forge smart-HTTP
 	 * routes; omit to run without forge push/fetch support (the routes
@@ -212,7 +211,7 @@ export const create_app = async (deps: ServerDeps): Promise<ServerApp> => {
 		runtime,
 		serve_static,
 		get_connection_ip,
-		create_upgrade_websocket,
+		upgrade_websocket,
 		spawn_streaming,
 		spawn_collect,
 		testing
@@ -401,7 +400,7 @@ export const create_app = async (deps: ServerDeps): Promise<ServerApp> => {
 		// (covering a revocation emitted by code holding no closer). Twin of the
 		// Rust `router.rs` `register_revocation_guard`.
 		ws_endpoints: build_ws_endpoint_specs(connection_registry),
-		create_upgrade_websocket,
+		upgrade_websocket,
 		env_schema: ServerEnv,
 		env_values: env,
 		static_serving: { serve_static, spa_fallback: '/200.html' },

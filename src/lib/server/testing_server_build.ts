@@ -22,7 +22,7 @@
  */
 
 import { dirname, join } from 'node:path';
-import type { Context, Hono } from 'hono';
+import type { Context } from 'hono';
 import type { UpgradeWebSocket } from 'hono/ws';
 import type { ServeStaticFactory } from '@fuzdev/fuz_app/server/static.ts';
 import type { RuntimeDeps } from '@fuzdev/fuz_app/runtime/deps.ts';
@@ -87,12 +87,12 @@ export interface BuildFuzForgeTestingAppOptions {
 	spawn_streaming: SpawnStreaming;
 	spawn_collect: SpawnCollect;
 	/**
-	 * The runtime's WS upgrade factory, passed through to `create_app` — each
-	 * entry passes `BuildTestingAppContext.prepare_websocket()`, whose attach
-	 * step (Node's `injectWebSocket`) the test-server core runs after `serve`.
-	 * Mounts `/api/ws` so the cross-process WS suites can drive the socket.
+	 * The runtime's WS upgrade helper, passed through to `create_app` — each
+	 * entry passes `BuildTestingAppContext.prepare_websocket()`, whose adapter
+	 * threads the prepared WS server into `serve`. Mounts `/api/ws` so the
+	 * cross-process WS suites can drive the socket.
 	 */
-	create_upgrade_websocket: (app: Hono) => UpgradeWebSocket;
+	upgrade_websocket: UpgradeWebSocket;
 }
 
 /**
@@ -109,7 +109,7 @@ export const build_fuz_forge_testing_app = async (
 		daemon_token_path,
 		spawn_streaming,
 		spawn_collect,
-		create_upgrade_websocket
+		upgrade_websocket
 	} = options;
 
 	// serve no static files — `create_app` serves the cwd's SvelteKit `build/`
@@ -127,7 +127,7 @@ export const build_fuz_forge_testing_app = async (
 		get_connection_ip,
 		spawn_streaming,
 		spawn_collect,
-		create_upgrade_websocket,
+		upgrade_websocket,
 		testing: {
 			password: stub_password_deps,
 			daemon_token_path,

@@ -44,8 +44,8 @@
  * emits through the shared `fuz_http::authentication_required_response` /
  * `fuz_http::insufficient_permissions_response`. Where the backend sends no
  * body with a refused upgrade (`capabilities.ws_refusal_body`: Node's
- * `@hono/node-ws` answers with the status and an empty body), the case pins the
- * status and that empty body instead, so the rungs are told apart by status
+ * `@hono/node-server` answers with the status and headers but an empty body),
+ * the case pins the status, the JSON content type, and that empty body instead, so the rungs are told apart by status
  * alone there.
  *
  * Gated on `capabilities.ws` (skipped on a backend that doesn't mount the
@@ -97,7 +97,7 @@ type UpgradeOutcome =
 const to_refusal = (status: number, body: unknown): UpgradeOutcome =>
 	capabilities.ws_refusal_body
 		? { upgraded: false, status, content_type: 'application/json', body }
-		: { upgraded: false, status, content_type: undefined, body: '' };
+		: { upgraded: false, status, content_type: 'application/json', body: '' };
 
 /**
  * Attempt a WebSocket upgrade carrying `auth_headers`.
