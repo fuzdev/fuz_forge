@@ -24,7 +24,7 @@ import type {
 	FsWriteDeps
 } from '@fuzdev/fuz_app/runtime/deps.ts';
 import type { Spawn } from '@fuzdev/gro/spawn.ts';
-import { TaskError } from '@fuzdev/gro/task.ts';
+import { TaskError } from '@fuzdev/gro/task_error.ts';
 
 import { DEV_ENV_PATH, ensure_env_file } from './env_file.ts';
 

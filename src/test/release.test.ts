@@ -11,7 +11,7 @@ import { describe, test, assert } from 'vitest';
 import { createHash } from 'node:crypto';
 import { fs, type FsDir } from '@fuzdev/gro/fs.ts';
 import { spawn, type SpawnOutput, type SpawnResult } from '@fuzdev/gro/spawn.ts';
-import { is_task_error } from '@fuzdev/gro/task.ts';
+import { is_task_error } from '@fuzdev/gro/task_error.ts';
 
 import {
 	describe_platform_mismatch,

@@ -15,7 +15,7 @@ import {
 	type MockProgramFactory
 } from '@fuzdev/fuz_app/runtime/mock.ts';
 import type { Spawn, SpawnProgramOptions } from '@fuzdev/gro/spawn.ts';
-import { is_task_error } from '@fuzdev/gro/task.ts';
+import { is_task_error } from '@fuzdev/gro/task_error.ts';
 
 import {
 	run_dev_reset,

@@ -20,7 +20,7 @@ import { spawn_result_is_ok, to_spawn_result_message } from '@fuzdev/gro/cli.ts'
 import type { FsDir } from '@fuzdev/gro/fs.ts';
 import type { FsPaths } from '@fuzdev/gro/fs_paths.ts';
 import type { SpawnOutput, SpawnProgram, SpawnProgramOptions } from '@fuzdev/gro/spawn.ts';
-import { TaskError } from '@fuzdev/gro/task.ts';
+import { TaskError } from '@fuzdev/gro/task_error.ts';
 
 /** The GitHub repo releases are created in. */
 export const RELEASE_REPO = 'fuzdev/fuz_forge';

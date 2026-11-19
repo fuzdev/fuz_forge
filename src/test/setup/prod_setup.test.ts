@@ -6,7 +6,7 @@
  */
 
 import { describe, test, assert } from 'vitest';
-import { is_task_error } from '@fuzdev/gro/task.ts';
+import { is_task_error } from '@fuzdev/gro/task_error.ts';
 
 import { run_prod_setup } from '#lib/setup/prod_setup.ts';
 import { create_mock_runtime } from '../runtime_mock.ts';

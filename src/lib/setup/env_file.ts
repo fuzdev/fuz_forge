@@ -6,7 +6,7 @@
 
 import { setup_env_file, type SetupEnvResult } from '@fuzdev/fuz_app/dev/setup.ts';
 import type { FsReadDeps, FsWriteDeps } from '@fuzdev/fuz_app/runtime/deps.ts';
-import { TaskError } from '@fuzdev/gro/task.ts';
+import { TaskError } from '@fuzdev/gro/task_error.ts';
 
 /** The development env file, created from its example by `npm run dev:setup`. */
 export const DEV_ENV_PATH = '.env.development';
