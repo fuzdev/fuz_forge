@@ -167,6 +167,8 @@ const make_ts_forge_backend_config = (opts: {
 			// policy, and there is no role-gated second WS endpoint
 			cell_gated_create: false,
 			ws_role_gated: false,
+			// no room verbs mounted
+			rooms: false,
 			// `build_fuz_forge_testing_app` mounts every known backdoor
 			testing_backdoors: TESTING_BACKDOOR_METHODS
 		},
@@ -336,6 +338,8 @@ const make_rust_forge_backend_config = (opts: {
 			// policy, and there is no role-gated second WS endpoint
 			cell_gated_create: false,
 			ws_role_gated: false,
+			// no room verbs mounted
+			rooms: false,
 			// `testing_fuz_forge_server` mounts every known backdoor
 			testing_backdoors: TESTING_BACKDOOR_METHODS
 		},
