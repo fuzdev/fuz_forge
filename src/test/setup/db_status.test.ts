@@ -9,7 +9,7 @@
 import { describe, test, assert } from 'vitest';
 import { create_db, type CreateDbResult } from '@fuzdev/fuz_app/db/create_db.ts';
 import type { Db } from '@fuzdev/fuz_app/db/db.ts';
-import { is_silent_error, is_task_error } from '@fuzdev/gro/task_error.ts';
+import { is_reported_error, is_task_error } from '@fuzdev/gro/task_error.ts';
 
 import { run_db_status, type DbStatusDeps } from '#lib/setup/db_status.ts';
 import { create_mock_runtime } from '../runtime_mock.ts';
@@ -79,7 +79,7 @@ describe('run_db_status', () => {
 					db_name: 'scratch_unreachable'
 				}) as unknown as CreateDbResult
 		});
-		assert.ok(is_silent_error(failure));
+		assert.ok(is_reported_error(failure));
 		assert.deepEqual(logs, []);
 		assert.include(errors.join('\n'), 'ECONNREFUSED');
 		assert.notInclude(errors.join('\n'), 'secret');

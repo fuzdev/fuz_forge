@@ -13,7 +13,7 @@ import type { CreateDbResult } from '@fuzdev/fuz_app/db/create_db.ts';
 import { display_db_url, format_db_status, query_db_status } from '@fuzdev/fuz_app/db/status.ts';
 import { read_env_var } from '@fuzdev/fuz_app/dev/setup.ts';
 import type { FsReadDeps } from '@fuzdev/fuz_app/runtime/deps.ts';
-import { SilentError, TaskError } from '@fuzdev/gro/task_error.ts';
+import { ReportedError, TaskError } from '@fuzdev/gro/task_error.ts';
 
 import { fuz_forge_migration_namespaces } from '../server/db/fuz_forge_schema.ts';
 import { DEV_ENV_PATH } from './env_file.ts';
@@ -31,7 +31,7 @@ export interface DbStatusDeps {
  *
  * @param deps - the env-file read and the connection
  * @throws `TaskError` - when `.env.development` has no `DATABASE_URL`
- * @throws `SilentError` - when the database can't be reached, after reporting why on stderr
+ * @throws `ReportedError` - when the database can't be reached, after reporting why on stderr
  */
 export const run_db_status = async (deps: DbStatusDeps): Promise<void> => {
 	const database_url = await read_env_var(deps.runtime, DEV_ENV_PATH, 'DATABASE_URL');
@@ -59,5 +59,5 @@ export const run_db_status = async (deps: DbStatusDeps): Promise<void> => {
 	} finally {
 		await close();
 	}
-	if (!connected) throw new SilentError();
+	if (!connected) throw new ReportedError();
 };
