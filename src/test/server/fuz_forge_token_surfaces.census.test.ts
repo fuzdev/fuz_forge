@@ -183,7 +183,7 @@ const CENSUS: ReadonlyArray<CensusEntry> = [
 		role: 'spine',
 		scope: null,
 		reason:
-			"fuz_app's bootstrap/login/dashboard discriminator, mounted unchanged. It declares `account: 'none'` because the SPA fetches it before holding any credential, but it *reads* one when present and answers with that caller's own account, actor, and role grants — so it is not `public` in this table's sense. No scope gate, which is the spine's call: the handler reads the credential through `get_public_account_id`, so a scope-narrowed token is answered as the anonymous caller (401 with the bootstrap flag) rather than with its account — the downgrade both backends make"
+			"fuz_app's bootstrap/login/dashboard discriminator, mounted unchanged. It declares `account: 'none'` because the SPA fetches it before holding any credential, but it *reads* one when present and answers with that caller's own account, actor, and role grants — so it is not `public` in this table's sense. No scope gate, which is the spine's call: the handler reads the credential through `get_public_account`, so a scope-narrowed token is answered as the anonymous caller (401 with the bootstrap flag) rather than with its account — the downgrade both backends make"
 	},
 	{
 		route: 'POST /api/account/logout',
@@ -210,7 +210,7 @@ const CENSUS: ReadonlyArray<CensusEntry> = [
 		role: 'spine',
 		scope: null,
 		reason:
-			"fuz_app's cell-scoped per-reference fact read, mounted unchanged. It declares `account: 'none'` and reads a credential when one is present — so it is not `public` in this table's sense, the same position as `GET /api/account/status`. No scope gate, which is the spine's own call: authz lives on the `(cell, hash)` edge, so a caller reaches exactly the bytes the cells it can already view reference — never the union of a fact's other referrers, and never bytes no viewable cell names. A scope-narrowed token resolves to the anonymous caller (`get_public_account_id`) on both backends, so it reads public cells' facts only — never a private cell its account could view"
+			"fuz_app's cell-scoped per-reference fact read, mounted unchanged. It declares `account: 'none'` and reads a credential when one is present — so it is not `public` in this table's sense, the same position as `GET /api/account/status`. No scope gate, which is the spine's own call: authz lives on the `(cell, hash)` edge, so a caller reaches exactly the bytes the cells it can already view reference — never the union of a fact's other referrers, and never bytes no viewable cell names. A scope-narrowed token resolves to the anonymous caller (`get_public_account`) on both backends, so it reads public cells' facts only — never a private cell its account could view"
 	},
 	{
 		route: 'GET /api/facts/:hash',
