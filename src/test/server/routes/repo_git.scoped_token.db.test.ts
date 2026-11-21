@@ -74,8 +74,7 @@ const build_test_app = async (get_db: () => Db): Promise<TestApp> => {
 					fuz_forge_run_updated: async () => undefined,
 					fuz_forge_repo_updated: async () => undefined
 				} as never,
-				log,
-				get_connection_ip: () => '127.0.0.1'
+				log
 			},
 			version: '0.0.0-test',
 			get_uptime_ms: () => 0,

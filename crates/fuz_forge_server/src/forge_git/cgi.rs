@@ -16,8 +16,8 @@
 //!    streamed body.
 //!
 //! [`reap_child`] and [`apply_cgi_headers`] are Rust-only stages with no TS
-//! analog (the runtime reaps the child for the TS twin, and `new Response(...)`
-//! has no default-header collision to dedup).
+//! analog (the runtime reaps the child for the TS twin, and its `route_raw`
+//! answer has no default-header collision to dedup).
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -86,7 +86,7 @@ pub async fn proxy_to_git_http_backend(
         content_encoding: content_encoding.as_deref(),
         remote_user: Some(&auth.username),
         // Threaded from the git handler's `ClientIp`. The TS twin's
-        // `get_client_ip(c)` never yields nothing, so it always sets
+        // `route.client_ip` never yields nothing, so it always sets
         // `REMOTE_ADDR`; here the key is omitted when the extension is absent,
         // which only a router mounting no `client_ip_middleware` can produce.
         remote_addr,
@@ -254,7 +254,7 @@ fn reap_child(mut child: Child) {
 /// then the rest of the stdout pipe — never buffered. A `git-upload-pack`
 /// (clone) response is the whole repo's packfile, so buffering it would scale
 /// server memory with repo size; streaming matches the TS twin's
-/// `new Response(body_stream)`.
+/// `route_raw({status, headers, body: body_stream})`.
 fn build_proxy_response(head: CgiHead, prefix_bytes: &[u8], stdout: ChildStdout) -> Response {
     let prefix = axum::body::Bytes::copy_from_slice(prefix_bytes);
     let body_stream = futures_util::stream::once(async move { Ok::<_, std::io::Error>(prefix) })
@@ -275,19 +275,24 @@ fn build_proxy_response(head: CgiHead, prefix_bytes: &[u8], stdout: ChildStdout)
 /// axum may already have put on the response rather than joining it (a
 /// duplicated `Content-Type` breaks smart-HTTP for nginx/git); occurrences
 /// 2..n are `append`ed, preserving a genuinely multi-valued header as separate
-/// lines. The TS twin's `Headers.append` instead folds repeats of one name
-/// into a single comma-joined value — a difference with no observable
-/// consequence here, since `git http-backend` emits no duplicate header name
-/// and neither runtime supplies a default the head could collide with
-/// (`Body::from_stream(...).into_response()` sets no header, and
-/// `new Response(stream, {headers})` starts empty).
+/// lines, as the TS twin's per-name value lists do (neither runtime supplies a
+/// default the head could collide with: `Body::from_stream(...).into_response()`
+/// sets no header, and the TS `route_raw` answer starts empty).
 ///
-/// A name or value the HTTP layer cannot represent (a lone `\r` folded into a
-/// value, say) is dropped, matching the TS twin's `headers.append` skip.
+/// Dropped, as the TS twin's `parse_cgi_head` drops them: a name or value the
+/// HTTP layer cannot represent (a lone `\r` folded into a value, say), an
+/// empty value, and the names [`CGI_DROPPED_HEADERS`] lists. A head naming no
+/// `Content-Type` — `git http-backend`'s own refusals, whose body is a
+/// plain-text message — gets [`CGI_DEFAULT_CONTENT_TYPE`], as RFC 3875 §6.3.1
+/// lets the server supply one and the TS twin's spine sends no body without.
 fn apply_cgi_headers(response: &mut Response, headers: Vec<(String, String)>) {
     let mut seen: std::collections::HashSet<header::HeaderName> = std::collections::HashSet::new();
     for (name, value) in headers {
+        if value.is_empty() {
+            continue;
+        }
         if let Ok(hn) = header::HeaderName::from_bytes(name.as_bytes())
+            && !CGI_DROPPED_HEADERS.contains(&hn.as_str())
             && let Ok(hv) = header::HeaderValue::from_str(&value)
         {
             if seen.insert(hn.clone()) {
@@ -297,7 +302,32 @@ fn apply_cgi_headers(response: &mut Response, headers: Vec<(String, String)>) {
             }
         }
     }
+    if !response.headers().contains_key(header::CONTENT_TYPE) {
+        response.headers_mut().insert(
+            header::CONTENT_TYPE,
+            header::HeaderValue::from_static(CGI_DEFAULT_CONTENT_TYPE),
+        );
+    }
 }
+
+/// The CGI header names the proxy never forwards (lowercase): `Set-Cookie` and
+/// the hop-by-hop names, which are the server's to write — the TS twin's
+/// spine refuses them on a raw answer (`ROUTE_RAW_REFUSED_HEADERS`).
+/// `git http-backend` emits none of them.
+const CGI_DROPPED_HEADERS: &[&str] = &[
+    "set-cookie",
+    "connection",
+    "keep-alive",
+    "proxy-connection",
+    "transfer-encoding",
+    "te",
+    "trailer",
+    "upgrade",
+];
+
+/// The `Content-Type` of a CGI answer whose head names none. Twin of the TS
+/// `CGI_DEFAULT_CONTENT_TYPE` (`git_cgi.ts`).
+const CGI_DEFAULT_CONTENT_TYPE: &str = "text/plain";
 
 // ─── pure helpers (port directly from the TS source) ─────────────────────
 
@@ -437,8 +467,8 @@ fn parse_cgi_head(bytes: &[u8]) -> Option<(CgiHead, usize)> {
 ///
 /// `None` — leaving the CGI default 200 in place — for anything else
 /// (`404abc`, `600`, `100`, `099`, `204`, an empty value). The set is the one
-/// both runtimes can emit: the TS twin's `new Response` throws outside 200-599
-/// and on a null-body status with a stream body, so a wider rule here would
+/// both runtimes can emit: the TS twin's spine refuses a raw answer outside
+/// 200-599 and on a null-body status with a stream body, so a wider rule here would
 /// put a status on the wire that the other backend answers as a 500. Splitting on `[' ', '\t']` rather than `split_whitespace`
 /// keeps the token identical to the TS `split(/[ \t]/)` — JS `\s` matches
 /// U+FEFF and Rust whitespace does not. `git http-backend` only ever emits
@@ -489,7 +519,7 @@ mod tests {
     //!   out as an HTTP 600 here but threw a `RangeError` there (→ 500, plus an
     //!   unreaped `git http-backend` child), and an `099` was a 500 here
     //!   (`StatusCode::from_u16(99)` errors) against a 200 there. `200..=599`
-    //!   minus the null-body statuses (204/205/304, which `new Response`
+    //!   minus the null-body statuses (204/205/304, which a TS raw answer
     //!   refuses with a stream body) is the set both runtimes can emit.
     //! - **Status token split.** `split_whitespace` here vs TS `\s` disagree on
     //!   U+FEFF, so `Status: 404\u{FEFF}Not Found` was a 404 on TS and a 200
@@ -558,9 +588,9 @@ mod tests {
         // deliberately sits on a NON-`Status` header, the branch that actually
         // diverged: it folds into the `Content-Type` VALUE, and a header value
         // carrying a `\r` is then unrepresentable — dropped by
-        // `apply_cgi_headers` here and skipped by the TS `headers.append`
-        // try/catch. Same observable outcome on both: no `X-Injected`, and no
-        // `Content-Type` either.
+        // `apply_cgi_headers` here and by the TS `parse_cgi_head`. Same
+        // observable outcome on both: no `X-Injected`, and the default
+        // `Content-Type` in place of the dropped one.
         let input = b"Content-Type: text/plain\rX-Injected: yes\r\n\r\nbody";
         let (head, offset) = parse_cgi_head(input).unwrap();
         assert_eq!(head.status, 200);
@@ -581,7 +611,10 @@ mod tests {
         let response = build_proxy_response(head, &input[offset..], empty_child_stdout().await);
         assert_eq!(response.status(), StatusCode::OK);
         assert!(response.headers().get("x-injected").is_none());
-        assert!(response.headers().get("content-type").is_none());
+        assert_eq!(
+            response.headers().get("content-type").unwrap(),
+            CGI_DEFAULT_CONTENT_TYPE
+        );
         let body = axum::body::to_bytes(response.into_body(), 1024)
             .await
             .unwrap();
@@ -688,7 +721,7 @@ mod tests {
 
         // With no auth / body headers the optional keys are omitted, not
         // emitted empty. Only `CONTENT_TYPE` / `HTTP_CONTENT_ENCODING` mirror a
-        // TS guard; the twin builds the other four off `auth` + `get_client_ip`
+        // TS guard; the twin builds the other four off `auth` + `route.client_ip`
         // and always emits them, so this shape is reachable only from a router
         // that mounts no auth or no `client_ip_middleware`.
         let bare = build_cgi_env(&CgiEnvOptions {

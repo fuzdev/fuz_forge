@@ -117,7 +117,7 @@ fn capability_forbidden(capability: &FuzForgeCapability<'_>) -> Response {
 /// drifting.
 ///
 /// Port of the TS `enforce_surface`, which takes the surface as a parameter
-/// because it lives in the shared policy middleware; this one is a private
+/// because it lives in the shared `fuz_forge_token_policy_hydrate.ts`; this one is a private
 /// helper in the file-store module and names its own.
 #[expect(
     clippy::result_large_err,

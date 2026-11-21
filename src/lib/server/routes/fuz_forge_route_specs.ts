@@ -26,7 +26,6 @@ import { create_account_route_specs } from '@fuzdev/fuz_app/auth/account_routes.
 import { create_signup_route_specs } from '@fuzdev/fuz_app/auth/signup_routes.ts';
 import { create_standard_rpc_actions } from '@fuzdev/fuz_app/auth/standard_rpc_actions.ts';
 import { peer_ping_action } from '@fuzdev/fuz_app/actions/peer_ping.ts';
-import type { NotificationSender } from '@fuzdev/fuz_app/auth/role_grant_offer_notifications.ts';
 import { create_cell_bundle_actions } from '../cell_bundle.ts';
 import type { FinalRpcActionsFactory } from '../app_assembly.ts';
 import {
@@ -181,11 +180,6 @@ export interface BuildRpcEndpointSpecsOptions {
 	 */
 	extra_actions: ReadonlyArray<RpcAction>;
 	/**
-	 * WS connection registry the role-grant-offer actions fan notifications out through,
-	 * or `null` when the caller mounts no socket.
-	 */
-	notification_sender: NotificationSender | null;
-	/**
 	 * Builds actions from the assembled list, appended last — for the one action
 	 * that has to enumerate the mount it lives on (`_testing_action_manifest`).
 	 * Production passes `null`.
@@ -203,24 +197,22 @@ export interface BuildRpcEndpointSpecsOptions {
  *
  * @param ctx - the server context whose `deps` the standard and cell actions close over
  * @param fuz_forge_deps - forge RPC handler deps for the repo read + write families
- * @param notification_sender - where role-grant-offer notifications fan out (the WS connection registry, or `null` where a test mounts RPC alone)
  * @param extra_actions - appended after the shared families
  */
 const create_fuz_forge_mount_actions = (
 	ctx: AppServerContext,
 	fuz_forge_deps: FuzForgeRoutesDeps,
-	notification_sender: NotificationSender | null,
 	extra_actions: ReadonlyArray<RpcAction>
 ): Array<RpcAction> => [
 	...create_fuz_forge_repo_read_rpc_actions(fuz_forge_deps),
 	...create_fuz_forge_repo_write_rpc_actions(fuz_forge_deps),
 	...create_fuz_forge_token_rpc_actions(),
-	// `notification_sender` is the WS connection registry in production, so an offer
-	// created over either transport fans out to the recipient's live sockets. The
-	// revoking actions among these queue their closes through
-	// `ctx.deps.connection_closer`, which holds that registry, so a revocation
-	// closes its sockets (and the audit streams) once the transaction commits.
-	...create_standard_rpc_actions({ ...ctx.deps, notification_sender }),
+	// An offer made over either transport fans out to the parties' live sockets
+	// through `ctx.deps.notification_sender`, and the revoking actions among
+	// these queue their closes through `ctx.deps.connection_closer` — both hold
+	// every WS registry `create_app_server` mounts, so a revocation closes its
+	// sockets (and the audit streams) once the transaction commits.
+	...create_standard_rpc_actions(ctx.deps),
 	// Full unified cell surface (CRUD + grant ACL + field/item relations
 	// + per-cell audit). The forge's repos/files read the de-hubbed cell
 	// table directly; these generic verbs round out the consumer.
@@ -240,9 +232,9 @@ export const build_rpc_endpoint_specs = (
 	ctx: AppServerContext,
 	options: BuildRpcEndpointSpecsOptions
 ): Array<RpcEndpointSpec> => {
-	const { fuz_forge_deps, extra_actions, notification_sender, final_actions_factory } = options;
+	const { fuz_forge_deps, extra_actions, final_actions_factory } = options;
 	const actions = [
-		...create_fuz_forge_mount_actions(ctx, fuz_forge_deps, notification_sender, extra_actions),
+		...create_fuz_forge_mount_actions(ctx, fuz_forge_deps, extra_actions),
 		// The one protocol action that belongs on HTTP as well as WS: an HTTP
 		// invocation must reach the handler and refuse `peer_no_transport`
 		// rather than `method_not_found`, since the caller asked for a
@@ -281,9 +273,9 @@ export const build_rpc_endpoint_specs = (
  * predicate.
  *
  * @param registry - the endpoint's connection registry, created ahead of assembly because
- *   the broadcast API and the role-grant-offer notification sender of the RPC
- *   action set hold the same instance; `create_app_server` adds it to
- *   `AppDeps.connection_closer`, which the revocation guard closes through
+ *   the broadcast API holds the same instance; `create_app_server` adds it to
+ *   `AppDeps.connection_closer`, which the revocation guard closes through, and
+ *   to `AppDeps.notification_sender`, which every action sends through
  */
 export const build_ws_endpoint_specs = (registry: ConnectionRegistry): Array<WsEndpointSpec> => [
 	{ path: '/api/ws', required_roles: [ROLE_ADMIN], registry }

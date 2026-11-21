@@ -22,7 +22,7 @@
  */
 
 import { timingSafeEqual } from 'node:crypto';
-import type { Context } from 'hono';
+import { route_raw, type RouteRaw } from '@fuzdev/fuz_app/http/route_result.ts';
 
 /**
  * Constant-time UTF-8 string equality.
@@ -53,7 +53,7 @@ export interface UnauthorizedOptions {
 }
 
 /**
- * Build the generic 401 response.
+ * Build the generic 401 answer.
  *
  * The body is the plain text `"Unauthorized\n"` and the content type
  * is fixed at `text/plain; charset=utf-8` — no enumeration via body
@@ -61,8 +61,9 @@ export interface UnauthorizedOptions {
  * error. Pass `headers` to attach `WWW-Authenticate` on routes that
  * want a credential prompt.
  */
-export const unauthorized = (c: Context, options: UnauthorizedOptions = {}): Response =>
-	c.text('Unauthorized\n', 401, {
-		'Content-Type': 'text/plain; charset=utf-8',
-		...options.headers
+export const unauthorized = (options: UnauthorizedOptions = {}): RouteRaw =>
+	route_raw({
+		status: 401,
+		headers: { 'Content-Type': 'text/plain; charset=utf-8', ...options.headers },
+		body: 'Unauthorized\n'
 	});

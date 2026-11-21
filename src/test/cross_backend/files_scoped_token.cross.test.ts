@@ -6,9 +6,7 @@
  * live-HTTP parity probe for the two branches the in-process
  * `server/routes/files.scoped_token.db.test.ts` covers in-process: it asserts
  * the *same* contract over real HTTP against each spawned binary's real
- * policy-hydration + acting-actor middleware (the in-process test wires
- * `extend_middleware_for_fuz_forge` by hand; the spawned binaries wire it for
- * real).
+ * policy hydration + acting-actor resolution.
  *
  * **Why mint scoped tokens via RPC, not direct DB.** The in-process test
  * inserts `fuz_forge_api_token_policy` rows directly via `get_db()`.

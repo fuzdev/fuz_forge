@@ -54,7 +54,6 @@ export const fuz_forge_rpc_endpoints = (ctx: AppServerContext): Array<RpcEndpoin
 	build_rpc_endpoint_specs(ctx, {
 		fuz_forge_deps: fuz_forge_stub_deps,
 		extra_actions: [],
-		notification_sender: null,
 		final_actions_factory: null
 	});
 
@@ -70,6 +69,5 @@ export const fuz_forge_live_rpc_endpoints = (ctx: AppServerContext): Array<RpcEn
 			daemon_token_state: RESOLUTION_ONLY_DAEMON_TOKEN_STATE,
 			session_options: ctx.session_options
 		}),
-		notification_sender: null,
 		final_actions_factory: create_fuz_forge_testing_final_rpc_actions
 	});

@@ -21,7 +21,6 @@ import {
 	FUZ_FORGE_ORIGIN_CARVE_OUTS,
 	generic_body_cap_middleware
 } from '#lib/server/app_assembly.ts';
-import { extend_middleware_for_fuz_forge } from '#lib/server/fuz_forge_token_policy_middleware.ts';
 import {
 	build_rpc_endpoint_specs,
 	build_ws_endpoint_specs,
@@ -29,17 +28,6 @@ import {
 } from '#lib/server/routes/fuz_forge_route_specs.ts';
 
 import { test_audit_sse_deps, test_facts_dir } from './fuz_forge_test_helpers.ts';
-
-/**
- * No-op stand-in for the scoped-token middleware on the snapshot path.
- * The attack-surface snapshot test exercises route SHAPE (paths,
- * methods, declared auth), not middleware behavior — wiring the real
- * policy middleware would require a live DB, which the snapshot
- * doesn't have.
- */
-const passthrough_middleware = async (_c: unknown, next: () => Promise<void>): Promise<void> => {
-	await next();
-};
 
 /** Stub fuz_forge route deps shared by route and surface generation. */
 const fuz_forge_stub_deps = {
@@ -108,8 +96,7 @@ export const create_fuz_forge_app_surface_spec = (): AppSurfaceSpec =>
 				repo_internal: {
 					query_deps: stub,
 					broadcast: stub,
-					log: new Logger('test'),
-					get_connection_ip: () => '127.0.0.1'
+					log: new Logger('test')
 				},
 				version: '',
 				get_uptime_ms: () => 0,
@@ -125,7 +112,6 @@ export const create_fuz_forge_app_surface_spec = (): AppSurfaceSpec =>
 			build_rpc_endpoint_specs(ctx, {
 				fuz_forge_deps: fuz_forge_stub_deps,
 				extra_actions: [],
-				notification_sender: null,
 				final_actions_factory: null
 			}),
 		ws_endpoints: build_ws_endpoint_specs(new ConnectionRegistry()),
@@ -143,12 +129,7 @@ export const create_fuz_forge_app_surface_spec = (): AppSurfaceSpec =>
 		// `max_body_size: null`: its generic cap is a middleware of its own,
 		// first in the chain, carved out of the file store and git smart-HTTP
 		max_body_size: null,
-		transform_middleware: (api_middleware) => [
-			generic_body_cap_middleware(),
-			...extend_middleware_for_fuz_forge(api_middleware, {
-				fuz_forge_token_policy_middleware: passthrough_middleware as never
-			})
-		]
+		transform_middleware: (api_middleware) => [generic_body_cap_middleware(), ...api_middleware]
 	});
 
 /** Resolve an absolute path relative to this file's directory. */

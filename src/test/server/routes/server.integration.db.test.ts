@@ -83,8 +83,7 @@ const create_fuz_forge_test_route_specs = (ctx: AppServerContext): Array<RouteSp
 		repo_internal: {
 			query_deps: stub,
 			broadcast: stub,
-			log: new Logger('test'),
-			get_connection_ip: () => '127.0.0.1'
+			log: new Logger('test')
 		},
 		version: '',
 		get_uptime_ms: () => 0,
@@ -107,7 +106,6 @@ const fuz_forge_rpc_endpoints = (ctx: AppServerContext) =>
 	build_rpc_endpoint_specs(ctx, {
 		fuz_forge_deps: fuz_forge_rpc_stub_deps,
 		extra_actions: [],
-		notification_sender: null,
 		final_actions_factory: null
 	});
 
@@ -229,7 +227,6 @@ const fuz_forge_db_rpc_endpoints = (ctx: AppServerContext) =>
 	build_rpc_endpoint_specs(ctx, {
 		fuz_forge_deps: { ...fuz_forge_rpc_stub_deps, query_deps: { db: ctx.deps.db } },
 		extra_actions: [],
-		notification_sender: null,
 		final_actions_factory: null
 	});
 

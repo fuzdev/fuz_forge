@@ -33,11 +33,14 @@
  * @module
  */
 
-import type { Context } from 'hono';
 import type { QueryDeps } from '@fuzdev/fuz_app/db/query_deps.ts';
 import type { Logger } from '@fuzdev/fuz_util/log.ts';
-import { get_client_ip } from '@fuzdev/fuz_app/http/client_ip.ts';
-import { query_validate_api_token } from '@fuzdev/fuz_app/auth/api_token_queries.ts';
+import type { RouteContext } from '@fuzdev/fuz_app/http/route_spec.ts';
+import type { RouteRaw } from '@fuzdev/fuz_app/http/route_result.ts';
+import {
+	query_api_token_touch,
+	query_validate_api_token
+} from '@fuzdev/fuz_app/auth/api_token_queries.ts';
 import { is_api_token_shaped } from '@fuzdev/fuz_app/auth/api_token.ts';
 import { query_account_has_active_global_role } from '@fuzdev/fuz_app/auth/role_grant_queries.ts';
 import { query_account_by_id } from '@fuzdev/fuz_app/auth/account_queries.ts';
@@ -61,6 +64,13 @@ export interface RepoGitAuthDeps {
 	log: Logger;
 }
 
+/**
+ * What the git routes read of the request: its headers and body, and the
+ * client IP the trusted-proxy middleware resolved (the token's last-used IP,
+ * the CGI `REMOTE_ADDR`) — and where the token-use write is queued.
+ */
+export type GitRequest = Pick<RouteContext, 'request' | 'client_ip' | 'pending_effects'>;
+
 /** Git operation a request is performing — drives the capability check. */
 export type GitOp = 'push' | 'pull';
 
@@ -77,12 +87,12 @@ export interface GitAuthOk {
 	/**
 	 * The validated `api_token.id`. Used by `check_repo_capability`
 	 * to look up the scoped-token policy — forge routes mount outside
-	 * `/api/*` so the policy hydration middleware doesn't fire here.
+	 * `/api/*`, so the auth middleware resolves no credential for them.
 	 */
 	api_token_id: string;
 	/**
 	 * The credential's `api_token.scope`, carried from the validated row for the
-	 * same reason as `api_token_id`: the policy middleware doesn't fire on these
+	 * same reason as `api_token_id`: the auth middleware doesn't fire on these
 	 * routes, so nothing else on the request holds it. Read by
 	 * `check_repo_capability` when the token has no policy row.
 	 */
@@ -108,8 +118,8 @@ const query_repo_cell_by_slug = (deps: QueryDeps, slug: string): Promise<CellRow
  * header so a git client knows to prompt for credentials. The shared
  * helper supplies the locked-down body shape and content type.
  */
-export const git_unauthorized = (c: Context): Response =>
-	base_unauthorized(c, {
+export const git_unauthorized = (): RouteRaw =>
+	base_unauthorized({
 		headers: { 'WWW-Authenticate': 'Basic realm="fuz_forge forge", charset="UTF-8"' }
 	});
 
@@ -146,30 +156,31 @@ const parse_basic_auth = (
  * `slug` is the bare `org/repo` parsed by the routing layer. On success
  * returns the resolved actor identity + cell row; on any failure (off-grammar
  * slug, missing header, browser context, bad token, unknown slug, non-admin
- * account) the caller MUST return `unauthorized(c)` — no diagnostic
+ * account) the caller MUST return `git_unauthorized()` — no diagnostic
  * distinction between cases.
  *
  * The grammar gate comes FIRST, before any credential work: `resolve_slug`
  * hands an off-grammar URL over as `''`, and refusing it here — rather than
- * after the token validation that touches `api_token.last_used_at`/`_ip` —
+ * after the token validation and the use it records (`last_used_at`/`_ip`) —
  * keeps an off-grammar URL doing zero database work, matching the Rust twin's
  * pre-auth `bare_slug_from_segments`.
  */
 export const authenticate_git_request = async (
 	deps: RepoGitAuthDeps,
-	c: Context,
+	route: GitRequest,
 	slug: string
 ): Promise<GitAuthOk | null> => {
 	// Grammar gate — `''` is the routing layer's off-grammar signal.
 	if (!slug) return null;
 
 	// Browser-context replay defense — git never sends Origin or Referer.
-	if (c.req.header('Origin') !== undefined || c.req.header('Referer') !== undefined) {
+	const { headers } = route.request;
+	if (headers.has('Origin') || headers.has('Referer')) {
 		deps.log.warn('repo_git: rejecting request with Origin/Referer header');
 		return null;
 	}
 
-	const basic = parse_basic_auth(c.req.header('Authorization'));
+	const basic = parse_basic_auth(headers.get('Authorization') ?? undefined);
 	if (!basic) return null;
 	// A password that cannot be an API token is refused before any database
 	// work — the spine bearer leg's precheck. Git smart-HTTP is pre-auth with no
@@ -177,12 +188,9 @@ export const authenticate_git_request = async (
 	// `basic_api_token` in `forge_git/auth.rs`.
 	if (!is_api_token_shaped(basic.password)) return null;
 
-	const ip = get_client_ip(c);
 	const api_token = await query_validate_api_token(
 		{ ...deps.query_deps, log: deps.log },
-		basic.password,
-		ip,
-		undefined
+		basic.password
 	);
 	if (!api_token) return null;
 
@@ -192,6 +200,16 @@ export const authenticate_git_request = async (
 	// Matches GitHub/GitLab PAT semantics: any username + a valid token.
 	const account = await query_account_by_id(deps.query_deps, api_token.account_id);
 	if (!account) return null;
+
+	// Record the token use (`last_used_at` + `last_used_ip`), fire-and-forget,
+	// once the account is found live — a token on a tombstoned account records
+	// none, as on the spine's bearer leg — and regardless of the later gates
+	// (the token *was* used). Twin: `spawn_api_token_touch` in `auth.rs`.
+	route.pending_effects.push(
+		query_api_token_touch(deps.query_deps, api_token.id, route.client_ip).catch((err) => {
+			deps.log.error('repo_git: failed to record the token use', err);
+		})
+	);
 
 	// Tombstone-aware: the grant counts only while the account **and** the
 	// granting actor are both live. This path reads the grant straight off
@@ -239,9 +257,11 @@ export const authenticate_git_request = async (
  * refused. See `fuz_forge_token_surfaces.ts` for why it splits that way rather
  * than stacking.
  *
- * Loads the policy row directly from the DB — forge routes mount outside
- * `/api/*` so the policy hydration middleware doesn't fire here, which is also
- * why the scope rides on `GitAuthOk` rather than the request context.
+ * Loads the policy row directly from the DB rather than through
+ * `hydrate_policy` — forge routes mount outside `/api/*`, so the route context
+ * carries no credential to read it from, which is also why the scope rides on
+ * `GitAuthOk` — and answers a failed read with the route pipeline's 500, where
+ * `hydrate_policy` would fall through unscoped.
  *
  * On deny, the handler returns the same generic 401 as every other auth failure
  * — the locked-down posture forbids enumeration via distinct error shapes (git

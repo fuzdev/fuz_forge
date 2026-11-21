@@ -107,7 +107,6 @@ describe_db('fuz_forge_repo_create', (get_db) => {
 						log: new Logger('test', { level: 'off' })
 					},
 					extra_actions: [],
-					notification_sender: null,
 					final_actions_factory: null
 				})
 		});
@@ -429,7 +428,6 @@ describe_db('fuz_forge_repo_create seed_from host policy', (get_db) => {
 						log: new Logger('test', { level: 'off' })
 					},
 					extra_actions: [],
-					notification_sender: null,
 					final_actions_factory: null
 				})
 		});

@@ -41,6 +41,7 @@ import {
 	create_testing_shorten_credential_expiry_action
 } from '@fuzdev/fuz_app/testing/cross_backend/testing_reset_actions.ts';
 import { create_testing_origin_check_action } from '@fuzdev/fuz_app/testing/cross_backend/testing_origin_check.ts';
+import { create_testing_credential_read_action } from '@fuzdev/fuz_app/testing/cross_backend/testing_credential_read.ts';
 import { rpc_action, type RpcAction } from '@fuzdev/fuz_app/actions/action_types.ts';
 import type { RequestResponseActionSpec } from '@fuzdev/fuz_app/actions/action_spec.ts';
 
@@ -149,6 +150,15 @@ export const create_fuz_forge_testing_rpc_actions = (
 	// shared backdoor suite drives; standalone upstream rather than in the
 	// bundle. Twin of the Rust binary's `create_testing_origin_check_action_spec`.
 	create_testing_origin_check_action(),
+	// `_testing_credential_read` — read the session cookie, the bearer token and
+	// the daemon token out of a list of header lines, so the credential
+	// conformance table runs row by row against this server's header grammar;
+	// standalone upstream too. Twin of the Rust binary's
+	// `create_testing_credential_read_action_spec`.
+	create_testing_credential_read_action({
+		keyring: deps.keyring,
+		session_options: options.session_options
+	}),
 	// `_testing_shorten_credential_expiry` — pull an account's session and
 	// token expiry in, for the credential-deadline close; also standalone
 	// upstream. Twin of the Rust binary's

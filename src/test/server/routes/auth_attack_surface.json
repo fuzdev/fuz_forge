@@ -282,11 +282,6 @@
 			"name": "bearer_auth",
 			"path": "/api/*",
 			"error_schemas": null
-		},
-		{
-			"name": "fuz_forge_token_policy",
-			"path": "/api/*",
-			"error_schemas": null
 		}
 	],
 	"routes": [
@@ -521,8 +516,7 @@
 				"daemon_token",
 				"session",
 				"request_context",
-				"bearer_auth",
-				"fuz_forge_token_policy"
+				"bearer_auth"
 			],
 			"description": "Current account info (unauthenticated: 401 with bootstrap status)",
 			"is_mutation": false,
@@ -695,17 +689,71 @@
 			},
 			"error_schemas": {
 				"400": {
-					"type": "object",
-					"properties": {
-						"error": {
-							"type": "string",
-							"const": "invalid_content_length"
+					"anyOf": [
+						{
+							"type": "object",
+							"properties": {
+								"error": {
+									"type": "string",
+									"const": "invalid_content_length"
+								}
+							},
+							"required": [
+								"error"
+							],
+							"additionalProperties": {}
+						},
+						{
+							"type": "object",
+							"properties": {
+								"error": {
+									"type": "string",
+									"const": "invalid_query_params"
+								},
+								"issues": {
+									"type": "array",
+									"items": {
+										"type": "object",
+										"properties": {
+											"kind": {
+												"type": "string"
+											},
+											"path": {
+												"type": "array",
+												"items": {
+													"type": [
+														"string",
+														"number"
+													]
+												}
+											},
+											"expected": {
+												"type": "string"
+											},
+											"received": {
+												"type": "string"
+											},
+											"message": {
+												"type": "string"
+											}
+										},
+										"required": [
+											"kind",
+											"path",
+											"expected",
+											"received",
+											"message"
+										],
+										"additionalProperties": {}
+									}
+								}
+							},
+							"required": [
+								"error"
+							],
+							"additionalProperties": {}
 						}
-					},
-					"required": [
-						"error"
-					],
-					"additionalProperties": {}
+					]
 				},
 				"401": {
 					"type": "object",
@@ -769,123 +817,6 @@
 			}
 		},
 		{
-			"method": "GET",
-			"path": "/api/account/verify",
-			"auth": {
-				"account": "required",
-				"actor": "none",
-				"required_scope": "surface:account_verify"
-			},
-			"applicable_middleware": [
-				"generic_body_cap",
-				"host",
-				"trusted_proxy",
-				"origin",
-				"daemon_token",
-				"session",
-				"request_context",
-				"bearer_auth",
-				"fuz_forge_token_policy"
-			],
-			"description": "Session-validity probe for nginx auth_request (empty body; 200, 401, or 403 for a narrowed token)",
-			"is_mutation": false,
-			"transaction": false,
-			"raw_body": false,
-			"rate_limit_key": null,
-			"params_schema": null,
-			"query_schema": null,
-			"input_schema": null,
-			"output_schema": null,
-			"error_schemas": {
-				"400": {
-					"type": "object",
-					"properties": {
-						"error": {
-							"type": "string",
-							"const": "invalid_content_length"
-						}
-					},
-					"required": [
-						"error"
-					],
-					"additionalProperties": {}
-				},
-				"401": {
-					"type": "object",
-					"properties": {
-						"error": {
-							"type": "string",
-							"const": "authentication_required"
-						}
-					},
-					"required": [
-						"error"
-					],
-					"additionalProperties": {}
-				},
-				"403": {
-					"anyOf": [
-						{
-							"type": "object",
-							"properties": {
-								"error": {
-									"type": "string",
-									"const": "token_scope_required"
-								},
-								"required_scope": {
-									"type": "string"
-								}
-							},
-							"required": [
-								"error",
-								"required_scope"
-							],
-							"additionalProperties": {}
-						},
-						{
-							"type": "object",
-							"properties": {
-								"error": {
-									"type": "string",
-									"const": "forbidden_host"
-								}
-							},
-							"required": [
-								"error"
-							],
-							"additionalProperties": {}
-						},
-						{
-							"type": "object",
-							"properties": {
-								"error": {
-									"type": "string",
-									"const": "forbidden_origin"
-								}
-							},
-							"required": [
-								"error"
-							],
-							"additionalProperties": {}
-						}
-					]
-				},
-				"413": {
-					"type": "object",
-					"properties": {
-						"error": {
-							"type": "string",
-							"const": "payload_too_large"
-						}
-					},
-					"required": [
-						"error"
-					],
-					"additionalProperties": {}
-				}
-			}
-		},
-		{
 			"method": "POST",
 			"path": "/api/account/login",
 			"auth": {
@@ -900,8 +831,7 @@
 				"daemon_token",
 				"session",
 				"request_context",
-				"bearer_auth",
-				"fuz_forge_token_policy"
+				"bearer_auth"
 			],
 			"description": "Exchange credentials for session",
 			"is_mutation": true,
@@ -1133,8 +1063,7 @@
 				"daemon_token",
 				"session",
 				"request_context",
-				"bearer_auth",
-				"fuz_forge_token_policy"
+				"bearer_auth"
 			],
 			"description": "Revoke current session and clear cookie",
 			"is_mutation": true,
@@ -1288,8 +1217,7 @@
 				"daemon_token",
 				"session",
 				"request_context",
-				"bearer_auth",
-				"fuz_forge_token_policy"
+				"bearer_auth"
 			],
 			"description": "Change password (revokes all sessions and API tokens)",
 			"is_mutation": true,
@@ -1566,8 +1494,7 @@
 				"daemon_token",
 				"session",
 				"request_context",
-				"bearer_auth",
-				"fuz_forge_token_policy"
+				"bearer_auth"
 			],
 			"description": "Create account (invite-gated or open signup)",
 			"is_mutation": true,
@@ -1858,8 +1785,7 @@
 				"daemon_token",
 				"session",
 				"request_context",
-				"bearer_auth",
-				"fuz_forge_token_policy"
+				"bearer_auth"
 			],
 			"description": "Server version and uptime",
 			"is_mutation": false,
@@ -1975,15 +1901,25 @@
 				"daemon_token",
 				"session",
 				"request_context",
-				"bearer_auth",
-				"fuz_forge_token_policy"
+				"bearer_auth"
 			],
 			"description": "Upload a file to the file store",
 			"is_mutation": true,
 			"transaction": false,
 			"raw_body": true,
 			"rate_limit_key": null,
-			"params_schema": null,
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"filename": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"filename"
+				],
+				"additionalProperties": false
+			},
 			"query_schema": {
 				"type": "object",
 				"properties": {
@@ -2012,6 +1948,56 @@
 			"error_schemas": {
 				"400": {
 					"anyOf": [
+						{
+							"type": "object",
+							"properties": {
+								"error": {
+									"type": "string",
+									"const": "invalid_route_params"
+								},
+								"issues": {
+									"type": "array",
+									"items": {
+										"type": "object",
+										"properties": {
+											"kind": {
+												"type": "string"
+											},
+											"path": {
+												"type": "array",
+												"items": {
+													"type": [
+														"string",
+														"number"
+													]
+												}
+											},
+											"expected": {
+												"type": "string"
+											},
+											"received": {
+												"type": "string"
+											},
+											"message": {
+												"type": "string"
+											}
+										},
+										"required": [
+											"kind",
+											"path",
+											"expected",
+											"received",
+											"message"
+										],
+										"additionalProperties": {}
+									}
+								}
+							},
+							"required": [
+								"error"
+							],
+							"additionalProperties": {}
+						},
 						{
 							"type": "object",
 							"properties": {
@@ -2101,56 +2087,6 @@
 								"error": {
 									"type": "string",
 									"const": "actor_not_on_account"
-								}
-							},
-							"required": [
-								"error"
-							],
-							"additionalProperties": {}
-						},
-						{
-							"type": "object",
-							"properties": {
-								"error": {
-									"type": "string",
-									"const": "invalid_route_params"
-								},
-								"issues": {
-									"type": "array",
-									"items": {
-										"type": "object",
-										"properties": {
-											"kind": {
-												"type": "string"
-											},
-											"path": {
-												"type": "array",
-												"items": {
-													"type": [
-														"string",
-														"number"
-													]
-												}
-											},
-											"expected": {
-												"type": "string"
-											},
-											"received": {
-												"type": "string"
-											},
-											"message": {
-												"type": "string"
-											}
-										},
-										"required": [
-											"kind",
-											"path",
-											"expected",
-											"received",
-											"message"
-										],
-										"additionalProperties": {}
-									}
 								}
 							},
 							"required": [
@@ -2306,34 +2242,17 @@
 					"additionalProperties": {}
 				},
 				"500": {
-					"anyOf": [
-						{
-							"type": "object",
-							"properties": {
-								"error": {
-									"type": "string",
-									"const": "no_actors_on_account"
-								}
-							},
-							"required": [
-								"error"
-							],
-							"additionalProperties": {}
-						},
-						{
-							"type": "object",
-							"properties": {
-								"error": {
-									"type": "string",
-									"const": "account_vanished"
-								}
-							},
-							"required": [
-								"error"
-							],
-							"additionalProperties": {}
+					"type": "object",
+					"properties": {
+						"error": {
+							"type": "string",
+							"const": "no_actors_on_account"
 						}
-					]
+					},
+					"required": [
+						"error"
+					],
+					"additionalProperties": {}
 				},
 				"507": {
 					"type": "object",
@@ -2364,8 +2283,7 @@
 				"daemon_token",
 				"session",
 				"request_context",
-				"bearer_auth",
-				"fuz_forge_token_policy"
+				"bearer_auth"
 			],
 			"description": "List all files in the file store",
 			"is_mutation": false,
@@ -2465,15 +2383,25 @@
 				"daemon_token",
 				"session",
 				"request_context",
-				"bearer_auth",
-				"fuz_forge_token_policy"
+				"bearer_auth"
 			],
 			"description": "Download a file (or its metadata with ?meta) from the file store",
 			"is_mutation": false,
 			"transaction": false,
 			"raw_body": false,
 			"rate_limit_key": null,
-			"params_schema": null,
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"filename": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"filename"
+				],
+				"additionalProperties": false
+			},
 			"query_schema": null,
 			"input_schema": null,
 			"output_schema": {
@@ -2652,15 +2580,25 @@
 				"daemon_token",
 				"session",
 				"request_context",
-				"bearer_auth",
-				"fuz_forge_token_policy"
+				"bearer_auth"
 			],
 			"description": "Delete a file from the file store",
 			"is_mutation": true,
 			"transaction": false,
 			"raw_body": false,
 			"rate_limit_key": null,
-			"params_schema": null,
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"filename": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"filename"
+				],
+				"additionalProperties": false
+			},
 			"query_schema": {
 				"type": "object",
 				"properties": {
@@ -2689,6 +2627,56 @@
 			"error_schemas": {
 				"400": {
 					"anyOf": [
+						{
+							"type": "object",
+							"properties": {
+								"error": {
+									"type": "string",
+									"const": "invalid_route_params"
+								},
+								"issues": {
+									"type": "array",
+									"items": {
+										"type": "object",
+										"properties": {
+											"kind": {
+												"type": "string"
+											},
+											"path": {
+												"type": "array",
+												"items": {
+													"type": [
+														"string",
+														"number"
+													]
+												}
+											},
+											"expected": {
+												"type": "string"
+											},
+											"received": {
+												"type": "string"
+											},
+											"message": {
+												"type": "string"
+											}
+										},
+										"required": [
+											"kind",
+											"path",
+											"expected",
+											"received",
+											"message"
+										],
+										"additionalProperties": {}
+									}
+								}
+							},
+							"required": [
+								"error"
+							],
+							"additionalProperties": {}
+						},
 						{
 							"type": "object",
 							"properties": {
@@ -2778,56 +2766,6 @@
 								"error": {
 									"type": "string",
 									"const": "actor_not_on_account"
-								}
-							},
-							"required": [
-								"error"
-							],
-							"additionalProperties": {}
-						},
-						{
-							"type": "object",
-							"properties": {
-								"error": {
-									"type": "string",
-									"const": "invalid_route_params"
-								},
-								"issues": {
-									"type": "array",
-									"items": {
-										"type": "object",
-										"properties": {
-											"kind": {
-												"type": "string"
-											},
-											"path": {
-												"type": "array",
-												"items": {
-													"type": [
-														"string",
-														"number"
-													]
-												}
-											},
-											"expected": {
-												"type": "string"
-											},
-											"received": {
-												"type": "string"
-											},
-											"message": {
-												"type": "string"
-											}
-										},
-										"required": [
-											"kind",
-											"path",
-											"expected",
-											"received",
-											"message"
-										],
-										"additionalProperties": {}
-									}
 								}
 							},
 							"required": [
@@ -2953,34 +2891,17 @@
 					"additionalProperties": {}
 				},
 				"500": {
-					"anyOf": [
-						{
-							"type": "object",
-							"properties": {
-								"error": {
-									"type": "string",
-									"const": "no_actors_on_account"
-								}
-							},
-							"required": [
-								"error"
-							],
-							"additionalProperties": {}
-						},
-						{
-							"type": "object",
-							"properties": {
-								"error": {
-									"type": "string",
-									"const": "account_vanished"
-								}
-							},
-							"required": [
-								"error"
-							],
-							"additionalProperties": {}
+					"type": "object",
+					"properties": {
+						"error": {
+							"type": "string",
+							"const": "no_actors_on_account"
 						}
-					]
+					},
+					"required": [
+						"error"
+					],
+					"additionalProperties": {}
 				}
 			}
 		},
@@ -2999,8 +2920,7 @@
 				"daemon_token",
 				"session",
 				"request_context",
-				"bearer_auth",
-				"fuz_forge_token_policy"
+				"bearer_auth"
 			],
 			"description": "Serve content-addressed fact bytes through a named referencing cell. 404 unless the cell admits the caller via can_view_cell (or the steward arm: the governing root's manager reading a pending or rejected contribution) AND references the hash (per-reference, never union-of-referrers).",
 			"is_mutation": false,
@@ -3161,8 +3081,7 @@
 				"daemon_token",
 				"session",
 				"request_context",
-				"bearer_auth",
-				"fuz_forge_token_policy"
+				"bearer_auth"
 			],
 			"description": "Serve content-addressed fact bytes by bare hash — admin only. Non-admin reads go through GET /api/cells/:cell_id/facts/:hash (per-reference).",
 			"is_mutation": false,
@@ -3455,34 +3374,17 @@
 					"additionalProperties": {}
 				},
 				"500": {
-					"anyOf": [
-						{
-							"type": "object",
-							"properties": {
-								"error": {
-									"type": "string",
-									"const": "no_actors_on_account"
-								}
-							},
-							"required": [
-								"error"
-							],
-							"additionalProperties": {}
-						},
-						{
-							"type": "object",
-							"properties": {
-								"error": {
-									"type": "string",
-									"const": "account_vanished"
-								}
-							},
-							"required": [
-								"error"
-							],
-							"additionalProperties": {}
+					"type": "object",
+					"properties": {
+						"error": {
+							"type": "string",
+							"const": "no_actors_on_account"
 						}
-					]
+					},
+					"required": [
+						"error"
+					],
+					"additionalProperties": {}
 				}
 			}
 		},
@@ -3503,11 +3405,72 @@
 			"transaction": false,
 			"raw_body": false,
 			"rate_limit_key": null,
-			"params_schema": null,
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"slug_with_git": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"slug_with_git"
+				],
+				"additionalProperties": false
+			},
 			"query_schema": null,
 			"input_schema": null,
 			"output_schema": {},
 			"error_schemas": {
+				"400": {
+					"type": "object",
+					"properties": {
+						"error": {
+							"type": "string",
+							"const": "invalid_route_params"
+						},
+						"issues": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"kind": {
+										"type": "string"
+									},
+									"path": {
+										"type": "array",
+										"items": {
+											"type": [
+												"string",
+												"number"
+											]
+										}
+									},
+									"expected": {
+										"type": "string"
+									},
+									"received": {
+										"type": "string"
+									},
+									"message": {
+										"type": "string"
+									}
+								},
+								"required": [
+									"kind",
+									"path",
+									"expected",
+									"received",
+									"message"
+								],
+								"additionalProperties": {}
+							}
+						}
+					},
+					"required": [
+						"error"
+					],
+					"additionalProperties": {}
+				},
 				"403": {
 					"anyOf": [
 						{
@@ -3557,11 +3520,72 @@
 			"transaction": false,
 			"raw_body": true,
 			"rate_limit_key": null,
-			"params_schema": null,
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"slug_with_git": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"slug_with_git"
+				],
+				"additionalProperties": false
+			},
 			"query_schema": null,
 			"input_schema": null,
 			"output_schema": {},
 			"error_schemas": {
+				"400": {
+					"type": "object",
+					"properties": {
+						"error": {
+							"type": "string",
+							"const": "invalid_route_params"
+						},
+						"issues": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"kind": {
+										"type": "string"
+									},
+									"path": {
+										"type": "array",
+										"items": {
+											"type": [
+												"string",
+												"number"
+											]
+										}
+									},
+									"expected": {
+										"type": "string"
+									},
+									"received": {
+										"type": "string"
+									},
+									"message": {
+										"type": "string"
+									}
+								},
+								"required": [
+									"kind",
+									"path",
+									"expected",
+									"received",
+									"message"
+								],
+								"additionalProperties": {}
+							}
+						}
+					},
+					"required": [
+						"error"
+					],
+					"additionalProperties": {}
+				},
 				"403": {
 					"anyOf": [
 						{
@@ -3624,11 +3648,72 @@
 			"transaction": false,
 			"raw_body": true,
 			"rate_limit_key": null,
-			"params_schema": null,
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"slug_with_git": {
+						"type": "string"
+					}
+				},
+				"required": [
+					"slug_with_git"
+				],
+				"additionalProperties": false
+			},
 			"query_schema": null,
 			"input_schema": null,
 			"output_schema": {},
 			"error_schemas": {
+				"400": {
+					"type": "object",
+					"properties": {
+						"error": {
+							"type": "string",
+							"const": "invalid_route_params"
+						},
+						"issues": {
+							"type": "array",
+							"items": {
+								"type": "object",
+								"properties": {
+									"kind": {
+										"type": "string"
+									},
+									"path": {
+										"type": "array",
+										"items": {
+											"type": [
+												"string",
+												"number"
+											]
+										}
+									},
+									"expected": {
+										"type": "string"
+									},
+									"received": {
+										"type": "string"
+									},
+									"message": {
+										"type": "string"
+									}
+								},
+								"required": [
+									"kind",
+									"path",
+									"expected",
+									"received",
+									"message"
+								],
+								"additionalProperties": {}
+							}
+						}
+					},
+					"required": [
+						"error"
+					],
+					"additionalProperties": {}
+				},
 				"403": {
 					"anyOf": [
 						{
@@ -3924,8 +4009,7 @@
 				"daemon_token",
 				"session",
 				"request_context",
-				"bearer_auth",
-				"fuz_forge_token_policy"
+				"bearer_auth"
 			],
 			"description": "Subscribe to realtime audit log events",
 			"is_mutation": false,
@@ -4177,34 +4261,17 @@
 					"additionalProperties": {}
 				},
 				"500": {
-					"anyOf": [
-						{
-							"type": "object",
-							"properties": {
-								"error": {
-									"type": "string",
-									"const": "no_actors_on_account"
-								}
-							},
-							"required": [
-								"error"
-							],
-							"additionalProperties": {}
-						},
-						{
-							"type": "object",
-							"properties": {
-								"error": {
-									"type": "string",
-									"const": "account_vanished"
-								}
-							},
-							"required": [
-								"error"
-							],
-							"additionalProperties": {}
+					"type": "object",
+					"properties": {
+						"error": {
+							"type": "string",
+							"const": "no_actors_on_account"
 						}
-					]
+					},
+					"required": [
+						"error"
+					],
+					"additionalProperties": {}
 				}
 			}
 		},
@@ -4230,8 +4297,7 @@
 				"daemon_token",
 				"session",
 				"request_context",
-				"bearer_auth",
-				"fuz_forge_token_policy"
+				"bearer_auth"
 			],
 			"description": "Database health and stats",
 			"is_mutation": false,
@@ -4494,34 +4560,17 @@
 					"additionalProperties": {}
 				},
 				"500": {
-					"anyOf": [
-						{
-							"type": "object",
-							"properties": {
-								"error": {
-									"type": "string",
-									"const": "no_actors_on_account"
-								}
-							},
-							"required": [
-								"error"
-							],
-							"additionalProperties": {}
-						},
-						{
-							"type": "object",
-							"properties": {
-								"error": {
-									"type": "string",
-									"const": "account_vanished"
-								}
-							},
-							"required": [
-								"error"
-							],
-							"additionalProperties": {}
+					"type": "object",
+					"properties": {
+						"error": {
+							"type": "string",
+							"const": "no_actors_on_account"
 						}
-					]
+					},
+					"required": [
+						"error"
+					],
+					"additionalProperties": {}
 				},
 				"503": {
 					"type": "object",
@@ -4569,8 +4618,7 @@
 				"daemon_token",
 				"session",
 				"request_context",
-				"bearer_auth",
-				"fuz_forge_token_policy"
+				"bearer_auth"
 			],
 			"description": "List browsable tables with row counts",
 			"is_mutation": false,
@@ -4850,34 +4898,17 @@
 					"additionalProperties": {}
 				},
 				"500": {
-					"anyOf": [
-						{
-							"type": "object",
-							"properties": {
-								"error": {
-									"type": "string",
-									"const": "no_actors_on_account"
-								}
-							},
-							"required": [
-								"error"
-							],
-							"additionalProperties": {}
-						},
-						{
-							"type": "object",
-							"properties": {
-								"error": {
-									"type": "string",
-									"const": "account_vanished"
-								}
-							},
-							"required": [
-								"error"
-							],
-							"additionalProperties": {}
+					"type": "object",
+					"properties": {
+						"error": {
+							"type": "string",
+							"const": "no_actors_on_account"
 						}
-					]
+					},
+					"required": [
+						"error"
+					],
+					"additionalProperties": {}
 				}
 			}
 		},
@@ -4903,8 +4934,7 @@
 				"daemon_token",
 				"session",
 				"request_context",
-				"bearer_auth",
-				"fuz_forge_token_policy"
+				"bearer_auth"
 			],
 			"description": "Get table columns and rows (paginated)",
 			"is_mutation": false,
@@ -5309,34 +5339,17 @@
 					"additionalProperties": {}
 				},
 				"500": {
-					"anyOf": [
-						{
-							"type": "object",
-							"properties": {
-								"error": {
-									"type": "string",
-									"const": "no_actors_on_account"
-								}
-							},
-							"required": [
-								"error"
-							],
-							"additionalProperties": {}
-						},
-						{
-							"type": "object",
-							"properties": {
-								"error": {
-									"type": "string",
-									"const": "account_vanished"
-								}
-							},
-							"required": [
-								"error"
-							],
-							"additionalProperties": {}
+					"type": "object",
+					"properties": {
+						"error": {
+							"type": "string",
+							"const": "no_actors_on_account"
 						}
-					]
+					},
+					"required": [
+						"error"
+					],
+					"additionalProperties": {}
 				}
 			}
 		},
@@ -5362,8 +5375,7 @@
 				"daemon_token",
 				"session",
 				"request_context",
-				"bearer_auth",
-				"fuz_forge_token_policy"
+				"bearer_auth"
 			],
 			"description": "Delete a row by primary key",
 			"is_mutation": true,
@@ -5761,34 +5773,17 @@
 					"additionalProperties": {}
 				},
 				"500": {
-					"anyOf": [
-						{
-							"type": "object",
-							"properties": {
-								"error": {
-									"type": "string",
-									"const": "no_actors_on_account"
-								}
-							},
-							"required": [
-								"error"
-							],
-							"additionalProperties": {}
-						},
-						{
-							"type": "object",
-							"properties": {
-								"error": {
-									"type": "string",
-									"const": "account_vanished"
-								}
-							},
-							"required": [
-								"error"
-							],
-							"additionalProperties": {}
+					"type": "object",
+					"properties": {
+						"error": {
+							"type": "string",
+							"const": "no_actors_on_account"
 						}
-					]
+					},
+					"required": [
+						"error"
+					],
+					"additionalProperties": {}
 				}
 			}
 		},
@@ -5807,8 +5802,7 @@
 				"daemon_token",
 				"session",
 				"request_context",
-				"bearer_auth",
-				"fuz_forge_token_policy"
+				"bearer_auth"
 			],
 			"description": "Create initial keeper account (one-shot)",
 			"is_mutation": true,
@@ -6089,6 +6083,19 @@
 						"retry_after"
 					],
 					"additionalProperties": {}
+				},
+				"500": {
+					"type": "object",
+					"properties": {
+						"error": {
+							"type": "string",
+							"const": "token_file_undeletable"
+						}
+					},
+					"required": [
+						"error"
+					],
+					"additionalProperties": {}
 				}
 			}
 		},
@@ -6107,8 +6114,7 @@
 				"daemon_token",
 				"session",
 				"request_context",
-				"bearer_auth",
-				"fuz_forge_token_policy"
+				"bearer_auth"
 			],
 			"description": "JSON-RPC 2.0 endpoint — 61 methods",
 			"is_mutation": true,
@@ -6206,8 +6212,7 @@
 				"daemon_token",
 				"session",
 				"request_context",
-				"bearer_auth",
-				"fuz_forge_token_policy"
+				"bearer_auth"
 			],
 			"description": "JSON-RPC 2.0 endpoint (side-effect-free reads) — 61 methods",
 			"is_mutation": false,
@@ -6275,6 +6280,9 @@
 					],
 					"additionalProperties": {}
 				}
+			},
+			"response_headers": {
+				"Cache-Control": "no-store"
 			}
 		}
 	],
@@ -9528,7 +9536,7 @@
 												"type": "null"
 											}
 										],
-										"description": "ISO timestamp when this offer was obsoleted by a sibling accept or by revoke of the resulting role_grant."
+										"description": "ISO timestamp when a cascade ended this pending offer: a sibling accept, a revoke of the recipient’s grant of its role and scope, an admin revoke of any grant of its grantor’s actor, the removal of either party’s account, or the teardown of its scope."
 									},
 									"resulting_role_grant_id": {
 										"anyOf": [
@@ -9765,7 +9773,7 @@
 												"type": "null"
 											}
 										],
-										"description": "ISO timestamp when this offer was obsoleted by a sibling accept or by revoke of the resulting role_grant."
+										"description": "ISO timestamp when a cascade ended this pending offer: a sibling accept, a revoke of the recipient’s grant of its role and scope, an admin revoke of any grant of its grantor’s actor, the removal of either party’s account, or the teardown of its scope."
 									},
 									"resulting_role_grant_id": {
 										"anyOf": [
@@ -10016,7 +10024,7 @@
 												"type": "null"
 											}
 										],
-										"description": "ISO timestamp when this offer was obsoleted by a sibling accept or by revoke of the resulting role_grant."
+										"description": "ISO timestamp when a cascade ended this pending offer: a sibling accept, a revoke of the recipient’s grant of its role and scope, an admin revoke of any grant of its grantor’s actor, the removal of either party’s account, or the teardown of its scope."
 									},
 									"resulting_role_grant_id": {
 										"anyOf": [
@@ -10245,7 +10253,7 @@
 												"type": "null"
 											}
 										],
-										"description": "ISO timestamp when this offer was obsoleted by a sibling accept or by revoke of the resulting role_grant."
+										"description": "ISO timestamp when a cascade ended this pending offer: a sibling accept, a revoke of the recipient’s grant of its role and scope, an admin revoke of any grant of its grantor’s actor, the removal of either party’s account, or the teardown of its scope."
 									},
 									"resulting_role_grant_id": {
 										"anyOf": [
@@ -10480,7 +10488,7 @@
 													"type": "null"
 												}
 											],
-											"description": "ISO timestamp when this offer was obsoleted by a sibling accept or by revoke of the resulting role_grant."
+											"description": "ISO timestamp when a cascade ended this pending offer: a sibling accept, a revoke of the recipient’s grant of its role and scope, an admin revoke of any grant of its grantor’s actor, the removal of either party’s account, or the teardown of its scope."
 										},
 										"resulting_role_grant_id": {
 											"anyOf": [
@@ -10744,7 +10752,7 @@
 													"type": "null"
 												}
 											],
-											"description": "ISO timestamp when this offer was obsoleted by a sibling accept or by revoke of the resulting role_grant."
+											"description": "ISO timestamp when a cascade ended this pending offer: a sibling accept, a revoke of the recipient’s grant of its role and scope, an admin revoke of any grant of its grantor’s actor, the removal of either party’s account, or the teardown of its scope."
 										},
 										"resulting_role_grant_id": {
 											"anyOf": [
@@ -18015,7 +18023,7 @@
 												"type": "null"
 											}
 										],
-										"description": "ISO timestamp when this offer was obsoleted by a sibling accept or by revoke of the resulting role_grant."
+										"description": "ISO timestamp when a cascade ended this pending offer: a sibling accept, a revoke of the recipient’s grant of its role and scope, an admin revoke of any grant of its grantor’s actor, the removal of either party’s account, or the teardown of its scope."
 									},
 									"resulting_role_grant_id": {
 										"anyOf": [
@@ -18253,7 +18261,7 @@
 												"type": "null"
 											}
 										],
-										"description": "ISO timestamp when this offer was obsoleted by a sibling accept or by revoke of the resulting role_grant."
+										"description": "ISO timestamp when a cascade ended this pending offer: a sibling accept, a revoke of the recipient’s grant of its role and scope, an admin revoke of any grant of its grantor’s actor, the removal of either party’s account, or the teardown of its scope."
 									},
 									"resulting_role_grant_id": {
 										"anyOf": [
@@ -18505,7 +18513,7 @@
 												"type": "null"
 											}
 										],
-										"description": "ISO timestamp when this offer was obsoleted by a sibling accept or by revoke of the resulting role_grant."
+										"description": "ISO timestamp when a cascade ended this pending offer: a sibling accept, a revoke of the recipient’s grant of its role and scope, an admin revoke of any grant of its grantor’s actor, the removal of either party’s account, or the teardown of its scope."
 									},
 									"resulting_role_grant_id": {
 										"anyOf": [
@@ -18735,7 +18743,7 @@
 												"type": "null"
 											}
 										],
-										"description": "ISO timestamp when this offer was obsoleted by a sibling accept or by revoke of the resulting role_grant."
+										"description": "ISO timestamp when a cascade ended this pending offer: a sibling accept, a revoke of the recipient’s grant of its role and scope, an admin revoke of any grant of its grantor’s actor, the removal of either party’s account, or the teardown of its scope."
 									},
 									"resulting_role_grant_id": {
 										"anyOf": [
@@ -18971,7 +18979,7 @@
 													"type": "null"
 												}
 											],
-											"description": "ISO timestamp when this offer was obsoleted by a sibling accept or by revoke of the resulting role_grant."
+											"description": "ISO timestamp when a cascade ended this pending offer: a sibling accept, a revoke of the recipient’s grant of its role and scope, an admin revoke of any grant of its grantor’s actor, the removal of either party’s account, or the teardown of its scope."
 										},
 										"resulting_role_grant_id": {
 											"anyOf": [
@@ -19236,7 +19244,7 @@
 													"type": "null"
 												}
 											],
-											"description": "ISO timestamp when this offer was obsoleted by a sibling accept or by revoke of the resulting role_grant."
+											"description": "ISO timestamp when a cascade ended this pending offer: a sibling accept, a revoke of the recipient’s grant of its role and scope, an admin revoke of any grant of its grantor’s actor, the removal of either party’s account, or the teardown of its scope."
 										},
 										"resulting_role_grant_id": {
 											"anyOf": [
@@ -23274,7 +23282,7 @@
 												"type": "null"
 											}
 										],
-										"description": "ISO timestamp when this offer was obsoleted by a sibling accept or by revoke of the resulting role_grant."
+										"description": "ISO timestamp when a cascade ended this pending offer: a sibling accept, a revoke of the recipient’s grant of its role and scope, an admin revoke of any grant of its grantor’s actor, the removal of either party’s account, or the teardown of its scope."
 									},
 									"resulting_role_grant_id": {
 										"anyOf": [
@@ -23481,7 +23489,7 @@
 												"type": "null"
 											}
 										],
-										"description": "ISO timestamp when this offer was obsoleted by a sibling accept or by revoke of the resulting role_grant."
+										"description": "ISO timestamp when a cascade ended this pending offer: a sibling accept, a revoke of the recipient’s grant of its role and scope, an admin revoke of any grant of its grantor’s actor, the removal of either party’s account, or the teardown of its scope."
 									},
 									"resulting_role_grant_id": {
 										"anyOf": [
@@ -23688,7 +23696,7 @@
 												"type": "null"
 											}
 										],
-										"description": "ISO timestamp when this offer was obsoleted by a sibling accept or by revoke of the resulting role_grant."
+										"description": "ISO timestamp when a cascade ended this pending offer: a sibling accept, a revoke of the recipient’s grant of its role and scope, an admin revoke of any grant of its grantor’s actor, the removal of either party’s account, or the teardown of its scope."
 									},
 									"resulting_role_grant_id": {
 										"anyOf": [
@@ -23895,7 +23903,7 @@
 												"type": "null"
 											}
 										],
-										"description": "ISO timestamp when this offer was obsoleted by a sibling accept or by revoke of the resulting role_grant."
+										"description": "ISO timestamp when a cascade ended this pending offer: a sibling accept, a revoke of the recipient’s grant of its role and scope, an admin revoke of any grant of its grantor’s actor, the removal of either party’s account, or the teardown of its scope."
 									},
 									"resulting_role_grant_id": {
 										"anyOf": [
@@ -24102,7 +24110,7 @@
 												"type": "null"
 											}
 										],
-										"description": "ISO timestamp when this offer was obsoleted by a sibling accept or by revoke of the resulting role_grant."
+										"description": "ISO timestamp when a cascade ended this pending offer: a sibling accept, a revoke of the recipient’s grant of its role and scope, an admin revoke of any grant of its grantor’s actor, the removal of either party’s account, or the teardown of its scope."
 									},
 									"resulting_role_grant_id": {
 										"anyOf": [
@@ -24144,7 +24152,7 @@
 								"enum": [
 									"sibling_accepted",
 									"role_grant_revoked",
-									"scope_destroyed"
+									"account_deleted"
 								]
 							},
 							"cause_id": {
@@ -24161,7 +24169,7 @@
 						"additionalProperties": false
 					},
 					"output_schema": null,
-					"description": "A grantor’s pending role_grant offer was obsoleted by a sibling accept, by revoke of the resulting role_grant, or by destruction of the parent scope row.",
+					"description": "A pending role_grant offer this account was a party to, as its grantor or its recipient, was ended by a sibling accept, a role_grant revoke, or the removal of the other party’s account.",
 					"side_effects": true,
 					"rate_limit_key": null
 				},

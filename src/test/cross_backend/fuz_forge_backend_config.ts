@@ -68,6 +68,19 @@ import {
 } from '@fuzdev/fuz_app/testing/cross_backend/spine_surface_constants.ts';
 
 /**
+ * The env var both test binaries read for the daemon token's `{dir}` — the
+ * TS server's `FUZ_FORGE_DAEMON_TOKEN_DIR_ENV` (`testing_server_build.ts`,
+ * kept out of this import graph) and the Rust binary's
+ * `require_daemon_token_from_env` argument.
+ */
+const FUZ_FORGE_DAEMON_TOKEN_DIR_ENV = 'FUZ_FORGE_DAEMON_TOKEN_DIR';
+
+/** The backdoors both test binaries mount: every known one but `_testing_room_evict`. */
+const FUZ_FORGE_TESTING_BACKDOORS = TESTING_BACKDOOR_METHODS.filter(
+	(m) => m !== '_testing_room_evict'
+);
+
+/**
  * Per-project Rust backend database URL prefix — real Postgres (an
  * in-process database isn't reachable from `tokio-postgres`). The full URL appends the backend
  * `name` (`fuz_forge_test_rust`). See the module doc for operator setup.
@@ -125,6 +138,8 @@ const make_ts_forge_backend_config = (opts: {
 		// threads the `_testing_reset` keeper cookie into its jar under this
 		// name, so it must match (mismatch → 401 on the create_account path).
 		cookie_name: 'fuz_forge_session',
+		// where the test server writes its daemon token (`{dir}/run/daemon_token`)
+		daemon_token_dir_env: FUZ_FORGE_DAEMON_TOKEN_DIR_ENV,
 		// The TS forge wires `audit_log_sse: true` and mounts the standard
 		// `/api/admin/audit/stream`, so it advertises `sse`. The Rust forge
 		// serves the same stream (see `rust_backend_config`), so both run
@@ -169,8 +184,9 @@ const make_ts_forge_backend_config = (opts: {
 			ws_role_gated: false,
 			// no room verbs mounted
 			rooms: false,
-			// `build_fuz_forge_testing_app` mounts every known backdoor
-			testing_backdoors: TESTING_BACKDOOR_METHODS
+			// `build_fuz_forge_testing_app` mounts every known backdoor but the rooms
+			// suite's eviction seam, having no room registry to evict from
+			testing_backdoors: FUZ_FORGE_TESTING_BACKDOORS
 		},
 		start_command,
 		// `make_default_ts_backend_config` defaults this to `'memory://'`
@@ -340,8 +356,9 @@ const make_rust_forge_backend_config = (opts: {
 			ws_role_gated: false,
 			// no room verbs mounted
 			rooms: false,
-			// `testing_fuz_forge_server` mounts every known backdoor
-			testing_backdoors: TESTING_BACKDOOR_METHODS
+			// `testing_fuz_forge_server` mounts every known backdoor but the rooms
+			// suite's eviction seam, having no room registry to evict from
+			testing_backdoors: FUZ_FORGE_TESTING_BACKDOORS
 		},
 		start_command: [resolve_cargo_binary_path(FORGE_CARGO_BINARY)],
 		// One DB for every Rust spawn — the projects are groupOrder-serialized and
@@ -353,7 +370,7 @@ const make_rust_forge_backend_config = (opts: {
 		// not bin names — these track the unchanged crate names.
 		rust_log: 'info,fuz_forge_server=info,testing_fuz_forge_server=info',
 		paths,
-		daemon_token_dir_env: 'FUZ_FORGE_DAEMON_TOKEN_DIR',
+		daemon_token_dir_env: FUZ_FORGE_DAEMON_TOKEN_DIR_ENV,
 		extra_env: {
 			FUZ_FORGE_FACT_STORE_PATH: join(paths.root, 'facts'),
 			FUZ_FORGE_REPO_STORE_PATH: join(paths.root, 'repos'),

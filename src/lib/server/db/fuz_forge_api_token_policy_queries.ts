@@ -3,8 +3,9 @@
  *
  * Three operations:
  *
- * - `query_token_policy_by_id` — hot path; called on every
- *   request that hydrates `FUZ_FORGE_TOKEN_POLICY_KEY` from a bearer token.
+ * - `query_token_policy_by_id` — hot path; called by every file-store
+ *   request (`hydrate_policy`) and git smart-HTTP request that a bearer or
+ *   Basic token authenticates.
  *   Returns `null` when the token is unscoped (no row).
  * - `query_token_policy_insert` — invoked by
  *   `fuz_forge_token_create_scoped` after the underlying `api_token` row

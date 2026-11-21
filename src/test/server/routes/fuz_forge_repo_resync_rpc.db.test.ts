@@ -120,7 +120,6 @@ describe_db('fuz_forge_repo_resync', (get_db) => {
 						log: new Logger('test')
 					},
 					extra_actions: [],
-					notification_sender: null,
 					final_actions_factory: null
 				})
 		});

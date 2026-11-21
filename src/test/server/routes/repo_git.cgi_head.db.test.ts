@@ -113,8 +113,7 @@ const build_test_app = async (get_db: () => Db, spawn_streaming: SpawnStreaming)
 					fuz_forge_run_updated: async () => undefined,
 					fuz_forge_repo_updated: async () => undefined
 				} as never,
-				log,
-				get_connection_ip: () => '127.0.0.1'
+				log
 			},
 			version: '0.0.0-test',
 			get_uptime_ms: () => 0,
@@ -209,10 +208,8 @@ describe_db('repo_git CGI head error paths', (get_db) => {
 			//
 			// The \r sits on a NON-`Status` header deliberately: that is the
 			// branch where the two backends actually diverged. The folded value
-			// carries a \r, which no HTTP layer can represent — `headers.append`
-			// throws here (a 500 before the try/catch-and-skip) and
-			// `HeaderValue::from_str` errors there. Both now drop the header, so
-			// the response carries neither `X-Injected` nor a `Content-Type`.
+			// carries a \r, which no HTTP layer can represent, so both drop the
+			// header and answer the default `text/plain` in its place.
 			const head = new TextEncoder().encode(
 				'Content-Type: text/plain\rX-Injected: yes\r\n\r\nbody-bytes'
 			);
@@ -229,10 +226,37 @@ describe_db('repo_git CGI head error paths', (get_db) => {
 			assert.strictEqual(res.headers.get('X-Injected'), null, 'lone \\r must not open a header');
 			assert.strictEqual(
 				res.headers.get('Content-Type'),
-				null,
-				'a value carrying a lone \\r is unrepresentable — the header is dropped'
+				'text/plain',
+				'a value carrying a lone \\r is unrepresentable — dropped, the default in its place'
 			);
 			assert.strictEqual(await res.text(), 'body-bytes');
+		});
+
+		test("git http-backend's own refusal keeps its status, with a default Content-Type", async () => {
+			// The head `git http-backend` writes for its 415 (git 2.47): a status and
+			// the no-cache headers, no `Content-Type`. The status and message pass
+			// through, typed `text/plain`, as on the Rust twin (`apply_cgi_headers`).
+			const head = new TextEncoder().encode(
+				'Status: 415 Unsupported Media Type\r\nExpires: Fri, 01 Jan 1980 00:00:00 GMT\r\n' +
+					'Pragma: no-cache\r\nCache-Control: no-cache, max-age=0, must-revalidate\r\n\r\n' +
+					'Expected POST with Content-Type application/x-git-upload-pack-request\n'
+			);
+			const fake_spawn: SpawnStreaming = () => make_fake_handle(head);
+			const test_app = await build_test_app(get_db, fake_spawn);
+			const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
+			await seed_repo_cell(get_db());
+
+			const res = await test_app.app.request(`/${SLUG}.git/info/refs?service=git-upload-pack`, {
+				method: 'GET',
+				headers: { Authorization: basic_header(admin.account.username, admin.api_token) }
+			});
+			assert.strictEqual(res.status, 415);
+			assert.strictEqual(res.headers.get('Content-Type'), 'text/plain');
+			assert.strictEqual(res.headers.get('Pragma'), 'no-cache');
+			assert.strictEqual(
+				await res.text(),
+				'Expected POST with Content-Type application/x-git-upload-pack-request\n'
+			);
 		});
 
 		test('only a three-digit CGI Status both runtimes can emit becomes the response status', async () => {

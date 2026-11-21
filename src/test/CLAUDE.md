@@ -325,9 +325,10 @@ stated in that file, never as a backend branch:
 - **overrides**: the standard bundle's `round_trip_skip_routes` (git
   smart-HTTP, `/internal/*`, the raw-byte file routes).
 - **`testing_backdoors`**: both backend configs declare every backdoor in
-  `TESTING_BACKDOOR_METHODS` — both test binaries mount all of them (the
-  forge's own `_testing_await_signal` is account-grain, so it stays off the
-  list and off `extra_methods`).
+  `TESTING_BACKDOOR_METHODS` but `_testing_room_evict` — both test binaries
+  mount all of those, and neither mounts rooms (the forge's own
+  `_testing_await_signal` is account-grain, so it stays off the list and off
+  `extra_methods`).
 
 fuz_app's **standalone** cross suites, which `describe_spine_cross_suites`
 leaves to the consumer, each have a file here:

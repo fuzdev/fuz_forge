@@ -53,10 +53,6 @@ import {
 	build_ws_endpoint_specs
 } from './routes/fuz_forge_route_specs.ts';
 import { VERSION } from '../fuz_forge/build_info.ts';
-import {
-	create_fuz_forge_token_policy_middleware,
-	extend_middleware_for_fuz_forge
-} from './fuz_forge_token_policy_middleware.ts';
 import type { SpawnStreaming, SpawnCollect } from './subprocess.ts';
 import {
 	resolve_server_config,
@@ -231,8 +227,6 @@ export const create_app = async (deps: ServerDeps): Promise<ServerApp> => {
 		database_url: env.DATABASE_URL,
 		keyring,
 		password,
-		read_secure_file: runtime.read_secure_file,
-		delete_file: (p) => runtime.remove(p),
 		log: server_log,
 		// the pool checkout bounds — a failed checkout answers 503, audit pool
 		// writes wait longer (inert on a `memory://` / `file://` database)
@@ -343,12 +337,7 @@ export const create_app = async (deps: ServerDeps): Promise<ServerApp> => {
 			// path answers the same 413 / 403 on both backends
 			// (`body_limit.cross.test.ts`, `origin_scope.cross.test.ts`).
 			generic_body_cap_middleware(),
-			...extend_middleware_for_fuz_forge(api_middleware, {
-				fuz_forge_token_policy_middleware: create_fuz_forge_token_policy_middleware(
-					backend.deps,
-					server_log
-				)
-			})
+			...api_middleware
 		],
 		create_route_specs: (ctx) =>
 			create_fuz_forge_app_route_specs(ctx, {
@@ -372,8 +361,7 @@ export const create_app = async (deps: ServerDeps): Promise<ServerApp> => {
 				repo_internal: {
 					query_deps: backend.deps,
 					broadcast: broadcast_api,
-					log: server_log,
-					get_connection_ip
+					log: server_log
 				},
 				version: VERSION,
 				get_uptime_ms: () => Date.now() - started_at,
@@ -385,7 +373,6 @@ export const create_app = async (deps: ServerDeps): Promise<ServerApp> => {
 			build_rpc_endpoint_specs(ctx, {
 				fuz_forge_deps: fuz_forge_route_deps,
 				extra_actions: extra_rpc_actions,
-				notification_sender: connection_registry,
 				final_actions_factory: final_rpc_actions_factory
 			}),
 		// Mounted ahead of `post_route_middleware` and static serving, with the

@@ -43,15 +43,14 @@ const recording_db = (): { db: Db; queries: Array<string> } => {
 const authenticate = async (password: string) => {
 	const { db, queries } = recording_db();
 	const deps = { query_deps: { db }, log: new Logger('test', { level: 'off' }) };
-	const app = new Hono();
-	let result: unknown = 'unset';
-	app.get('/', async (c) => {
-		result = await authenticate_git_request(deps, c, 'org/repo');
-		return c.text('done');
-	});
-	await app.request('/', {
+	const request = new Request('http://localhost/', {
 		headers: { Authorization: `Basic ${btoa(`git:${password}`)}` }
 	});
+	const result = await authenticate_git_request(
+		deps,
+		{ request, client_ip: '127.0.0.1', pending_effects: [] },
+		'org/repo'
+	);
 	return { result, queries };
 };
 

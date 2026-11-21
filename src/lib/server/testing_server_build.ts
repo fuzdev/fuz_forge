@@ -41,33 +41,37 @@ export interface ResolvedFuzForgeTestingConfig {
 	host: string;
 	port: number;
 	/**
-	 * Where daemon-token rotation writes the deterministic token. Derived
-	 * from `FUZ_BOOTSTRAP_TOKEN_PATH`'s parent (the harness's per-backend
-	 * root), so it lands at `{root}/run/daemon_token` — exactly where
-	 * `build_test_backend_paths` tells the harness to read it.
+	 * Where daemon-token rotation writes the deterministic token:
+	 * `{FUZ_FORGE_DAEMON_TOKEN_DIR}/run/daemon_token`, exactly where
+	 * `build_test_backend_paths` tells the harness to read it. The Rust test
+	 * binary reads the same env var.
 	 */
 	daemon_token_path: string;
 }
 
+/** The env var naming the harness's per-backend root, the daemon token's `{dir}`. */
+export const FUZ_FORGE_DAEMON_TOKEN_DIR_ENV = 'FUZ_FORGE_DAEMON_TOKEN_DIR';
+
 /**
  * Resolve `{host, port, daemon_token_path}` from the spawned process env.
  * The `BackendConfig.env` (built by `make_default_ts_backend_config`)
- * supplies `HOST` / `PORT` / `FUZ_BOOTSTRAP_TOKEN_PATH`.
+ * supplies `HOST` / `PORT` / `FUZ_FORGE_DAEMON_TOKEN_DIR`.
  */
 export const resolve_fuz_forge_testing_config = (
 	runtime: RuntimeDeps
 ): ResolvedFuzForgeTestingConfig => {
 	const env = load_env(runtime);
-	if (!env.FUZ_BOOTSTRAP_TOKEN_PATH) {
+	const daemon_token_dir = runtime.env_get(FUZ_FORGE_DAEMON_TOKEN_DIR_ENV);
+	if (!daemon_token_dir) {
 		throw new Error(
-			'testing server requires FUZ_BOOTSTRAP_TOKEN_PATH (its parent is the harness backend root; ' +
+			`testing server requires ${FUZ_FORGE_DAEMON_TOKEN_DIR_ENV} (the harness backend root; ` +
 				'`{root}/run/daemon_token` is where the cross-process harness reads the keeper token)'
 		);
 	}
 	return {
 		host: env.HOST,
 		port: env.PORT,
-		daemon_token_path: join(dirname(env.FUZ_BOOTSTRAP_TOKEN_PATH), 'run', 'daemon_token')
+		daemon_token_path: join(daemon_token_dir, 'run', 'daemon_token')
 	};
 };
 

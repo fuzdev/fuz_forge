@@ -25,7 +25,6 @@
  * @module
  */
 
-import type { Context } from 'hono';
 import { define_route, type RouteSpec } from '@fuzdev/fuz_app/http/route_spec.ts';
 import {
 	route_fail,
@@ -48,8 +47,7 @@ import {
 	REST_TOKEN_SCOPE_REQUIRED,
 	rest_error
 } from '@fuzdev/fuz_app/http/error_schemas.ts';
-import { ActingActor, type Uuid } from '@fuzdev/fuz_app/primitive_schemas.ts';
-import { require_request_context } from '@fuzdev/fuz_app/auth/request_context.ts';
+import { ActingActor } from '@fuzdev/fuz_app/primitive_schemas.ts';
 import type { QueryDeps } from '@fuzdev/fuz_app/db/query_deps.ts';
 import type { JsonObject } from '@fuzdev/fuz_util/json.ts';
 import type { AsyncSemaphore } from '@fuzdev/fuz_util/async.ts';
@@ -65,9 +63,9 @@ import { free_space_bytes, has_sufficient_free_space } from '../free_space.ts';
 import {
 	enforce_capability,
 	enforce_surface,
-	get_request_policy,
+	load_request_authority,
 	REST_FORBIDDEN
-} from '../fuz_forge_token_policy_middleware.ts';
+} from '../fuz_forge_token_policy_hydrate.ts';
 import { policy_check } from '../fuz_forge_token_policy.ts';
 import { SURFACE_FILE_STORE } from '../fuz_forge_token_surfaces.ts';
 import {
@@ -117,19 +115,6 @@ const empty_body = (): RouteFailOf<typeof REST_EMPTY_BODY> =>
 const file_too_large = (message: string): RouteFailOf<typeof REST_FILE_TOO_LARGE> =>
 	route_fail(REST_FILE_TOO_LARGE, { message });
 
-/**
- * Mark the response to close the connection, for an upload refused before its
- * body is read to the end: the client may still be sending it, and nothing
- * reads the rest. Without `Connection: close`, `@hono/node-server` answers
- * keep-alive, tries to drain the rest, and drops the connection when its drain
- * window passes, so a request the client sends on the connection meanwhile
- * fails. A body the handler has partly read never drains there, so the
- * mid-stream refusals always meet it.
- */
-const close_unread_body = (c: Context): void => {
-	c.header('Connection', 'close');
-};
-
 /** Dependencies for file store routes. */
 export interface FileRoutesDeps {
 	query_deps: QueryDeps;
@@ -158,32 +143,12 @@ export interface FileRoutesDeps {
 	 * disk (caps aggregate in-flight temp churn on top of the preflight).
 	 */
 	upload_semaphore: AsyncSemaphore;
-	/** Logged on the free-space-probe-rejected + probe-failed-open paths. */
-	log: Pick<Logger, 'warn'>;
+	/**
+	 * Logged on the free-space-probe-rejected + probe-failed-open paths, and on
+	 * a failed token-policy read (`hydrate_policy`).
+	 */
+	log: Pick<Logger, 'warn' | 'error'>;
 }
-
-/**
- * The acting actor's id on a route declared `actor: 'required'`.
- *
- * The dispatcher's authorization phase resolves the actor before the handler
- * runs, so a missing one is a wiring bug — thrown rather than read as `null`,
- * which would record an upload with no holder or a delete with no `deleted_by`.
- * The Rust twin's `resolve_acting_actor` returns a bare `Uuid`, so it has no
- * such state.
- *
- * @param c - the Hono context of an `actor: 'required'` route
- * @returns the acting actor's id
- * @throws Error if the request context carries no actor (dispatcher misconfiguration)
- */
-const require_acting_actor_id = (c: Context): Uuid => {
-	const { actor } = require_request_context(c);
-	if (!actor) {
-		throw new Error(
-			"require_acting_actor_id: no acting actor on an `actor: 'required'` route — is the dispatcher authorization phase wired?"
-		);
-	}
-	return actor.id;
-};
 
 /**
  * Cell `data` shape for a file. BLAKE3 string is set explicitly so
@@ -242,6 +207,15 @@ const is_valid_file_key = (key: string): boolean => {
 };
 
 /**
+ * The catch-all `filename` param. Every decoded key passes the schema; its
+ * grammar (`is_valid_file_key`) is checked in-handler, so a malformed key's 400
+ * comes after the auth gates — no route shape to a caller they refuse. An
+ * escape that doesn't decode is the spine's 400 ahead of them, where the Rust
+ * twin's `Path` keeps it literal and answers the auth refusal.
+ */
+const FileKeyParams = object({ filename: string });
+
+/**
  * Create the file store API route specs.
  *
  * File metadata cells live at the globally unique `files/<filename>`
@@ -257,6 +231,7 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 		upload_semaphore,
 		log
 	} = deps;
+	const policy_deps = { query_deps, log };
 
 	return [
 		// POST /:filename{.+} — upload a file (admin, not keeper — stores bytes, doesn't execute).
@@ -269,8 +244,8 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 			input: literal(null),
 			raw_body: true,
 			query: object({ acting: ActingActor }),
+			params: FileKeyParams,
 			output: loose_object({ filename: string }),
-			// the handler reads the filename param itself (no `params` schema)
 			errors: [
 				REST_INVALID_ROUTE_PARAMS,
 				REST_EMPTY_BODY,
@@ -283,13 +258,18 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 			// (the fact bytes may land on a different substrate), so skip the
 			// framework's auto-transaction wrap and run the mutations directly.
 			transaction: false,
-			handler: async (c) => {
-				const filename = c.req.param('filename');
-				if (!filename || !is_valid_file_key(filename)) {
+			handler: async (route) => {
+				const { filename } = route.params;
+				if (!is_valid_file_key(filename)) {
 					return route_fail(REST_INVALID_ROUTE_PARAMS);
 				}
 
-				const denied = enforce_capability(c, { kind: 'files.write', filename }, SURFACE_FILE_STORE);
+				const authority = await load_request_authority(policy_deps, route.credential);
+				const denied = enforce_capability(
+					authority,
+					{ kind: 'files.write', filename },
+					SURFACE_FILE_STORE
+				);
 				if (denied) return denied;
 
 				// Reject an over-cap upload from the declared `Content-Length` before
@@ -297,18 +277,23 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 				// is the backstop for a chunked / mis-declared length. A missing or
 				// non-numeric header is `NaN` (never `> max`), so chunked uploads pass
 				// here and rely on the mid-stream counter.
-				const declared_content_length = parse_content_length(c.req.header('Content-Length'));
+				const declared_content_length = parse_content_length(
+					route.request.headers.get('Content-Length')
+				);
 				if (declared_content_length !== null && declared_content_length > max_upload_bytes) {
-					close_unread_body(c);
+					// The size and storage refusals close the connection: the client
+					// may still be sending a large body, nothing reads the rest, and a
+					// keep-alive answer leaves `@hono/node-server` draining it until its
+					// window passes, failing the next request on the connection.
+					route.close_connection();
 					return file_too_large(
 						`File too large: ${declared_content_length} bytes exceeds ${max_upload_bytes} byte limit`
 					);
 				}
 
 				// the acting admin: stamped on the cell write and recorded as the
-				// fact's holder, which cell ref admission reads — resolved before the
-				// permit so a request without one never takes or waits on a permit
-				const actor_id = require_acting_actor_id(c);
+				// fact's holder, which cell ref admission reads
+				const actor_id = route.auth.actor.id;
 
 				// Bound concurrent streaming uploads: hold a permit across the
 				// preflight + `put_stream` so at most `max_concurrent_uploads` stream
@@ -328,7 +313,7 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 						log
 					);
 					if (!budget) {
-						close_unread_body(c);
+						route.close_connection();
 						return route_fail(REST_STORAGE_FULL);
 					}
 
@@ -347,7 +332,7 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 					// Stream the body into the fact store: bounded memory,
 					// content-addressed, cap enforced mid-stream. An absent body (e.g. a
 					// GET-shaped request) is treated as an empty upload → 400 below.
-					const body = c.req.raw.body ?? empty_stream();
+					const body = route.request.body ?? empty_stream();
 					let outcome;
 					try {
 						outcome = await fact_store.put_stream(body, max_upload_bytes, {
@@ -357,13 +342,13 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 						});
 					} catch (err) {
 						if (err instanceof FactPayloadTooLargeError) {
-							close_unread_body(c);
+							route.close_connection();
 							return file_too_large(`File too large: exceeds ${max_upload_bytes} byte limit`);
 						}
 						// Mid-stream disk-full (ENOSPC) — the backstop for what the
 						// free-space preflight can't catch (chunked uploads, TOCTOU races).
 						if (err instanceof FactStorageFullError) {
-							close_unread_body(c);
+							route.close_connection();
 							return route_fail(REST_STORAGE_FULL);
 						}
 						throw err;
@@ -434,13 +419,14 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 			input: literal(null),
 			output: loose_object({ files: array(unknown) }),
 			errors: [REST_TOKEN_SCOPE_REQUIRED],
-			handler: async (c) => {
+			handler: async (route) => {
+				const authority = await load_request_authority(policy_deps, route.credential);
 				// Ahead of the listing query, matching every other route's
 				// refuse-before-work placement: a token with no policy row has
 				// nothing to filter *by*, so it is refused outright rather than
 				// shown everything (which is what the policy-less branch used to
 				// do) — and it should not cost a full store enumeration to be told.
-				const denied = enforce_surface(c, SURFACE_FILE_STORE);
+				const denied = enforce_surface(authority, SURFACE_FILE_STORE);
 				if (denied) return denied;
 
 				// TODO: unbounded — the whole `file` kind is read into memory and
@@ -479,7 +465,7 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 				// Scoped tokens see only entries their policy permits to read.
 				// Filter rather than 403 — list is the entry point CLIs use to
 				// discover what they CAN read. The scope half already ran above.
-				const policy = get_request_policy(c);
+				const { policy } = authority;
 				const visible = policy
 					? merged.filter((entry) =>
 							policy_check(policy, { kind: 'files.read', filename: entry.filename })
@@ -503,21 +489,26 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 			input: literal(null),
 			// The `?meta` branch returns JSON (validated in DEV); the download branch
 			// returns raw bytes (non-JSON → output validation skips it).
+			params: FileKeyParams,
 			output: loose_object({ filename: string }),
-			// the handler reads the filename param itself (no `params` schema)
 			errors: [
 				REST_INVALID_ROUTE_PARAMS,
 				REST_TOKEN_SCOPE_REQUIRED,
 				REST_FORBIDDEN,
 				REST_FILE_NOT_FOUND
 			],
-			handler: async (c) => {
-				const filename = c.req.param('filename')!;
+			handler: async (route) => {
+				const { filename } = route.params;
 				if (!is_valid_file_key(filename)) {
 					return route_fail(REST_INVALID_ROUTE_PARAMS);
 				}
 
-				const denied = enforce_capability(c, { kind: 'files.read', filename }, SURFACE_FILE_STORE);
+				const authority = await load_request_authority(policy_deps, route.credential);
+				const denied = enforce_capability(
+					authority,
+					{ kind: 'files.read', filename },
+					SURFACE_FILE_STORE
+				);
 				if (denied) return denied;
 
 				const cell = await query_cell_get_by_path(query_deps, file_cell_path(filename));
@@ -529,12 +520,12 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 				// `?meta`: metadata only — no fact-store byte fetch. Presence
 				// selects the branch whatever the value (a bare `?meta` reads as
 				// the empty string), and any other key is ignored. Read off the
-				// raw query rather than through `c.req.query`, which is not
+				// raw query rather than through Hono's `c.req.query`, which is not
 				// WHATWG form-urlencoded — the same convergence the git route's
 				// `?service=` made, and what lets the Rust twin drop its axum
 				// `Query<T>` extractor (whose pre-auth 400 on a duplicate key
 				// had no counterpart here).
-				if (first_query_param(raw_query_of(c.req.raw.url), 'meta') !== undefined) {
+				if (first_query_param(raw_query_of(route.request.url), 'meta') !== undefined) {
 					return route_ok(file_meta_view(filename, file_data, cell.updated_at ?? cell.created_at));
 				}
 
@@ -546,22 +537,15 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 				// `Content-Length` is intentionally NOT set here: the body is a
 				// fully-buffered `Uint8Array`, so every runtime derives the length
 				// from it (`@hono/node-server`, `Bun.serve`).
-				// Setting it manually produced a *duplicate* `Content-Length` under
-				// `@hono/node-server`: it lowercases the supplied header to
-				// `content-length` then re-adds `Content-Length` from `byteLength`,
-				// and Node's `writeHead` emits both keys — which the bench's undici
-				// client (Node `fetch`) rejects as an HTTP/1.1 protocol violation.
-				// `BodyInit` takes no `ArrayBufferLike`-backed view, and the store's
-				// bytes are never over a `SharedArrayBuffer`
-				return route_raw(
-					new Response(bytes as Uint8Array<ArrayBuffer>, {
-						headers: {
-							'Content-Type': file_data.content_type,
-							'Content-Disposition': `attachment; filename="${filename}"`,
-							'X-Blake3-Hash': file_data.blake3.slice(FACT_HASH_PREFIX.length)
-						}
-					})
-				);
+				return route_raw({
+					status: 200,
+					headers: {
+						'Content-Type': file_data.content_type,
+						'Content-Disposition': `attachment; filename="${filename}"`,
+						'X-Blake3-Hash': file_data.blake3.slice(FACT_HASH_PREFIX.length)
+					},
+					body: bytes
+				});
 			}
 		}),
 
@@ -573,8 +557,8 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 			description: 'Delete a file from the file store',
 			input: literal(null),
 			query: object({ acting: ActingActor }),
+			params: FileKeyParams,
 			output: loose_object({ deleted: boolean }),
-			// the handler reads the filename param itself (no `params` schema)
 			errors: [
 				REST_INVALID_ROUTE_PARAMS,
 				REST_TOKEN_SCOPE_REQUIRED,
@@ -584,14 +568,15 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 			// Matches POST — fact-store + cell mutations are not wrapped in one
 			// transaction. See POST's `transaction: false` comment.
 			transaction: false,
-			handler: async (c) => {
-				const filename = c.req.param('filename')!;
+			handler: async (route) => {
+				const { filename } = route.params;
 				if (!is_valid_file_key(filename)) {
 					return route_fail(REST_INVALID_ROUTE_PARAMS);
 				}
 
+				const authority = await load_request_authority(policy_deps, route.credential);
 				const denied = enforce_capability(
-					c,
+					authority,
 					{ kind: 'files.delete', filename },
 					SURFACE_FILE_STORE
 				);
@@ -604,8 +589,7 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 
 				// Soft-delete the cell; the fact is intentionally left in the
 				// store (the forge runs no sweep of unreferenced facts).
-				const actor_id = require_acting_actor_id(c);
-				await query_cell_delete(query_deps, cell.id, { deleted_by: actor_id });
+				await query_cell_delete(query_deps, cell.id, { deleted_by: route.auth.actor.id });
 
 				return route_ok({ deleted: true, filename });
 			}
@@ -669,8 +653,8 @@ const infer_content_type = (filename: string): string => {
  * cheap over-cap pre-check + the free-space preflight, deferring to the
  * mid-stream byte counter / ENOSPC backstop.
  */
-const parse_content_length = (header: string | undefined): number | null => {
-	if (header === undefined) return null;
+const parse_content_length = (header: string | null): number | null => {
+	if (header === null) return null;
 	const n = Number(header);
 	return Number.isInteger(n) && n >= 0 ? n : null;
 };

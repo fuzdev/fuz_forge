@@ -351,10 +351,10 @@ mod tests {
             send("/health", Some("http://evil.invalid")).await.0,
             StatusCode::FORBIDDEN
         );
-        // the fallback answers the spine's `not found` body, as the full router does
+        // the fallback answers the spine's plain-text 404, as the full router does
         assert_eq!(
             send("/nope", None).await,
-            (StatusCode::NOT_FOUND, "not found\n".to_owned())
+            (StatusCode::NOT_FOUND, "404 Not Found".to_owned())
         );
     }
 }

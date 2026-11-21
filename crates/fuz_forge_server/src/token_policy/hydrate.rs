@@ -1,10 +1,8 @@
 //! Reading a token's policy **out of the database**, and the columns that read
 //! projects through.
 //!
-//! Twin of `src/lib/server/fuz_forge_token_policy_middleware.ts`: that file
-//! hydrates the document onto the Hono context after bearer auth, this one
-//! hands it to the two forge surfaces that mount outside the middleware chain
-//! as well as the ones inside it. [`hydrate_policy`] hands back a failed pool
+//! Twin of `src/lib/server/fuz_forge_token_policy_hydrate.ts`: both hand the
+//! document to the forge surfaces that gate on it, read in-handler. [`hydrate_policy`] hands back a failed pool
 //! checkout (the caller answers the spine's 503) and fails **soft** on any
 //! other read failure — see it for why that is safe — while git smart-HTTP
 //! calls [`FuzForgeTokenRouteState::lookup`] itself and answers a failed read
@@ -106,10 +104,10 @@ impl FuzForgeTokenRouteState {
 /// A failed pool **checkout** is the `Err`: the database is unavailable, and
 /// the caller answers the spine's flat 503
 /// ([`fuz_http::db_unavailable_response_with_source`]) as every other checkout
-/// site does — the TS twin's middleware rethrows its `DbCheckoutError` to the
-/// app's `onError`, which answers the same body. Any other read failure (a
+/// site does — the TS twin's `hydrate_policy` rethrows its `DbCheckoutError` to
+/// the route pipeline, which answers the same body. Any other read failure (a
 /// query error on a checked-out client) is logged and falls through
-/// unscoped, `Ok(None)`, mirroring `fuz_forge_token_policy_middleware.ts`.
+/// unscoped, `Ok(None)`, mirroring `fuz_forge_token_policy_hydrate.ts`.
 ///
 /// What makes that soft-fail safe on the resource-bound surfaces is the other
 /// axis: with the policy absent,

@@ -60,10 +60,10 @@ use fuz_actions::{ActionContext, ActionHandler, ActionSpec};
 use fuz_auth::{AuthSpec, CredentialGate};
 use fuz_http::{DEFAULT_DRAIN_TIMEOUT, InputShape};
 use fuz_testing::{
-    create_testing_action_manifest_action_spec, create_testing_flood_notifications_action_spec,
-    create_testing_migration_tracker_action_spec, create_testing_mint_session_action_spec,
-    create_testing_origin_check_action_spec, create_testing_put_fact_action_spec,
-    create_testing_schema_snapshot_action_spec,
+    create_testing_action_manifest_action_spec, create_testing_credential_read_action_spec,
+    create_testing_flood_notifications_action_spec, create_testing_migration_tracker_action_spec,
+    create_testing_mint_session_action_spec, create_testing_origin_check_action_spec,
+    create_testing_put_fact_action_spec, create_testing_schema_snapshot_action_spec,
     create_testing_shorten_credential_expiry_action_spec, require_daemon_token_from_env,
     testing_backend_options, testing_reset_specs, truncate_reset_state,
 };
@@ -364,6 +364,14 @@ async fn main() -> ExitCode {
             // match for the shared conformance table; the TS twin mounts
             // fuz_app's `create_testing_origin_check_action`.
             create_testing_origin_check_action_spec(),
+            // `_testing_credential_read` — read the session cookie, the bearer
+            // token and the daemon token out of a list of header lines, for the
+            // shared credential conformance table; the TS twin mounts fuz_app's
+            // `create_testing_credential_read_action`.
+            create_testing_credential_read_action_spec(
+                Arc::clone(&runtime.keyring),
+                runtime.session_cookie_name,
+            ),
             // `_testing_shorten_credential_expiry` — pull an account's session
             // and token expiry in, for the credential-deadline close; the TS
             // twin mounts fuz_app's `create_testing_shorten_credential_expiry_action`.

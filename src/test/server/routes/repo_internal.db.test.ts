@@ -93,8 +93,7 @@ const build_test_app = async (get_db: () => Db, options: { connection_ip?: strin
 			repo_internal: {
 				query_deps,
 				broadcast: broadcast.api,
-				log,
-				get_connection_ip: () => connection_ip
+				log
 			},
 			version: '0.0.0-test',
 			get_uptime_ms: () => 0,
@@ -106,8 +105,12 @@ const build_test_app = async (get_db: () => Db, options: { connection_ip?: strin
 		create_route_specs,
 		db: get_db(),
 		roles: [ROLE_ADMIN],
-		// production's `/internal/*` carve-out, so the in-handler fences answer
-		app_options: { origin_carve_outs: [...FUZ_FORGE_ORIGIN_CARVE_OUTS] }
+		app_options: {
+			// production's `/internal/*` carve-out, so the in-handler fences answer
+			origin_carve_outs: [...FUZ_FORGE_ORIGIN_CARVE_OUTS],
+			// the socket's peer address the route context's `connection_ip` carries
+			proxy: { trusted_proxies: ['127.0.0.1'], get_connection_ip: () => connection_ip }
+		}
 	});
 	return { test_app, broadcast };
 };
@@ -380,9 +383,9 @@ describe_db('repo internal callback routes', (get_db) => {
 		});
 
 		test('non-loopback connection rejected with 401', async () => {
-			// Connection-IP gate: with `get_connection_ip` returning a
-			// non-loopback address, the request fails the cheap source
-			// check before secret comparison or body parsing.
+			// Connection-IP gate: from a non-loopback connection, the
+			// request fails the cheap source check before secret
+			// comparison or body parsing.
 			const { test_app, broadcast } = await build_test_app(get_db, {
 				connection_ip: '1.2.3.4'
 			});

@@ -75,8 +75,7 @@
  * @module
  */
 
-import { is, literal, unknown } from '@fuzdev/fuz_schema/schema.ts';
-import type { Context } from 'hono';
+import { is, literal, object, string, unknown } from '@fuzdev/fuz_schema/schema.ts';
 import { define_route, type RouteSpec } from '@fuzdev/fuz_app/http/route_spec.ts';
 import { route_raw, type RouteRaw } from '@fuzdev/fuz_app/http/route_result.ts';
 
@@ -85,6 +84,7 @@ import {
 	check_repo_capability,
 	git_unauthorized,
 	type GitOp,
+	type GitRequest,
 	type RepoGitAuthDeps
 } from './repo_git_auth.ts';
 import { proxy_to_git_http_backend, type GitCgiDeps } from './git_cgi.ts';
@@ -118,7 +118,7 @@ const GIT_SUFFIX = '.git';
 /**
  * Whether the raw request target's path carries a percent-encoded `/`.
  *
- * Hono hands the handler a **decoded** route param, so `/ttt%2Frepo.git/…`
+ * The spine hands the handler a **decoded** route param, so `/ttt%2Frepo.git/…`
  * arrives as the slug `ttt/repo` and would serve a real repo under a URL no
  * clone ever uses; axum routes on the raw path instead, where the same request
  * is a single segment and never matches. A clone URL's `/` is always a literal
@@ -126,7 +126,7 @@ const GIT_SUFFIX = '.git';
  * the encoded spelling is refused on this side rather than silently accepted,
  * putting both backends on the same answer.
  *
- * Read off `c.req.raw.url` because that is the only place the pre-decode
+ * Read off the request URL because that is the only place the pre-decode
  * spelling survives. The query string is excluded: `?service=…` is unrelated
  * to the slug and may legitimately carry encoded bytes.
  */
@@ -196,13 +196,23 @@ const extract_slug = (slug_with_git: string): string =>
  * The refusal *status* is deliberately not a cross-backend contract (see the
  * module doc); what both pin is that the URL never reaches the git backend.
  */
-const resolve_slug = (c: Context): string => {
-	const slug_with_git = c.req.param('slug_with_git');
+const resolve_slug = (route: GitRouteContext): string => {
+	const slug_with_git = route.params.slug_with_git;
 	if (!slug_with_git) return '';
-	if (path_has_encoded_slash(c.req.raw.url)) return '';
+	if (path_has_encoded_slash(route.request.url)) return '';
 	const slug = extract_slug(slug_with_git);
 	return is(RepoSlug, slug) ? slug : '';
 };
+
+/**
+ * The captured `<slug>.git` param. Its grammar is checked in-handler
+ * (`resolve_slug`), so an off-grammar slug gets the generic 401; an escape that
+ * doesn't decode is the spine's 400, ahead of the handler.
+ */
+const GitRouteParams = object({ slug_with_git: string });
+
+/** What a git route handler reads of the route context. */
+type GitRouteContext = GitRequest & { params: { slug_with_git: string } };
 
 /**
  * Build the git smart-HTTP route specs.
@@ -211,48 +221,48 @@ const resolve_slug = (c: Context): string => {
  * handler keyed on `?service=<…>`.
  */
 export const create_repo_git_route_specs = (deps: RepoGitRoutesDeps): Array<RouteSpec> => {
-	const handle_advertise = async (c: Context): Promise<RouteRaw> => {
-		const auth = await authenticate_git_request(deps, c, resolve_slug(c));
-		if (!auth) return route_raw(git_unauthorized(c));
+	const handle_advertise = async (route: GitRouteContext): Promise<RouteRaw> => {
+		const auth = await authenticate_git_request(deps, route, resolve_slug(route));
+		if (!auth) return git_unauthorized();
 
-		const service = first_service_param(raw_query_of(c.req.raw.url));
+		const service = first_service_param(raw_query_of(route.request.url));
 		if (service !== 'git-upload-pack' && service !== 'git-receive-pack') {
 			// Dumb HTTP isn't supported; reject anything unexpected with a
 			// generic 400 (no enumeration risk since this branch is post-auth).
-			return route_raw(c.text('Bad Request\n', 400));
+			return route_raw({
+				status: 400,
+				headers: { 'Content-Type': 'text/plain; charset=UTF-8' },
+				body: 'Bad Request\n'
+			});
 		}
 
 		const operation: GitOp = service === 'git-receive-pack' ? 'push' : 'pull';
 		if (!(await check_repo_capability(deps, auth, operation))) {
-			return route_raw(git_unauthorized(c));
+			return git_unauthorized();
 		}
 
-		return route_raw(
-			await proxy_to_git_http_backend(deps, c, auth, {
-				request_method: 'GET',
-				path_info: `/${auth.repo_id}.git/info/refs`,
-				query_string: `service=${service}`
-			})
-		);
+		return proxy_to_git_http_backend(deps, route, auth, {
+			request_method: 'GET',
+			path_info: `/${auth.repo_id}.git/info/refs`,
+			query_string: `service=${service}`
+		});
 	};
 
 	const handle_post =
 		(path_suffix: string, operation: GitOp) =>
-		async (c: Context): Promise<RouteRaw> => {
-			const auth = await authenticate_git_request(deps, c, resolve_slug(c));
-			if (!auth) return route_raw(git_unauthorized(c));
+		async (route: GitRouteContext): Promise<RouteRaw> => {
+			const auth = await authenticate_git_request(deps, route, resolve_slug(route));
+			if (!auth) return git_unauthorized();
 
 			if (!(await check_repo_capability(deps, auth, operation))) {
-				return route_raw(git_unauthorized(c));
+				return git_unauthorized();
 			}
 
-			return route_raw(
-				await proxy_to_git_http_backend(deps, c, auth, {
-					request_method: 'POST',
-					path_info: `/${auth.repo_id}.git${path_suffix}`,
-					query_string: ''
-				})
-			);
+			return proxy_to_git_http_backend(deps, route, auth, {
+				request_method: 'POST',
+				path_info: `/${auth.repo_id}.git${path_suffix}`,
+				query_string: ''
+			});
 		};
 
 	return [
@@ -263,9 +273,10 @@ export const create_repo_git_route_specs = (deps: RepoGitRoutesDeps): Array<Rout
 			description:
 				'Git smart-HTTP capability advertisement (in-handler HTTP Basic auth; admin role required)',
 			input: literal(null),
+			params: GitRouteParams,
 			output: unknown,
 			transaction: false,
-			handler: (c) => handle_advertise(c)
+			handler: handle_advertise
 		}),
 		define_route({
 			method: 'POST',
@@ -273,6 +284,7 @@ export const create_repo_git_route_specs = (deps: RepoGitRoutesDeps): Array<Rout
 			auth: { account: 'none', actor: 'none' },
 			description: 'Git fetch/clone body (in-handler HTTP Basic auth; admin role required)',
 			input: literal(null),
+			params: GitRouteParams,
 			raw_body: true,
 			output: unknown,
 			transaction: false,
@@ -285,6 +297,7 @@ export const create_repo_git_route_specs = (deps: RepoGitRoutesDeps): Array<Rout
 			description:
 				'Git push body (in-handler HTTP Basic auth; admin role required; default-branch force-push protected by pre-receive hook)',
 			input: literal(null),
+			params: GitRouteParams,
 			raw_body: true,
 			output: unknown,
 			transaction: false,

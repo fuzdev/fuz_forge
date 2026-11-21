@@ -6,13 +6,8 @@
  * file store actions are narrowed to what the `fuz_forge_api_token_policy`
  * row allows.
  *
- * This file requires `transform_middleware: extend_middleware_for_fuz_forge`
- * to be wired into the test app — without it, the policy hydration
- * middleware doesn't fire and `c.var.fuz_forge_token_policy` is always
- * undefined (which the gates treat as unscoped). The existing
- * `files.db.test.ts` deliberately does NOT wire this in to verify that
- * unscoped behavior is unaffected; this file's setup is symmetric — it
- * wires the middleware in to test the scoped path.
+ * The file routes read the policy in-handler (`load_request_authority`), so
+ * the test app needs no wiring beyond the routes themselves.
  *
  * @module
  */
@@ -36,10 +31,6 @@ import { token_scope_full } from '@fuzdev/fuz_app/auth/token_scope.ts';
 import { fuz_forge_session_config } from '#lib/server/routes/account.ts';
 import { create_fuz_forge_app_route_specs } from '#lib/server/routes/fuz_forge_route_specs.ts';
 import { PgFactStore } from '@fuzdev/fuz_app/db/fact_store.ts';
-import {
-	create_fuz_forge_token_policy_middleware,
-	extend_middleware_for_fuz_forge
-} from '#lib/server/fuz_forge_token_policy_middleware.ts';
 import { policy_from_template } from '#lib/server/fuz_forge_token_policy.ts';
 
 import { describe_db } from '../../db_fixture.ts';
@@ -72,12 +63,12 @@ const runtime = create_node_runtime([]);
 
 /**
  * @param get_db - the test database
- * @param get_policy_db - the database the policy middleware reads; a stub here
- *   injects a lookup failure without touching the rest of the stack
+ * @param get_files_db - the database the file routes read, the policy lookup
+ *   first; a stub here injects a lookup failure without touching the auth stack
  */
 const build_test_app = async (
 	get_db: () => Db,
-	get_policy_db: () => Db = get_db
+	get_files_db: (() => Db) | null = null
 ): Promise<TestApp> => {
 	const log = new Logger('test-files-scoped', { level: 'off' });
 	const create_route_specs = (ctx: AppServerContext) => {
@@ -92,7 +83,7 @@ const build_test_app = async (
 				log
 			},
 			files: test_file_route_deps({
-				query_deps,
+				query_deps: get_files_db ? { db: get_files_db() } : query_deps,
 				max_upload_bytes: 1024 * 1024,
 				fact_store
 			}),
@@ -104,8 +95,7 @@ const build_test_app = async (
 					fuz_forge_run_updated: async () => undefined,
 					fuz_forge_repo_updated: async () => undefined
 				} as never,
-				log,
-				get_connection_ip: () => '127.0.0.1'
+				log
 			},
 			version: '0.0.0-test',
 			get_uptime_ms: () => 0,
@@ -117,18 +107,7 @@ const build_test_app = async (
 		session_options: fuz_forge_session_config,
 		create_route_specs,
 		db: get_db(),
-		roles: [ROLE_ADMIN],
-		app_options: {
-			// Wire the fuz_forge policy hydration middleware into the test stack.
-			// Production uses the same shape via server.ts; this mirrors it.
-			transform_middleware: (api_middleware) =>
-				extend_middleware_for_fuz_forge(api_middleware, {
-					fuz_forge_token_policy_middleware: create_fuz_forge_token_policy_middleware(
-						{ db: get_policy_db() },
-						new Logger('test-files-scoped-mw', { level: 'off' })
-					)
-				})
-		}
+		roles: [ROLE_ADMIN]
 	});
 };
 
@@ -535,7 +514,7 @@ describe_db('files.ts scoped-token gating', (get_db) => {
 	});
 
 	describe('failed policy lookup', () => {
-		/** A policy database whose every method rejects with `error`. */
+		/** A file-route database whose every method rejects with `error`. */
 		const throwing_db = (error: Error): Db =>
 			new Proxy({}, { get: () => () => Promise.reject(error) }) as unknown as Db;
 

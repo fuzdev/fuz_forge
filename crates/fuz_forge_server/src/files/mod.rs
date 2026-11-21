@@ -169,11 +169,10 @@ impl FilesRouteState {
     /// Returns `Ok(None)` (unscoped) for session / daemon-token auth or for a
     /// bearer token with no `fuz_forge_api_token_policy` row — those keep
     /// the role-gate-only behavior. Mirrors the TS in-handler
-    /// `get_request_policy` for the `/api/*` middleware-hydrated policy.
+    /// `load_request_authority`.
     ///
     /// A failed pool checkout answers the spine's flat 503, as the TS
-    /// `get_request_policy` rethrows the middleware's stored
-    /// `DbCheckoutError`.
+    /// `hydrate_policy` rethrows its `DbCheckoutError`.
     #[expect(
         clippy::result_large_err,
         reason = "Err is the ready-to-return axum Response — the crate-wide REST handler idiom"

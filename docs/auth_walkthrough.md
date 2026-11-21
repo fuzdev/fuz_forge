@@ -20,8 +20,7 @@ Expected behavior when testing the auth system end-to-end.
 - [ ] Wrong password returns 401
 - [ ] Correct credentials set `fuz_forge_session` cookie, return `{ok: true}` (account info comes from `/api/account/status`)
 - [ ] `GET /api/account/status` returns `{account: {...}}` with session cookie (frontend uses this)
-- [ ] `GET /api/account/verify` (TS reference only; the Rust backend has none, and the forge's nginx config doesn't use it) returns an empty-body 200 with a session cookie
-- [ ] A narrowed token gets 403 `{error: 'token_scope_required', required_scope: 'surface:account_verify'}` there; the `account_verify` RPC is the typed account read
+- [ ] The `account_verify` RPC returns the typed account with a session cookie (the credential probe; there is no REST verify route)
 - [ ] Second login creates a separate session (both valid)
 
 ## Session management

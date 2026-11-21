@@ -3,8 +3,8 @@
  * protected fuz_forge REST surface it governs.
  *
  * Discipline guard for forge's resource-bound half of the scoped-token
- * feature. Each per-file gate site (`server/routes/files.ts`) reads
- * `FUZ_FORGE_TOKEN_POLICY_KEY` via `enforce_capability`. A future surface that
+ * feature. Each per-file gate site (`server/routes/files.ts`) reads the
+ * policy (`load_request_authority`) and checks it via `enforce_capability`. A future surface that
  * forgets to consult the policy would silently widen access — this test
  * iterates over every file-store route and demands a 403/forbidden response
  * from each, except the list, which filters to the empty readable set and so
@@ -23,12 +23,6 @@
 import { test, assert, beforeAll, beforeEach } from 'vitest';
 import { ROLE_ADMIN, ROLE_KEEPER } from '@fuzdev/fuz_app/auth/role_schema.ts';
 import type { TestApp, TestAccount } from '@fuzdev/fuz_app/testing/app_server.ts';
-import { Logger } from '@fuzdev/fuz_util/log.ts';
-
-import {
-	create_fuz_forge_token_policy_middleware,
-	extend_middleware_for_fuz_forge
-} from '#lib/server/fuz_forge_token_policy_middleware.ts';
 
 import { describe_db } from '../../db_fixture.ts';
 import { create_fuz_forge_admin_test_app } from './fuz_forge_test_helpers.ts';
@@ -40,16 +34,7 @@ describe_db('scoped-token deny-all coverage', (get_db) => {
 
 	beforeAll(async () => {
 		test_app = await create_fuz_forge_admin_test_app(get_db, {
-			roles: [ROLE_KEEPER, ROLE_ADMIN],
-			app_options: {
-				transform_middleware: (api_middleware) =>
-					extend_middleware_for_fuz_forge(api_middleware, {
-						fuz_forge_token_policy_middleware: create_fuz_forge_token_policy_middleware(
-							{ db: get_db() },
-							new Logger('test-deny-all', { level: 'off' })
-						)
-					})
-			}
+			roles: [ROLE_KEEPER, ROLE_ADMIN]
 		});
 	});
 

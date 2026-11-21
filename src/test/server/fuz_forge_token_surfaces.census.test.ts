@@ -186,13 +186,6 @@ const CENSUS: ReadonlyArray<CensusEntry> = [
 			"fuz_app's bootstrap/login/dashboard discriminator, mounted unchanged. It declares `account: 'none'` because the SPA fetches it before holding any credential, but it *reads* one when present and answers with that caller's own account, actor, and role grants — so it is not `public` in this table's sense. No scope gate, which is the spine's call: the handler reads the credential through `get_public_account_id`, so a scope-narrowed token is answered as the anonymous caller (401 with the bootstrap flag) rather than with its account — the downgrade both backends make"
 	},
 	{
-		route: 'GET /api/account/verify',
-		role: 'spine',
-		scope: 'surface:account_verify',
-		reason:
-			"fuz_app's nginx `auth_request` shim, mounted unchanged — it declares the spine's own `surface:account_verify` upstream, so a narrowed token is refused 403 rather than passing an `auth_request` gate as its account, and the forge inherits the gate rather than restating it"
-	},
-	{
 		route: 'POST /api/account/logout',
 		role: 'spine',
 		scope: null,
@@ -392,19 +385,18 @@ const IN_HANDLER_SURFACE_SITES: Record<string, InHandlerSurface> = {
 			// The shared branch, reached by the per-file routes through
 			// `enforce_capability`.
 			{
-				file: 'server/fuz_forge_token_policy_middleware.ts',
+				file: 'server/fuz_forge_token_policy_hydrate.ts',
 				sources: [
-					'const scope = resolved_auth_scope(get_resolved_auth(c));',
-					'if (token_scope_admits_forge_surface(get_request_policy(c), scope)) return null;',
+					'if (token_scope_admits_forge_surface(authority.policy, authority.scope)) return null;',
 					'return route_fail(REST_TOKEN_SCOPE_REQUIRED, { required_scope: surface });',
-					'const denied = enforce_surface(c, surface);'
+					'const denied = enforce_surface(authority, surface);'
 				]
 			},
 			// The list route reaches the same branch directly — it filters rather
 			// than 403s, so it has no capability check to carry the gate for it.
 			{
 				file: 'server/routes/files.ts',
-				sources: ['const denied = enforce_surface(c, SURFACE_FILE_STORE);']
+				sources: ['const denied = enforce_surface(authority, SURFACE_FILE_STORE);']
 			}
 		],
 		routes: [

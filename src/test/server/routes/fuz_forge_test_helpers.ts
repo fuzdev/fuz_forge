@@ -132,8 +132,7 @@ const create_fuz_forge_db_route_specs = (ctx: AppServerContext): Array<RouteSpec
 		repo_internal: {
 			query_deps: { db: ctx.deps.db },
 			broadcast: stub,
-			log: new Logger('test'),
-			get_connection_ip: () => '127.0.0.1'
+			log: new Logger('test')
 		},
 		version: '0.0.0-test',
 		get_uptime_ms: () => 42,
@@ -183,7 +182,6 @@ export const create_fuz_forge_admin_test_app = (
 					log: new Logger('test')
 				},
 				extra_actions: [],
-				notification_sender: null,
 				final_actions_factory: null
 			}),
 		...overrides

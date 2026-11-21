@@ -10,7 +10,7 @@
  * **Locked-down auth (defense-in-depth):**
  *
  * - Localhost source check against the **raw TCP connection IP** via
- *   `deps.get_connection_ip(c)` — NOT the proxy-resolved `client_ip`.
+ *   the route context's `connection_ip` — NOT the proxy-resolved `client_ip`.
  *   `client_ip` can be tricked into reporting `127.0.0.1` when the
  *   connection is from a trusted proxy AND every `X-Forwarded-For`
  *   entry is itself a trusted-proxy IP. The raw connection IP can't
@@ -63,10 +63,12 @@ import {
 	pipe,
 	string
 } from '@fuzdev/fuz_schema/schema.ts';
-import type { Context } from 'hono';
-import { define_route, type RouteSpec } from '@fuzdev/fuz_app/http/route_spec.ts';
-import { route_ok, route_raw } from '@fuzdev/fuz_app/http/route_result.ts';
-import { read_json_body } from '@fuzdev/fuz_app/http/json_text.ts';
+import {
+	define_route,
+	type RouteContext,
+	type RouteSpec
+} from '@fuzdev/fuz_app/http/route_spec.ts';
+import { route_ok } from '@fuzdev/fuz_app/http/route_result.ts';
 import type { QueryDeps } from '@fuzdev/fuz_app/db/query_deps.ts';
 import type { Logger } from '@fuzdev/fuz_util/log.ts';
 import type { Uuid } from '@fuzdev/fuz_app/primitive_schemas.ts';
@@ -90,14 +92,16 @@ export interface RepoInternalRoutesDeps {
 	query_deps: QueryDeps;
 	broadcast: BackendActionsApi;
 	log: Logger;
-	/**
-	 * Raw TCP connection IP extractor. Used by `internal_pre_auth_ok`
-	 * to gate `/internal/*` to same-host callers. Bypasses the proxy
-	 * middleware's `client_ip` resolution because app-layer headers
-	 * can drive that to `127.0.0.1` in degenerate XFF configurations.
-	 */
-	get_connection_ip: (c: Context) => string | undefined;
 }
+
+/**
+ * What the internal auth reads of the request: its headers, and the raw TCP
+ * connection IP, which gates `/internal/*` to same-host callers. The
+ * connection IP bypasses the proxy middleware's `client_ip` resolution because
+ * app-layer headers can drive that to `127.0.0.1` in degenerate XFF
+ * configurations.
+ */
+type InternalRequest = Pick<RouteContext, 'request' | 'connection_ip'>;
 
 /**
  * Body shape for `POST /internal/repo-receive-callback`.
@@ -131,7 +135,7 @@ const HOOK_SECRET_HEADER = 'X-FuzForge-Repo-Secret';
 
 const LOOPBACK_IPS: ReadonlySet<string> = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
 
-const is_loopback = (ip: string | undefined): boolean => !!ip && LOOPBACK_IPS.has(ip);
+const is_loopback = (ip: string | null): boolean => !!ip && LOOPBACK_IPS.has(ip);
 
 /**
  * Resolve the repo cell a hook's push is targeting, by the cell id its scripts
@@ -182,17 +186,18 @@ const lookup_push_target_cell = async (
  * Runs before any body parsing, so a non-loopback caller can't
  * trigger schema-validation 400s and enumerate the endpoint shape.
  */
-const internal_pre_auth_ok = (deps: RepoInternalRoutesDeps, c: Context): boolean => {
-	const conn_ip = deps.get_connection_ip(c);
+const internal_pre_auth_ok = (deps: RepoInternalRoutesDeps, route: InternalRequest): boolean => {
+	const conn_ip = route.connection_ip;
 	if (!is_loopback(conn_ip)) {
 		deps.log.warn(`repo_internal: non-loopback connection rejected (conn_ip=${conn_ip})`);
 		return false;
 	}
-	if (c.req.header('Origin') !== undefined || c.req.header('Referer') !== undefined) {
+	const { headers } = route.request;
+	if (headers.has('Origin') || headers.has('Referer')) {
 		deps.log.warn('repo_internal: rejecting request with Origin/Referer header');
 		return false;
 	}
-	if (c.req.header(HOOK_SECRET_HEADER) === undefined) return false;
+	if (!headers.has(HOOK_SECRET_HEADER)) return false;
 	return true;
 };
 
@@ -203,10 +208,10 @@ const internal_pre_auth_ok = (deps: RepoInternalRoutesDeps, c: Context): boolean
  */
 const internal_verify_repo_secret = async (
 	deps: RepoInternalRoutesDeps,
-	c: Context,
+	route: InternalRequest,
 	repo_id: string
 ): Promise<{ cell_id: Uuid; raw: JsonObject; narrow: RepoCellData } | null> => {
-	const provided_secret = c.req.header(HOOK_SECRET_HEADER);
+	const provided_secret = route.request.headers.get(HOOK_SECRET_HEADER);
 	if (!provided_secret) return null;
 	const lookup = await lookup_push_target_cell(deps, repo_id);
 	if (!lookup) return null;
@@ -275,12 +280,10 @@ export const create_repo_internal_route_specs = (
 			params: object({ id: pipe(string, min_length(1)) }),
 			output: object({ default_branch: string }),
 			transaction: false,
-			handler: async (c) => {
-				if (!internal_pre_auth_ok(deps, c)) return route_raw(unauthorized(c));
-				const id = c.req.param('id');
-				if (!id) return route_raw(unauthorized(c));
-				const lookup = await internal_verify_repo_secret(deps, c, id);
-				if (!lookup) return route_raw(unauthorized(c));
+			handler: async (route) => {
+				if (!internal_pre_auth_ok(deps, route)) return unauthorized();
+				const lookup = await internal_verify_repo_secret(deps, route, route.params.id);
+				if (!lookup) return unauthorized();
 				return route_ok({ default_branch: lookup.narrow.default_branch });
 			}
 		}),
@@ -301,17 +304,17 @@ export const create_repo_internal_route_specs = (
 			// (broadcast is fan-out, not DB); the cell write itself is a
 			// single statement so the route doesn't need a wrapping tx.
 			transaction: false,
-			handler: async (c) => {
-				if (!internal_pre_auth_ok(deps, c)) return route_raw(unauthorized(c));
+			handler: async (route) => {
+				if (!internal_pre_auth_ok(deps, route)) return unauthorized();
 
-				const raw_body = await read_json_body(c.req);
-				if (!raw_body.ok) return route_raw(unauthorized(c));
+				const raw_body = await route.read_json_body();
+				if (!raw_body.ok) return unauthorized();
 				const parsed = parse(RepoReceiveCallbackBody, raw_body.value);
-				if (!parsed.ok) return route_raw(unauthorized(c));
+				if (!parsed.ok) return unauthorized();
 				const body = parsed.value;
 
-				const lookup = await internal_verify_repo_secret(deps, c, body.repo_id);
-				if (!lookup) return route_raw(unauthorized(c));
+				const lookup = await internal_verify_repo_secret(deps, route, body.repo_id);
+				if (!lookup) return unauthorized();
 
 				const now_iso = to_iso8601_seconds(new Date());
 				const { next, head_sha } = compute_next_cell_data(

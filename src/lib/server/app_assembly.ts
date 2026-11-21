@@ -29,6 +29,7 @@ import { parse } from '@fuzdev/fuz_schema/schema.ts';
 import { validate_server_env } from '@fuzdev/fuz_app/server/env.ts';
 import { EnvStringbool } from '@fuzdev/fuz_app/env/env_schemas.ts';
 import type { BootstrapServerOptions } from '@fuzdev/fuz_app/server/app_server.ts';
+import { create_file_bootstrap_token_store } from '@fuzdev/fuz_app/auth/bootstrap_token_store.ts';
 import {
 	default_action_account_rate_limit,
 	default_action_ip_rate_limit,
@@ -232,7 +233,10 @@ export const resolve_server_config = (runtime: RuntimeDeps): ServerConfig => {
 		? resolve_tilde(env_config.bootstrap_token_path, runtime.env_get('HOME'))
 		: null;
 	const bootstrap_options: BootstrapServerOptions = bootstrap_token_path
-		? { mode: 'live', token_path: bootstrap_token_path }
+		? {
+				mode: 'live',
+				token_store: create_file_bootstrap_token_store(runtime, bootstrap_token_path)
+			}
 		: { mode: 'disabled' };
 
 	return { env, keyring, allowed_origins, allow_origin_wildcards, bootstrap_options };
@@ -247,14 +251,14 @@ export interface WsMessaging {
 /**
  * Compose the WebSocket messaging stack: the connection registry and the
  * broadcast API over it. The registry is created ahead of assembly because
- * three holders need the one instance — the broadcast API, the role-grant-offer
- * `notification_sender` of the RPC action set (which `/api/ws` serves too), and
- * the `/api/ws` endpoint itself (`build_ws_endpoint_specs` passes it as
+ * two holders need the one instance — the broadcast API and the `/api/ws`
+ * endpoint itself (`build_ws_endpoint_specs` passes it as
  * `WsEndpointSpec.registry`).
  *
- * Socket revocation is not wired here: `create_app_server` adds the mounted
- * registry to `AppDeps.connection_closer`, and registers its one revocation
- * guard (`create_revocation_guard`) on that closer.
+ * Socket revocation and action notifications are not wired here:
+ * `create_app_server` adds the mounted registry to `AppDeps.connection_closer`
+ * and `AppDeps.notification_sender`, and registers its one revocation guard
+ * (`create_revocation_guard`) on the closer.
  */
 export const create_ws_messaging = (log: Logger): WsMessaging => {
 	const connection_registry = new ConnectionRegistry();

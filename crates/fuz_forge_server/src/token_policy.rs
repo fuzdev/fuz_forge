@@ -2,7 +2,7 @@
 //!
 //! Port of the three-file TS subsystem
 //! (`fuz_forge_token_policy_schema.ts` + `fuz_forge_token_policy.ts` +
-//! `fuz_forge_token_policy_middleware.ts`).
+//! `fuz_forge_token_policy_hydrate.ts`).
 //!
 //! ## Grammar
 //!
@@ -65,7 +65,7 @@
 //! - [`types`] — the document grammar (`fuz_forge_token_policy_schema.ts`).
 //! - [`check`] — enforcement + the template builders (`fuz_forge_token_policy.ts`).
 //! - [`hydrate`] — the row read + the table's columns
-//!   (`fuz_forge_token_policy_middleware.ts`).
+//!   (`fuz_forge_token_policy_hydrate.ts`).
 //!
 //! Every name stays reachable as `crate::token_policy::<name>`; this module is
 //! the only path consumers use.

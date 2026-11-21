@@ -143,8 +143,7 @@ const boot_server = async (get_db: () => Db): Promise<BootedServer> => {
 						broadcast_calls.push(input);
 					}
 				} as never,
-				log,
-				get_connection_ip: () => '127.0.0.1'
+				log
 			},
 			version: '0.0.0-test',
 			get_uptime_ms: () => 0,

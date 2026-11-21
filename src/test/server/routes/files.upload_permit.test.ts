@@ -1,16 +1,16 @@
 /**
  * Unit tests for the upload route's concurrency permit — no DB. The handler
- * runs on a bare Hono app with no dispatcher, so the request context can carry
- * no acting actor, the state the dispatcher's authorization phase rules out.
+ * is called directly with a route context carrying no acting actor, the state
+ * the dispatcher's authorization phase rules out, which the spine's handler
+ * guard (`define_route`) refuses.
  *
  * @module
  */
 
-import { Hono } from 'hono';
 import { assert, describe, test } from 'vitest';
 import type { Account } from '@fuzdev/fuz_app/auth/account_schema.ts';
-import { REQUEST_CONTEXT_KEY, type RequestContext } from '@fuzdev/fuz_app/auth/request_context.ts';
-import { to_route_response, type RouteContext } from '@fuzdev/fuz_app/http/route_spec.ts';
+import type { RequestContext } from '@fuzdev/fuz_app/auth/request_context.ts';
+import type { RouteContext } from '@fuzdev/fuz_app/http/route_spec.ts';
 import { create_throwing_stub } from '@fuzdev/fuz_app/testing/stubs.ts';
 import { AsyncSemaphore } from '@fuzdev/fuz_util/async.ts';
 
@@ -41,34 +41,19 @@ describe('POST /:filename upload permit', () => {
 		const upload = specs.find((spec) => spec.method === 'POST' && spec.path === '/:filename{.+}');
 		assert.ok(upload, 'the upload route spec exists');
 
-		const request_context: RequestContext = {
+		const auth: RequestContext = {
 			account: create_throwing_stub<Account>('account'),
 			actor: null,
 			role_grants: []
 		};
-		const errors: Array<unknown> = [];
-		const app = new Hono();
-		app.onError((err, c) => {
-			errors.push(err);
-			return c.text('error', 500);
-		});
-		app.use(async (c, next) => {
-			c.set(REQUEST_CONTEXT_KEY, request_context);
-			await next();
-		});
-		app.post(upload.path, async (c) =>
-			to_route_response(c, await upload.handler(c, create_throwing_stub<RouteContext>('route')))
-		);
+		const route = { auth, params: { filename: 'a.txt' } } as unknown as RouteContext;
 
-		const res = await app.request('/a.txt', {
-			method: 'POST',
-			body: 'bytes',
-			headers: { 'Content-Length': '5' }
-		});
-
-		assert.strictEqual(res.status, 500);
-		assert.strictEqual(errors.length, 1);
-		const [error] = errors;
+		let error: unknown;
+		try {
+			await upload.handler(route);
+		} catch (err) {
+			error = err;
+		}
 		assert(error instanceof Error);
 		assert.match(error.message, /no acting actor/);
 		assert.strictEqual(upload_semaphore.acquired, 0);

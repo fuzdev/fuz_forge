@@ -88,7 +88,7 @@ pub struct GitAuthOk {
     pub repo_id: String,
     pub repo_path: PathBuf,
     /// The credential's `api_token.scope`, carried from the validated row: the
-    /// policy middleware doesn't fire on these app-root routes, so nothing else
+    /// auth middleware doesn't fire on these app-root routes, so nothing else
     /// on the request holds it. Read by [`check_repo_capability`] when the token
     /// has no policy row.
     pub scope: TokenScope,
@@ -171,11 +171,12 @@ fn is_valid_repo_slug(slug: &str) -> bool {
 /// 2. Parse Basic auth from `Authorization`, and refuse a password that is not
 ///    [`is_api_token_shaped`] before any database work.
 /// 3. blake3-hash the password (Basic password is the api token raw
-///    value), query `api_token` for a non-expired row; record the token use
-///    (`last_used_at` + `last_used_ip` from `client_ip`), fire-and-forget.
-/// 4. Load the account from the token. The Basic-auth username is NOT
-///    validated against it (any username works with a valid token —
-///    GitHub/GitLab PAT semantics); the token already identifies the account.
+///    value), query `api_token` for a non-expired row.
+/// 4. Load the account from the token, then record the token use
+///    (`last_used_at` + `last_used_ip` from `client_ip`), fire-and-forget. The
+///    Basic-auth username is NOT validated against the account (any username
+///    works with a valid token — GitHub/GitLab PAT semantics); the token
+///    already identifies the account.
 /// 5. Check the account has a global `admin` role grant.
 /// 6. Validate the slug, look up the repo cell.
 /// 7. Hydrate the scoped-token policy into [`GitAuthOk::policy`] (the
@@ -218,12 +219,6 @@ pub async fn authenticate_git_request(
         return Err(FuzForgeError::Forbidden);
     };
 
-    // Record the token use (last_used_at + last_used_ip), fire-and-forget via
-    // the shared spine helper — mirrors the bearer resolve path and the TS git
-    // auth's `query_validate_api_token` touch. Fires on a valid token regardless
-    // of the later admin / capability gates (the token *was* used).
-    spawn_api_token_touch(&state.app.backend.pool, &api_token.id, client_ip);
-
     // (4) Resolve the account (needed for the admin check + GitAuthOk). The
     // Basic-auth username is NOT validated against it: the token already
     // identifies the account, so requiring a matching username adds friction
@@ -232,6 +227,13 @@ pub async fn authenticate_git_request(
     let Some(account) = query_account_by_id(&client, &api_token.account_id).await? else {
         return Err(FuzForgeError::Forbidden);
     };
+
+    // Record the token use (last_used_at + last_used_ip), fire-and-forget via
+    // the shared spine helper, once the account is found live — a token on a
+    // tombstoned account records none, as on the bearer resolve path. Mirrors
+    // the TS git auth's `query_api_token_touch`. Fires regardless of the later
+    // admin / capability gates (the token *was* used).
+    spawn_api_token_touch(&state.app.backend.pool, &api_token.id, client_ip);
 
     // (5) Global admin role check via the shared spine helper's
     // `scope_id IS NULL` global-grant query. (A join without that filter

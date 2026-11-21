@@ -16,10 +16,11 @@
  * 5. `read_cgi_head` — drain stdout until the CGI separator (502 on EOF /
  *    cap overflow).
  * 6. `parse_cgi_head` — CGI head parse (takes `deps` only to log a
- *    dropped header).
+ *    dropped header); a head without a usable `Content-Type` gets
+ *    `CGI_DEFAULT_CONTENT_TYPE`.
  *
- * The response is then `new Response(body_stream, {status, headers})` — the TS
- * runtime reaps the child and the `Headers` object has no default-header
+ * The answer is then `route_raw({status, headers, body: body_stream})` — the TS
+ * runtime reaps the child and the raw headers have no default-header
  * collision, so the Rust `reap_child` / `build_proxy_response` /
  * `apply_cgi_headers` stages have no TS analog. The one behavior
  * `apply_cgi_headers` does carry — dropping a header the HTTP layer refuses —
@@ -28,16 +29,19 @@
  * @module
  */
 
-import type { Context } from 'hono';
 import type { Logger } from '@fuzdev/fuz_util/log.ts';
 import { to_error_message } from '@fuzdev/fuz_util/error.ts';
 import type { RuntimeDeps } from '@fuzdev/fuz_app/runtime/deps.ts';
-import { get_client_ip } from '@fuzdev/fuz_app/http/client_ip.ts';
+import {
+	route_raw,
+	ROUTE_RAW_REFUSED_HEADERS,
+	type RouteRaw
+} from '@fuzdev/fuz_app/http/route_result.ts';
 
 import { repo_path } from '../../fuz_forge/repo/storage.ts';
 import { concat_uint8 } from '../../runtime/bytes.ts';
 import type { SpawnStreaming, SpawnStreamingHandle } from '../subprocess.ts';
-import type { GitAuthOk } from './repo_git_auth.ts';
+import type { GitAuthOk, GitRequest } from './repo_git_auth.ts';
 
 /** Dependencies for the CGI streaming proxy. */
 export interface GitCgiDeps {
@@ -67,19 +71,19 @@ interface ProxyOptions {
 const build_cgi_env = (
 	deps: GitCgiDeps,
 	auth: GitAuthOk,
-	c: Context,
+	route: GitRequest,
 	options: ProxyOptions
 ): Record<string, string> => {
 	const project_root = repo_path(deps.runtime, auth.repo_id).replace(/\/[^/]+\.git$/, '');
-	const content_type = c.req.header('Content-Type');
-	const content_encoding = c.req.header('Content-Encoding') ?? '';
+	const content_type = route.request.headers.get('Content-Type');
+	const content_encoding = route.request.headers.get('Content-Encoding') ?? '';
 	const env: Record<string, string> = {
 		GIT_PROJECT_ROOT: project_root,
 		PATH_INFO: options.path_info,
 		REQUEST_METHOD: options.request_method,
 		QUERY_STRING: options.query_string,
 		REMOTE_USER: auth.username,
-		REMOTE_ADDR: get_client_ip(c),
+		REMOTE_ADDR: route.client_ip,
 		FUZ_FORGE_PUSH_ACCOUNT_ID: auth.account_id,
 		FUZ_FORGE_PUSH_USERNAME: auth.username,
 		// `git http-backend` execs git-upload-pack / git-receive-pack — both
@@ -101,25 +105,24 @@ const build_cgi_env = (
 	};
 	// Set `CONTENT_TYPE` only when the request carries the header (matching the
 	// Rust twin, which omits it when absent) — not an empty-string default.
-	if (content_type !== undefined) env.CONTENT_TYPE = content_type;
+	if (content_type !== null) env.CONTENT_TYPE = content_type;
 	if (content_encoding) env.HTTP_CONTENT_ENCODING = content_encoding;
 	return env;
 };
 
 /**
  * Spawn `git http-backend` with the CGI `env`. Returns the streaming handle, or
- * a 503 `Response` when the streaming subprocess primitive isn't wired (e.g. a
+ * a 503 answer when the streaming subprocess primitive isn't wired (e.g. a
  * Node test run without `spawn_streaming`).
  */
 const spawn_http_backend = (
 	deps: GitCgiDeps,
-	c: Context,
 	env: Record<string, string>
-): SpawnStreamingHandle | Response => {
+): SpawnStreamingHandle | RouteRaw => {
 	const spawn = deps.spawn_streaming;
 	if (!spawn) {
 		deps.log.error('repo_git: spawn_streaming not configured');
-		return c.text('Forge subprocess unavailable\n', 503);
+		return plain_text_answer(503, 'Forge subprocess unavailable\n');
 	}
 	return spawn('git', ['http-backend'], { env });
 };
@@ -156,11 +159,11 @@ const drain_stderr = (handle: SpawnStreamingHandle): (() => string) => {
  */
 const pipe_request_body = (
 	handle: SpawnStreamingHandle,
-	c: Context,
+	request: Request,
 	deps: GitCgiDeps,
 	path_info: string
 ): void => {
-	const body = c.req.raw.body;
+	const body = request.body;
 	if (body) {
 		void body.pipeTo(handle.stdin).catch((err: unknown) => {
 			deps.log.warn(`repo_git: stdin pipe failed for ${path_info}: ${String(err)}`);
@@ -181,23 +184,23 @@ const pipe_request_body = (
  */
 export const proxy_to_git_http_backend = async (
 	deps: GitCgiDeps,
-	c: Context,
+	route: GitRequest,
 	auth: GitAuthOk,
 	options: ProxyOptions
-): Promise<Response> => {
-	const env = build_cgi_env(deps, auth, c, options);
-	const handle = spawn_http_backend(deps, c, env);
-	if (handle instanceof Response) return handle;
+): Promise<RouteRaw> => {
+	const env = build_cgi_env(deps, auth, route, options);
+	const handle = spawn_http_backend(deps, env);
+	if ('ok' in handle) return handle;
 
 	const read_stderr = drain_stderr(handle);
-	pipe_request_body(handle, c, deps, options.path_info);
+	pipe_request_body(handle, route.request, deps, options.path_info);
 
 	// Parse CGI headers from the subprocess stdout, then forward the
 	// remaining bytes as the response body.
 	let head_buffer: Uint8Array;
 	let body_stream: ReadableStream<Uint8Array>;
 	try {
-		const parsed = await read_cgi_head(handle.stdout);
+		const parsed = await read_cgi_head(handle.stdout, () => handle.kill('SIGTERM'));
 		head_buffer = parsed.head_buffer;
 		body_stream = parsed.body_stream;
 	} catch (err) {
@@ -209,9 +212,15 @@ export const proxy_to_git_http_backend = async (
 		deps.log.error(
 			`repo_git: git http-backend CGI head parse failed (${reason}); stderr: ${read_stderr().trim()}`
 		);
-		return c.text('Forge subprocess error\n', 502);
+		return plain_text_answer(502, 'Forge subprocess error\n');
 	}
 	const { status, headers } = parse_cgi_head(deps, head_buffer);
+
+	// `git http-backend`'s own refusals (its 403, 404, 415, and a `die`'s 500)
+	// carry a plain-text message and no `Content-Type`, which the spine sends
+	// no body without (a runtime would derive its own); the server supplies
+	// one, as RFC 3875 §6.3.1 lets it. The Rust twin does the same.
+	headers['content-type'] ??= [CGI_DEFAULT_CONTENT_TYPE];
 
 	// On non-200 from a CGI subprocess, surface stderr to the log too —
 	// useful when the binary refuses a request.
@@ -224,8 +233,19 @@ export const proxy_to_git_http_backend = async (
 		});
 	}
 
-	return new Response(body_stream, { status, headers });
+	return route_raw({ status, headers, body: body_stream });
 };
+
+/**
+ * The `Content-Type` of a CGI answer whose head names none — `git
+ * http-backend`'s refusals, whose body is a plain-text message. Twin of the Rust
+ * `CGI_DEFAULT_CONTENT_TYPE` (`forge_git/cgi.rs`).
+ */
+const CGI_DEFAULT_CONTENT_TYPE = 'text/plain';
+
+/** A plain-text answer for the proxy's own failures, as Hono's `c.text` spelled it. */
+const plain_text_answer = (status: number, body: string): RouteRaw =>
+	route_raw({ status, headers: { 'Content-Type': 'text/plain; charset=UTF-8' }, body });
 
 /**
  * Maximum bytes we'll accumulate looking for the CGI header / body
@@ -246,9 +266,15 @@ const CGI_HEAD_MAX_BYTES = 64 * 1024;
  * unfinished head crosses `CGI_HEAD_MAX_BYTES`. The caller
  * (`proxy_to_git_http_backend`) maps both to HTTP 502 instead of
  * defaulting to a 200 with truncated bytes.
+ *
+ * The body stream's `cancel` ends the subprocess (`kill`) as well as releasing
+ * stdout: the spine cancels a stream body it doesn't send (a `HEAD`, a refused
+ * answer), and a `git-receive-pack` still reading stdin must not go on to
+ * apply a push its client was refused.
  */
 const read_cgi_head = async (
-	stdout: ReadableStream<Uint8Array>
+	stdout: ReadableStream<Uint8Array>,
+	kill: () => void
 ): Promise<{ head_buffer: Uint8Array; body_stream: ReadableStream<Uint8Array> }> => {
 	const reader = stdout.getReader();
 	const head_chunks: Array<Uint8Array> = [];
@@ -298,6 +324,7 @@ const read_cgi_head = async (
 		},
 		cancel() {
 			void reader.cancel();
+			kill();
 		}
 	});
 
@@ -336,7 +363,7 @@ const CGI_STATUS_CODE_PATTERN = /^\d{3}$/;
  * Parse a CGI `Status:` value's code: the leading space/tab-delimited token of
  * `"<code> <reason>"`. Returns `null` — leaving the CGI default 200 — unless
  * the token is three ASCII digits in 200-599 excluding the null-body statuses
- * (204/205/304) — the set both runtimes can emit: `new Response` throws
+ * (204/205/304) — the set both runtimes can emit: a raw answer is refused
  * outside 200-599 and on a null-body status with a stream body (a 500, plus
  * an unreaped `git http-backend` child) where the Rust twin would answer the
  * code verbatim. Splitting on `[ \t]` rather than `\s` is the same parity concern —
@@ -353,6 +380,22 @@ const parse_cgi_status = (value: string): number | null => {
 	return status;
 };
 
+const ROUTE_RAW_REFUSED: ReadonlySet<string> = new Set(ROUTE_RAW_REFUSED_HEADERS);
+
+/** A header value's bytes as axum's `HeaderValue::from_str` admits them: visible ASCII, SP, HTAB. */
+const HEADER_VALUE_BYTES = /^[\t\x20-\x7e]*$/;
+
+/** Whether the `Headers` API accepts the name and value, and the value's bytes are `HEADER_VALUE_BYTES`. */
+const is_representable_header = (name: string, value: string): boolean => {
+	if (!HEADER_VALUE_BYTES.test(value)) return false;
+	try {
+		new Headers().append(name, value);
+		return true;
+	} catch {
+		return false;
+	}
+};
+
 /**
  * Parse a CGI header block into `{status, headers}`. Lines look like:
  *
@@ -367,14 +410,19 @@ const parse_cgi_status = (value: string): number | null => {
  * preceding value) — is **skipped**, not fatal, matching the Rust twin's
  * `apply_cgi_headers`, which drops it. The head comes from `git
  * http-backend`'s stdout, so a malformed header is a subprocess anomaly worth
- * a debug breadcrumb, not a failed request.
+ * a debug breadcrumb, not a failed request. So is one a raw answer may not
+ * carry (`ROUTE_RAW_REFUSED_HEADERS` — hop-by-hop names and `Set-Cookie`,
+ * which `git http-backend` never emits), an empty value, and a value with a
+ * byte outside visible ASCII, space and tab, which the spine or axum's
+ * `HeaderValue` would refuse — the set the Rust twin's `apply_cgi_headers`
+ * drops. A name repeated in any case is one entry, its values in order.
  */
 const parse_cgi_head = (
 	deps: GitCgiDeps,
 	head_buffer: Uint8Array
-): { status: number; headers: Headers } => {
+): { status: number; headers: Record<string, Array<string>> } => {
 	const text = new TextDecoder().decode(head_buffer);
-	const headers = new Headers();
+	const headers: Record<string, Array<string>> = {};
 	let status = 200;
 	for (const raw_line of text.split(/\r?\n/)) {
 		if (!raw_line) continue;
@@ -387,11 +435,12 @@ const parse_cgi_head = (
 			if (parsed !== null) status = parsed;
 			continue;
 		}
-		try {
-			headers.append(name, value);
-		} catch {
+		const key = name.toLowerCase();
+		if (!value || ROUTE_RAW_REFUSED.has(key) || !is_representable_header(name, value)) {
 			deps.log.debug(`repo_git: dropping unrepresentable CGI header ${JSON.stringify(name)}`);
+			continue;
 		}
+		(headers[key] ??= []).push(value);
 	}
 	return { status, headers };
 };

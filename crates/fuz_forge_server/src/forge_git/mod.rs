@@ -124,7 +124,7 @@ fn git_post_content_type_refused(repo: &str, headers: &HeaderMap) -> bool {
 
 /// The 400 body both backends answer for a missing or unsupported
 /// `?service=` on the advertise endpoint. Converged onto the TS literal
-/// (`repo_git.ts`'s `c.text('Bad Request\n', 400)`): the check is post-auth,
+/// (`repo_git.ts`'s plain-text `Bad Request\n` at 400): the check is post-auth,
 /// so a generic refusal carries no enumeration risk and there is no reason for
 /// the two backends to spell it differently.
 const BAD_REQUEST_BODY: &str = "Bad Request\n";
@@ -172,7 +172,7 @@ async fn handle_info_refs(
         return fuz_actions::server::not_found_response();
     };
     // The XFF-resolved client IP (`ClientIp` extension, set app-wide by
-    // `fuz_http::client_ip_middleware`) — the Rust analog of TS `get_client_ip`.
+    // `fuz_http::client_ip_middleware`) — the Rust analog of the TS `route.client_ip`.
     // Two shapes on purpose: the CGI env keeps the `Option` (an unresolved
     // caller leaves `REMOTE_ADDR` unset — see `cgi::CgiEnvOptions`), while the
     // `api_token` touch has no skip-the-column form and takes the sentinel.
@@ -236,7 +236,7 @@ async fn handle_pack(
         return fuz_actions::server::not_found_response();
     };
     // The XFF-resolved client IP (`ClientIp` extension, set app-wide by
-    // `fuz_http::client_ip_middleware`) — the Rust analog of TS `get_client_ip`.
+    // `fuz_http::client_ip_middleware`) — the Rust analog of the TS `route.client_ip`.
     // Two shapes on purpose: the CGI env keeps the `Option` (an unresolved
     // caller leaves `REMOTE_ADDR` unset — see `cgi::CgiEnvOptions`), while the
     // `api_token` touch has no skip-the-column form and takes the sentinel.
