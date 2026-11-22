@@ -327,9 +327,8 @@ async fn main() -> ExitCode {
     // matters even though `memo` is currently unwritten: the instant either
     // backend populates it, a missing entry here would leak rows across tests
     // on one backend only. `_testing_drain_effects` rides with the reset; the
-    // `audit_inflight_tracking` the test backend options turn on is what gives
-    // it something to await (the TS twin builds its emitter with
-    // `track_inflight: true` for the same reason).
+    // spine's audit emitter tracks its in-flight writes, which is what gives
+    // it something to await.
     let extra_specs_factory: ExtraActionSpecsFactory = Box::new(move |_app, runtime| {
         let mut specs = testing_reset_specs(
             &runtime,

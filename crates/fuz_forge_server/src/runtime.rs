@@ -61,16 +61,15 @@ pub type FinalActionSpecsFactory =
 pub struct RunAppOptions {
     /// The spine's swap points. Production: the [`fuz_auth::Argon2idHasher`],
     /// [`DEFAULT_ADDR`], [`fuz_http::DEFAULT_DRAIN_TIMEOUT`], the auth limiters
-    /// (login, signup) enforced, no daemon token, no hook, no in-flight audit
-    /// tracking. The `testing_fuz_forge_server` binary: the fast test hasher,
+    /// (login, signup) enforced, no daemon token, no hook. The
+    /// `testing_fuz_forge_server` binary: the fast test hasher,
     /// `127.0.0.1:4141` (so both can run side by side), the auth limiters
     /// `DisabledForTesting` unless its login env gate asks for `Enforced` (the
-    /// twin of the TS testing server's `create_testing_wiring`, `app_assembly.ts`
-    /// — a host firing many signup/login round-trips per backend lifetime
-    /// would trip the 5-per-15-min per-IP login budget), the daemon-token
-    /// state `_testing_reset` resolves the keeper through, the env-gated
-    /// schema wipe, and in-flight tracking so `_testing_drain_effects` is a
-    /// real barrier (the TS testing server's `track_inflight: true`).
+    /// twin of the TS testing server's `create_testing_wiring`,
+    /// `app_assembly.ts` — a host firing many signup/login round-trips per
+    /// backend lifetime would trip the 5-per-15-min per-IP login budget), the
+    /// daemon-token state `_testing_reset` resolves the keeper through, and the
+    /// env-gated schema wipe.
     pub spine: SpineRunOptions,
     /// Factory injecting extra action specs after the standard set.
     /// Production: `None`. Test binary: `Some(_)` for `_testing_reset`.
@@ -131,12 +130,12 @@ pub fn upkeep_options(
 /// [`build_router`], and serves until the signal
 /// ([`fuz_actions::server::serve_until_shutdown`]): every live WebSocket is
 /// closed with 1001 and every audit stream ended, then in-flight requests
-/// drain. With a database, the upkeep ([`upkeep_options`]) runs beside the
-/// server, from the bind until shutdown begins, and is joined before this
-/// returns. `serve_with_shutdown` inserts `ConnectInfo<SocketAddr>` into every
-/// request — the `/internal/*` callback routes gate on a loopback peer
-/// (defense-in-depth alongside the per-repo secret; see
-/// `crate::internal_routes`).
+/// drain, then the audit writes in flight drain. With a database, the upkeep
+/// ([`upkeep_options`]) runs beside the server, from the bind until shutdown
+/// begins, and is joined before this returns. `serve_with_shutdown` inserts
+/// `ConnectInfo<SocketAddr>` into every request — the `/internal/*` callback
+/// routes gate on a loopback peer (defense-in-depth alongside the per-repo
+/// secret; see `crate::internal_routes`).
 ///
 /// Every configuration knob lives on [`RunAppOptions`]; everything not named
 /// there flows from the process environment via [`FuzForgeEnv`].
@@ -183,9 +182,11 @@ pub async fn run_app(options: RunAppOptions) -> Result<(), StartupError> {
             addr,
             drain_timeout,
             shutdown,
-            connection_closer: app.as_ref().map(|app| app.backend.connection_closer()),
-            upkeep: app.as_ref().map(|app| {
-                upkeep_options(app.backend.auth_cleanup_options(), env.fact_store_root())
+            backend: app.as_ref().map(|app| {
+                app.backend.serve_backend(Some(upkeep_options(
+                    app.backend.auth_cleanup_options(),
+                    env.fact_store_root(),
+                )))
             }),
         },
     )

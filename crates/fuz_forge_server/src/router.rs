@@ -158,7 +158,7 @@ pub const FUZ_FORGE_BACKEND_SPEC: AppBackendSpec = AppBackendSpec {
 )]
 pub struct BuildRouterOptions {
     /// The spine's swap points: hasher, auth limiter mode, daemon-token state,
-    /// pre-migration hook, in-flight audit tracking.
+    /// pre-migration hook.
     pub backend: SpineBackendOptions,
     /// Extra specs folded in after the standard set.
     pub extra_action_specs_factory: Option<ExtraActionSpecsFactory>,
