@@ -217,6 +217,7 @@ mod tests {
             session_cookie_name: crate::router::FUZ_FORGE_SESSION_COOKIE_NAME,
             allowed_origins: fuz_http::AllowedOrigins::parse("http://localhost:*")
                 .expect("an allowlist"),
+            background_writes: Arc::default(),
         }
     }
 

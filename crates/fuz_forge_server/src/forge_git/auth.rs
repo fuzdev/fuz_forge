@@ -230,10 +230,17 @@ pub async fn authenticate_git_request(
 
     // Record the token use (last_used_at + last_used_ip), fire-and-forget via
     // the shared spine helper, once the account is found live — a token on a
-    // tombstoned account records none, as on the bearer resolve path. Mirrors
-    // the TS git auth's `query_api_token_touch`. Fires regardless of the later
-    // admin / capability gates (the token *was* used).
-    spawn_api_token_touch(&state.app.backend.pool, &api_token.id, client_ip);
+    // tombstoned account records none, as on the bearer resolve path. Spawned
+    // on the backend's tracker of detached writes, so the shutdown drain awaits
+    // it with the audit rows. Mirrors the TS git auth's `query_api_token_touch`.
+    // Fires regardless of the later admin / capability gates (the token *was*
+    // used).
+    spawn_api_token_touch(
+        state.app.backend.background_writes(),
+        &state.app.backend.pool,
+        &api_token.id,
+        client_ip,
+    );
 
     // (5) Global admin role check via the shared spine helper's
     // `scope_id IS NULL` global-grant query. (A join without that filter

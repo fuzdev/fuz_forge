@@ -124,7 +124,7 @@ async fn the_upkeep_tasks_sweep_at_startup_and_stop_on_shutdown() {
         .set_modified(SystemTime::now() - fuz_fact::ORPHAN_TEMP_MAX_AGE - Duration::from_secs(60))
         .expect("backdate the orphan");
 
-    let audit = Arc::new(AuditEmitter::new(pool.clone()));
+    let audit = Arc::new(AuditEmitter::new(pool.clone(), Arc::default()));
     let (tx, mut audited) = tokio::sync::mpsc::unbounded_channel::<Arc<AuditLogEvent>>();
     audit.add_listener(Arc::new(move |event| {
         // a send after the test's last `recv` has nowhere to go
