@@ -47,7 +47,7 @@
 //! `fuz_fact`.
 
 use fuz_actions::server::{
-    AppBackendSpec, BootOnlyRouter, BootedAppBackend, SpineBackendOptions, StartupError, boot_only,
+    AppBackendSpec, BootedAppBackend, SpineBackendOptions, StartupError, boot_only,
     create_app_backend,
 };
 use fuz_db::MigrationNamespace;
@@ -182,9 +182,9 @@ pub struct BuildRouterOptions {
 )]
 pub enum BuiltRouter {
     /// No database: the probes alone, served with no backend.
-    BootOnly(BootOnlyRouter),
-    /// A database: the composed router, served as `ServeMode::Live` with its
-    /// app's `serve_backend`, and the app it serves over.
+    BootOnly(GatedRouter),
+    /// A database: the composed router, carrying its backend's shutdown
+    /// duties (`AppBackend::stack_options`), and the app it serves over.
     Live {
         router: GatedRouter,
         app: FuzForgeApp,
@@ -316,7 +316,6 @@ mod tests {
                 .expect("the peer parses"),
         ));
         let response = router
-            .into_gated_router()
             .into_router_for_testing()
             .oneshot(request)
             .await

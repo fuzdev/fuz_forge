@@ -180,7 +180,7 @@ async fn boot() -> Booted {
             listener,
             router,
             fuz_http::CancellationToken::new(),
-            &fuz_http::NoopShutdownCloser,
+            Vec::new(),
             fuz_http::DEFAULT_DRAIN_TIMEOUT,
         )
         .await

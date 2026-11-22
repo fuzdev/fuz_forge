@@ -9,7 +9,7 @@
 use std::net::SocketAddr;
 
 use fuz_actions::server::{
-    ServeMode, ServeOptions, SpineRunOptions, StartupError, UpkeepOptions, serve_until_shutdown,
+    ServeOptions, SpineRunOptions, StartupError, UpkeepOptions, serve_until_shutdown,
 };
 
 use crate::app::FuzForgeApp;
@@ -130,7 +130,8 @@ pub fn upkeep_options(
 /// [`build_router`], and serves until the signal
 /// ([`fuz_actions::server::serve_until_shutdown`]): every live WebSocket is
 /// closed with 1001 and every audit stream ended, then in-flight requests
-/// drain, then the audit writes in flight drain. With a database, the upkeep
+/// drain, the upkeep is joined, and the audit writes in flight drain, all
+/// within one drain timeout. With a database, the upkeep
 /// ([`upkeep_options`]) runs beside the server, from the bind until shutdown
 /// begins, and is joined before this returns. `serve_with_shutdown` inserts
 /// `ConnectInfo<SocketAddr>` into every request — the `/internal/*` callback
@@ -175,23 +176,24 @@ pub async fn run_app(options: RunAppOptions) -> Result<(), StartupError> {
     )
     .await?;
 
-    let mode = match built {
-        BuiltRouter::BootOnly(router) => ServeMode::BootOnly(router),
-        BuiltRouter::Live { router, app } => ServeMode::Live {
+    let (router, upkeep) = match built {
+        BuiltRouter::BootOnly(router) => (router, None),
+        BuiltRouter::Live { router, app } => (
             router,
-            backend: app.backend.serve_backend(Some(upkeep_options(
+            Some(upkeep_options(
                 app.backend.auth_cleanup_options(),
                 env.fact_store_root(),
-            ))),
-        },
+            )),
+        ),
     };
     serve_until_shutdown(
-        mode,
+        router,
         ServeOptions {
             server_name: SERVER_NAME,
             addr,
             drain_timeout,
             shutdown,
+            upkeep,
         },
     )
     .await

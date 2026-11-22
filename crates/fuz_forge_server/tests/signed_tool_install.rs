@@ -200,7 +200,7 @@ async fn publish_then_install_tool_over_forge_storage() {
                 listener,
                 router,
                 shutdown,
-                &fuz_http::NoopShutdownCloser,
+                Vec::new(),
                 fuz_http::DEFAULT_DRAIN_TIMEOUT,
             )
             .await;
