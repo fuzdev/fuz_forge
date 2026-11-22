@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 use axum::Json;
 use axum::body::Body;
-use axum::extract::{Extension, Path, RawQuery, State};
+use axum::extract::{Extension, RawQuery, State};
 use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use futures::TryStreamExt;
@@ -29,14 +29,15 @@ use fuz_http::ClientIp;
 use uuid::Uuid;
 
 use crate::fact_store::{FactContent, PutOptions};
-use crate::query_params::{first_query_param, has_unknown_query_key};
+use crate::query_params::first_query_param;
 use crate::route_auth::resolve_acting_actor;
 use crate::token_policy::{FuzForgeCapability, FuzForgeTokenPolicy, policy_check};
 use crate::token_surfaces::{SURFACE_FILE_STORE, token_scope_admits_forge_surface};
 use fuz_auth::parse_acting_query;
 use fuz_http::{
-    PAYLOAD_TOO_LARGE_REASON, db_unavailable_response_with_source,
-    internal_error_response_with_source, invalid_route_params_response, rest_error_response,
+    PAYLOAD_TOO_LARGE_REASON, RouteParams, assert_known_query_keys,
+    db_unavailable_response_with_source, internal_error_response_with_source,
+    invalid_query_params_response, invalid_route_params_response, query_first, read_query_pairs,
 };
 
 use fuz_forge_wire::output::{
@@ -67,34 +68,31 @@ const ACTING_QUERY_KEY: &str = "acting";
 /// Read the `acting` actor selector for the file mutation routes (POST /
 /// DELETE) under the TS twins' `query: object({acting: ActingActor})`.
 ///
-/// Two halves, both off the raw query: an unrecognized key fails the parse
-/// (the strict-`object` part), and the recognized one collapses to its first
-/// value (what `c.req.query()` hands the schema). The value is a bare UUID,
-/// decoded by [`parse_acting_query`]; absent ⇒ the credential's primary
-/// actor.
+/// Three steps, all off the raw query, as the TS route's query stage runs
+/// them: the query is read strictly ([`read_query_pairs`]: an escape that
+/// doesn't decode, in any key or value, refuses it), an unrecognized key fails
+/// the parse (the strict-`object` part, [`assert_known_query_keys`]), and the
+/// recognized one collapses to its first value ([`query_first`], what the
+/// schema is shown). The value is a bare UUID, decoded by
+/// [`parse_acting_query`]; absent ⇒ the credential's primary actor.
 ///
 /// Read raw rather than through an axum `Query<T>` extractor, whose serde
 /// decode refuses a duplicated key outright — a 400 where the TS twin takes
-/// the first value and proceeds. The `?meta` selector on [`handle_get`] and
-/// the git route's `?service=` had the same shape and the same fix.
+/// the first value and proceeds — and whose decoding is lossy.
 ///
 /// # Errors
 ///
-/// Returns the 400 `invalid_query_params` `Response` for an unknown key or an
-/// `acting` value that isn't a UUID — the one body the TS strict `object`
-/// answers for either.
+/// Returns the 400 `invalid_query_params` `Response` for a query that doesn't
+/// decode, an unknown key, or an `acting` value that isn't a UUID — the one
+/// body the TS query stage answers for each.
 #[expect(
     clippy::result_large_err,
     reason = "Err is the ready-to-return axum Response — the crate-wide REST handler idiom"
 )]
 fn parse_acting_strict_query(raw_query: Option<&str>) -> Result<Option<Uuid>, Response> {
-    if has_unknown_query_key(raw_query, &[ACTING_QUERY_KEY]) {
-        return Err(rest_error_response(
-            StatusCode::BAD_REQUEST,
-            "invalid_query_params",
-        ));
-    }
-    parse_acting_query(first_query_param(raw_query, ACTING_QUERY_KEY).as_deref())
+    let pairs = read_query_pairs(raw_query).map_err(|_| invalid_query_params_response())?;
+    assert_known_query_keys(&pairs, &[ACTING_QUERY_KEY])?;
+    parse_acting_query(query_first(&pairs, ACTING_QUERY_KEY))
 }
 
 /// 403 `{error: "forbidden", required: "<capability>"}` — the TS
@@ -216,14 +214,15 @@ fn validate_file_key(filename: &str) -> Result<(), Response> {
 )]
 pub(super) async fn handle_upload(
     State(state): State<FilesRouteState>,
-    Path(filename): Path<String>,
+    params: Result<RouteParams<String>, Response>,
     RawQuery(raw_query): RawQuery,
     client_ip: Option<Extension<ClientIp>>,
     headers: HeaderMap,
     body: Body,
 ) -> Result<Response, Response> {
     // The TS route runner's phase order, which this handler mirrors step for
-    // step: content type (415) → query shape (400) → authenticate (401) →
+    // step: content type (415) → path params (400) → query shape (400) →
+    // authenticate (401) →
     // resolve the acting actor (400) → role (403) → the handler's own gates.
     // Running the role gate ahead of the actor resolution answered 403 where
     // TS answers 400 for the same request; see `apply_route_specs` /
@@ -235,6 +234,9 @@ pub(super) async fn handle_upload(
     if fuz_http::is_cors_simple_content_type(&headers) {
         return Err(fuz_http::unsupported_content_type_response());
     }
+    // taken as a `Result` so its refusal follows the 415, as the TS params
+    // stage follows the content type
+    let RouteParams(filename) = params?;
     let acting = parse_acting_strict_query(raw_query.as_deref())?;
     // The XFF-resolved client IP (`ClientIp` extension, set app-wide by
     // `fuz_http::client_ip_middleware`) — the Rust analog of TS `get_client_ip`.
@@ -459,7 +461,7 @@ fn upload_response(
 )]
 pub(super) async fn handle_get(
     State(state): State<FilesRouteState>,
-    Path(filename): Path<String>,
+    RouteParams(filename): RouteParams<String>,
     RawQuery(raw_query): RawQuery,
     client_ip: Option<Extension<ClientIp>>,
     headers: HeaderMap,
@@ -504,9 +506,11 @@ pub(super) async fn handle_get(
     // query rather than through an axum `Query<T>` extractor. An extractor runs
     // before the handler body, so a duplicate `?meta` key was refused with
     // axum's own pre-auth 400 naming the field, where TS takes the first value
-    // and serves the metadata; the git route's `?service=` had the same shape
-    // and the same fix.
-    if first_query_param(raw_query.as_deref(), "meta").is_some() {
+    // and serves the metadata. A query that doesn't decode is refused here,
+    // where the TS twin reads it, past the gates above.
+    let meta = first_query_param(raw_query.as_deref(), "meta")
+        .map_err(|_| invalid_query_params_response())?;
+    if meta.is_some() {
         let uploaded_at = cell.updated_at.unwrap_or(cell.created_at);
         return Ok(Json(file_data.to_meta_output(&filename, &uploaded_at)).into_response());
     }
@@ -649,12 +653,13 @@ pub(super) async fn handle_list(
 )]
 pub(super) async fn handle_delete(
     State(state): State<FilesRouteState>,
-    Path(filename): Path<String>,
+    RouteParams(filename): RouteParams<String>,
     RawQuery(raw_query): RawQuery,
     client_ip: Option<Extension<ClientIp>>,
     headers: HeaderMap,
 ) -> Result<Response, Response> {
-    // Same phase order as [`handle_upload`] — query shape (400) →
+    // Same phase order as [`handle_upload`] — path params (400, the
+    // extractor) → query shape (400) →
     // authenticate (401) → acting actor (400) → role (403) → the handler's
     // own gates.
     let acting = parse_acting_strict_query(raw_query.as_deref())?;

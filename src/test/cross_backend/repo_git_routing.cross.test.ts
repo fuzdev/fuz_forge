@@ -61,10 +61,10 @@
  * caller still gets the generic 401) and after the URL grammar. Rust answered
  * `missing service` / `unsupported service`, and rejected a duplicate key from
  * an axum query extractor — pre-auth, pre-grammar, and naming an internal
- * field to anonymous callers. Both sides read the raw query with WHATWG
- * `application/x-www-form-urlencoded` semantics, so a percent-encoded spelling
- * of the key is the same key and first-pair-wins applies across the two
- * spellings.
+ * field to anonymous callers. Both sides read the query through their spine's
+ * strict reader, so a percent-encoded spelling of the key is the same key and
+ * first-pair-wins applies across the two spellings; a query that doesn't
+ * decode is `request_target.cross.test.ts`'s.
  *
  * Requires `git` + `python3` on the host — `fuz_forge_repo_create` inits a bare
  * repo with python3 hooks, and the positive control runs `git http-backend`.
@@ -201,8 +201,8 @@ describe('git smart-HTTP clone-URL grammar (cross-process, both backends)', () =
 			// backends — keys are decoded before matching — so first-wins
 			// picks the unsupported value here. Hono's `c.req.query` scans the
 			// un-decoded query for the literal key substring first and would
-			// read `git-upload-pack`, which is why the TS handler reads the raw
-			// query through `URLSearchParams` instead.
+			// read `git-upload-pack`, which is why the TS handler reads the
+			// route context's strictly read `query_pairs` instead.
 			['percent-encoded service key wins first', '%73ervice=bogus&service=git-upload-pack'],
 			['unknown parameter only', 'nope=1']
 		] as const) {

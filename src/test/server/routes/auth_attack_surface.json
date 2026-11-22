@@ -2418,54 +2418,108 @@
 			},
 			"error_schemas": {
 				"400": {
-					"type": "object",
-					"properties": {
-						"error": {
-							"type": "string",
-							"const": "invalid_route_params"
-						},
-						"issues": {
-							"type": "array",
-							"items": {
-								"type": "object",
-								"properties": {
-									"kind": {
-										"type": "string"
-									},
-									"path": {
-										"type": "array",
-										"items": {
-											"type": [
-												"string",
-												"number"
-											]
-										}
-									},
-									"expected": {
-										"type": "string"
-									},
-									"received": {
-										"type": "string"
-									},
-									"message": {
-										"type": "string"
-									}
+					"anyOf": [
+						{
+							"type": "object",
+							"properties": {
+								"error": {
+									"type": "string",
+									"const": "invalid_route_params"
 								},
-								"required": [
-									"kind",
-									"path",
-									"expected",
-									"received",
-									"message"
-								],
-								"additionalProperties": {}
-							}
+								"issues": {
+									"type": "array",
+									"items": {
+										"type": "object",
+										"properties": {
+											"kind": {
+												"type": "string"
+											},
+											"path": {
+												"type": "array",
+												"items": {
+													"type": [
+														"string",
+														"number"
+													]
+												}
+											},
+											"expected": {
+												"type": "string"
+											},
+											"received": {
+												"type": "string"
+											},
+											"message": {
+												"type": "string"
+											}
+										},
+										"required": [
+											"kind",
+											"path",
+											"expected",
+											"received",
+											"message"
+										],
+										"additionalProperties": {}
+									}
+								}
+							},
+							"required": [
+								"error"
+							],
+							"additionalProperties": {}
+						},
+						{
+							"type": "object",
+							"properties": {
+								"error": {
+									"type": "string",
+									"const": "invalid_query_params"
+								},
+								"issues": {
+									"type": "array",
+									"items": {
+										"type": "object",
+										"properties": {
+											"kind": {
+												"type": "string"
+											},
+											"path": {
+												"type": "array",
+												"items": {
+													"type": [
+														"string",
+														"number"
+													]
+												}
+											},
+											"expected": {
+												"type": "string"
+											},
+											"received": {
+												"type": "string"
+											},
+											"message": {
+												"type": "string"
+											}
+										},
+										"required": [
+											"kind",
+											"path",
+											"expected",
+											"received",
+											"message"
+										],
+										"additionalProperties": {}
+									}
+								}
+							},
+							"required": [
+								"error"
+							],
+							"additionalProperties": {}
 						}
-					},
-					"required": [
-						"error"
-					],
-					"additionalProperties": {}
+					]
 				},
 				"401": {
 					"type": "object",
@@ -3422,54 +3476,108 @@
 			"output_schema": {},
 			"error_schemas": {
 				"400": {
-					"type": "object",
-					"properties": {
-						"error": {
-							"type": "string",
-							"const": "invalid_route_params"
-						},
-						"issues": {
-							"type": "array",
-							"items": {
-								"type": "object",
-								"properties": {
-									"kind": {
-										"type": "string"
-									},
-									"path": {
-										"type": "array",
-										"items": {
-											"type": [
-												"string",
-												"number"
-											]
-										}
-									},
-									"expected": {
-										"type": "string"
-									},
-									"received": {
-										"type": "string"
-									},
-									"message": {
-										"type": "string"
-									}
+					"anyOf": [
+						{
+							"type": "object",
+							"properties": {
+								"error": {
+									"type": "string",
+									"const": "invalid_route_params"
 								},
-								"required": [
-									"kind",
-									"path",
-									"expected",
-									"received",
-									"message"
-								],
-								"additionalProperties": {}
-							}
+								"issues": {
+									"type": "array",
+									"items": {
+										"type": "object",
+										"properties": {
+											"kind": {
+												"type": "string"
+											},
+											"path": {
+												"type": "array",
+												"items": {
+													"type": [
+														"string",
+														"number"
+													]
+												}
+											},
+											"expected": {
+												"type": "string"
+											},
+											"received": {
+												"type": "string"
+											},
+											"message": {
+												"type": "string"
+											}
+										},
+										"required": [
+											"kind",
+											"path",
+											"expected",
+											"received",
+											"message"
+										],
+										"additionalProperties": {}
+									}
+								}
+							},
+							"required": [
+								"error"
+							],
+							"additionalProperties": {}
+						},
+						{
+							"type": "object",
+							"properties": {
+								"error": {
+									"type": "string",
+									"const": "invalid_query_params"
+								},
+								"issues": {
+									"type": "array",
+									"items": {
+										"type": "object",
+										"properties": {
+											"kind": {
+												"type": "string"
+											},
+											"path": {
+												"type": "array",
+												"items": {
+													"type": [
+														"string",
+														"number"
+													]
+												}
+											},
+											"expected": {
+												"type": "string"
+											},
+											"received": {
+												"type": "string"
+											},
+											"message": {
+												"type": "string"
+											}
+										},
+										"required": [
+											"kind",
+											"path",
+											"expected",
+											"received",
+											"message"
+										],
+										"additionalProperties": {}
+									}
+								}
+							},
+							"required": [
+								"error"
+							],
+							"additionalProperties": {}
 						}
-					},
-					"required": [
-						"error"
-					],
-					"additionalProperties": {}
+					]
 				},
 				"403": {
 					"anyOf": [

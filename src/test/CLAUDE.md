@@ -45,7 +45,10 @@ Rust-side suites:
   `fuz_auth` and `fuz_fact`); `repo_receive_callback_past_commit.rs`, which
   pins that the post-receive callback, dropped by its hook mid-commit, still
   broadcasts (a Rust-only concern: hyper drops a request with its
-  connection); `fuzfd_args.rs`, `fuzfd`'s command parsing and exit codes.
+  connection); `request_reads_census.rs`, the spine's shared request-reads
+  census (`fuz_testing::request_reads_census`) over this workspace's
+  `clippy.toml`, with its positive controls; `fuzfd_args.rs`, `fuzfd`'s
+  command parsing and exit codes.
 - `crates/fuz_forge/tests/` — the real `fuzf` binary, offline: home
   resolution, `tool publish`'s key loading, `repo clone`'s flag rules.
 - `crates/testing_fuz_forge_server/tests/` — `testing_fuzfd_args.rs`, the test
@@ -239,6 +242,7 @@ other half of a parity contract have their own sections below.
 | `repo_push` | the whole write path: create → `git push` over smart-HTTP → hook → `/internal` callback → cell `head_sha` → read back | carries the >1 MiB pack and unknown-cell-key tripwires, and the git 404-vs-503 split. Needs `git` + `python3` |
 | `repo_read_shapes` | what `repo_push`'s linear history can't reach — merge parents, byte caps, the 404 family, binary blobs, both tag shapes, an uncompilable `--author` | the byte-cap probe pushes two oversized objects, so it stays a cross case |
 | `repo_updated_ws` | the `fuz_forge_repo_updated` broadcast frame and `last_pushed_at`'s wire shape | needs `/api/ws` (every TS test binary mounts it) and the `ws` dev dep |
+| `request_target` | the strict request-target reads on the forge's own routes — an undecodable path param is `400 invalid_route_params` ahead of auth (files, `/internal/repo-config`, git), an undecodable query `400 invalid_query_params` ahead of auth on the file mutations and past it where a handler reads `?meta` / `?service=`, each beside a decodable control | the readers are the spines' (`http/request_target.ts` ↔ `fuz_http::request_target`); the forge's twin table is `fixtures/parity/{query_param,service_param}.json` |
 | `rpc_credential_gates` | the session-only gate on the three session-only RPCs, with a bearer positive control | |
 | `rpc_input_strictness.shape` | which keys an input admits, which values a declared grammar admits, what `null` means on an optional | failure shows as a refusal one backend gives and the other doesn't |
 | `rpc_input_strictness.bounds` | declared string / list / numeric bounds refused, not clamped, each with its accepting edge | split from shape because the wrong answer here is a quieter *success* |

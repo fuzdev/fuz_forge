@@ -43,6 +43,7 @@ import {
 } from '@fuzdev/fuz_schema/schema.ts';
 import {
 	ERROR_PAYLOAD_TOO_LARGE,
+	REST_INVALID_QUERY_PARAMS,
 	REST_INVALID_ROUTE_PARAMS,
 	REST_TOKEN_SCOPE_REQUIRED,
 	rest_error
@@ -75,7 +76,7 @@ import {
 	query_cell_update
 } from '@fuzdev/fuz_app/db/cell_queries.ts';
 import { query_addressed_cells_by_kind } from '../db/fuz_forge_cell_queries.ts';
-import { first_query_param, raw_query_of } from '../query_params.ts';
+import { first_query_param } from '../query_params.ts';
 import type { FileMetaOutput } from '../../fuz_forge/file_meta.ts';
 
 /** The code of a file-store miss: no file at the key, or its bytes are gone. */
@@ -493,6 +494,7 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 			output: loose_object({ filename: string }),
 			errors: [
 				REST_INVALID_ROUTE_PARAMS,
+				REST_INVALID_QUERY_PARAMS,
 				REST_TOKEN_SCOPE_REQUIRED,
 				REST_FORBIDDEN,
 				REST_FILE_NOT_FOUND
@@ -520,12 +522,15 @@ export const create_file_route_specs = (deps: FileRoutesDeps): Array<RouteSpec> 
 				// `?meta`: metadata only — no fact-store byte fetch. Presence
 				// selects the branch whatever the value (a bare `?meta` reads as
 				// the empty string), and any other key is ignored. Read off the
-				// raw query rather than through Hono's `c.req.query`, which is not
-				// WHATWG form-urlencoded — the same convergence the git route's
+				// strictly read query rather than through Hono's `c.req.query`,
+				// which decodes leniently — the same convergence the git route's
 				// `?service=` made, and what lets the Rust twin drop its axum
 				// `Query<T>` extractor (whose pre-auth 400 on a duplicate key
-				// had no counterpart here).
-				if (first_query_param(raw_query_of(route.request.url), 'meta') !== undefined) {
+				// had no counterpart here). A query that doesn't decode is
+				// refused here, past the gates above, as the Rust twin refuses it.
+				const meta = first_query_param(route.query_pairs, 'meta');
+				if (!meta.ok) return route_fail(REST_INVALID_QUERY_PARAMS);
+				if (meta.value !== undefined) {
 					return route_ok(file_meta_view(filename, file_data, cell.updated_at ?? cell.created_at));
 				}
 

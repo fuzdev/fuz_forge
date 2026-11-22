@@ -149,7 +149,8 @@ semantics a client relies on:
   — content dedups, keys don't.
 - `GET <filename>` streams the bytes; any `meta` query parameter (`?meta`,
   `?meta=`, `?meta=x`) returns the metadata JSON instead, and other keys are
-  ignored.
+  ignored; a query holding a percent escape that doesn't decode, in any key,
+  is `400 invalid_query_params`.
 - `GET` on the root lists the whole store, unbounded, sorted by filename in
   byte order, filtered to what the token may read.
 - `DELETE <filename>` soft-deletes the metadata cell; the bytes stay in the

@@ -76,8 +76,20 @@
  */
 
 import { is, literal, object, string, unknown } from '@fuzdev/fuz_schema/schema.ts';
-import { define_route, type RouteSpec } from '@fuzdev/fuz_app/http/route_spec.ts';
-import { route_raw, type RouteRaw } from '@fuzdev/fuz_app/http/route_result.ts';
+import {
+	define_route,
+	type RouteContext,
+	type RouteSpec
+} from '@fuzdev/fuz_app/http/route_spec.ts';
+import {
+	route_fail,
+	route_raw,
+	type RouteFailOf,
+	type RouteRaw
+} from '@fuzdev/fuz_app/http/route_result.ts';
+import { REST_INVALID_QUERY_PARAMS } from '@fuzdev/fuz_app/http/error_schemas.ts';
+import type { PercentDecodeError, QueryPairsRead } from '@fuzdev/fuz_app/http/request_target.ts';
+import type { Result } from '@fuzdev/fuz_util/result.ts';
 
 import {
 	authenticate_git_request,
@@ -89,7 +101,7 @@ import {
 } from './repo_git_auth.ts';
 import { proxy_to_git_http_backend, type GitCgiDeps } from './git_cgi.ts';
 import { RepoSlug } from '../../fuz_forge/repo/repo_id.ts';
-import { first_query_param, raw_query_of } from '../query_params.ts';
+import { first_query_param } from '../query_params.ts';
 
 /**
  * Dependencies for the git smart-HTTP routes — the composite of the auth and
@@ -137,17 +149,21 @@ const path_has_encoded_slash = (url: string): boolean => {
 };
 
 /**
- * The first `service` value in the request's raw query string, percent-decoded.
+ * The first `service` value in the request's strictly read query.
  *
  * Twin of the Rust `first_service_param` (`forge_git/mod.rs`); both delegate to
  * the shared `first_query_param`, so the advertise endpoint's `?service=` reads
- * under WHATWG `application/x-www-form-urlencoded` semantics on both backends.
+ * by the spine's strict query rule on both backends.
  *
- * @returns `undefined` when no `service` key is present; the empty string for
- *   a bare or empty-valued key
+ * @param query_pairs - the query as the spine read it, the route context's
+ *   `query_pairs`
+ * @returns `undefined` when no `service` key is present, the empty string for
+ *   a bare or empty-valued key; or the refusal when the query doesn't decode
  */
-export const first_service_param = (raw_query: string | undefined): string | undefined =>
-	first_query_param(raw_query, 'service');
+export const first_service_param = (
+	query_pairs: QueryPairsRead
+): Result<{ value: string | undefined }, { error: PercentDecodeError }> =>
+	first_query_param(query_pairs, 'service');
 
 /** Compose the route path for a smart-HTTP endpoint. */
 const git_path = (suffix: string): string => `/:slug_with_git{${SLUG_WITH_GIT_PATTERN}}${suffix}`;
@@ -212,7 +228,8 @@ const resolve_slug = (route: GitRouteContext): string => {
 const GitRouteParams = object({ slug_with_git: string });
 
 /** What a git route handler reads of the route context. */
-type GitRouteContext = GitRequest & { params: { slug_with_git: string } };
+type GitRouteContext = GitRequest &
+	Pick<RouteContext, 'query_pairs'> & { params: { slug_with_git: string } };
 
 /**
  * Build the git smart-HTTP route specs.
@@ -221,11 +238,17 @@ type GitRouteContext = GitRequest & { params: { slug_with_git: string } };
  * handler keyed on `?service=<…>`.
  */
 export const create_repo_git_route_specs = (deps: RepoGitRoutesDeps): Array<RouteSpec> => {
-	const handle_advertise = async (route: GitRouteContext): Promise<RouteRaw> => {
+	const handle_advertise = async (
+		route: GitRouteContext
+	): Promise<RouteRaw | RouteFailOf<typeof REST_INVALID_QUERY_PARAMS>> => {
 		const auth = await authenticate_git_request(deps, route, resolve_slug(route));
 		if (!auth) return git_unauthorized();
 
-		const service = first_service_param(raw_query_of(route.request.url));
+		// Read past auth: an undecodable query is the spine's 400, an unusable
+		// `service` the git refusal below.
+		const service_read = first_service_param(route.query_pairs);
+		if (!service_read.ok) return route_fail(REST_INVALID_QUERY_PARAMS);
+		const service = service_read.value;
 		if (service !== 'git-upload-pack' && service !== 'git-receive-pack') {
 			// Dumb HTTP isn't supported; reject anything unexpected with a
 			// generic 400 (no enumeration risk since this branch is post-auth).
@@ -275,6 +298,7 @@ export const create_repo_git_route_specs = (deps: RepoGitRoutesDeps): Array<Rout
 			input: literal(null),
 			params: GitRouteParams,
 			output: unknown,
+			errors: [REST_INVALID_QUERY_PARAMS],
 			transaction: false,
 			handler: handle_advertise
 		}),

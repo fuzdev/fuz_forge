@@ -1,47 +1,41 @@
-//! Raw query-string reads shared by the hand-mounted REST routes.
+//! The one-key query read shared by the hand-mounted REST routes that read a
+//! parameter themselves, past their own gates.
 //!
-//! Twin of the TS `query_params.ts`. Both backends read query
-//! parameters with WHATWG `application/x-www-form-urlencoded` semantics: keys
-//! are percent-decoded before comparison, `+` is a space in the value, and the
-//! **first** matching pair wins. Neither side reads a query through a
-//! framework helper — axum's `Query<T>` extractor and Hono's `c.req.query()`
-//! each answer differently from the standard, and differently from each other.
+//! Twin of the TS `query_params.ts`. Both read the query through their spine's
+//! strict reader (`fuz_http::read_query_pairs` here, `fuz_app`'s
+//! `read_query_pairs` behind the route context's `query_pairs` there): keys are
+//! percent-decoded before comparison, `+` is a space, the **first** matching
+//! pair wins, and an escape that doesn't decode — anywhere in the query, a key
+//! no handler reads included — refuses the whole query rather than reading as
+//! text or as U+FFFD. Neither side reads a query through a framework helper:
+//! axum's `Query<T>` and Hono's `c.req.query()` each decode leniently, and
+//! differently from each other.
 
-/// The first value for `key` in a raw query string, percent-decoded.
+use fuz_http::{PercentDecodeError, query_first, read_query_pairs};
+
+/// The first value for `key` in a raw query string, percent-decoded strictly.
 ///
 /// Deliberately **not** an axum `Query<T>` extractor. An extractor runs before
 /// the handler body, so a query it can't deserialize — a duplicate key, say —
 /// is refused with axum's own 400 naming the field, ahead of the route's auth
 /// gate and visible to anonymous callers. Reading the raw query inside the
-/// handler keeps auth first and the leniency the TS twin has.
+/// handler keeps auth first, as the TS twin's handler reads it.
 ///
-/// Returns `None` when the key is absent, and `Some("")` for a bare or
+/// `Ok(None)` when the key is absent, and `Ok(Some(""))` for a bare or
 /// empty-valued key (`?meta`, `?meta=`) — so presence is `is_some()`, not a
 /// non-empty value.
-pub(crate) fn first_query_param(raw_query: Option<&str>, key: &str) -> Option<String> {
-    url::form_urlencoded::parse(raw_query?.as_bytes())
-        .find(|(k, _)| k == key)
-        .map(|(_, value)| value.into_owned())
-}
-
-/// Whether `raw_query` carries a key outside `allowed` — the refusal half of a
-/// strict TS query `object` schema.
 ///
-/// The accept half is [`first_query_param`]: a duplicated *known* key collapses
-/// to its first value, exactly as `c.req.query()` builds the record the TS
-/// schema parses. What the strict `object` adds on top is that an *unknown* key
-/// fails the parse, and this is that check, read off the same raw query so the
-/// two halves see the same pairs.
+/// # Errors
 ///
-/// An empty key name is ignored, matching Hono's record builder (it skips a
-/// nameless pair, so `?=x` reaches the schema as `{}`) — otherwise this side
-/// would refuse a request the TS twin accepts.
-pub(crate) fn has_unknown_query_key(raw_query: Option<&str>, allowed: &[&str]) -> bool {
-    let Some(raw_query) = raw_query else {
-        return false;
-    };
-    url::form_urlencoded::parse(raw_query.as_bytes())
-        .any(|(key, _)| !key.is_empty() && !allowed.contains(&key.as_ref()))
+/// [`PercentDecodeError`] when any name or value in the query doesn't decode;
+/// a caller answers the flat `400 invalid_query_params`, or its transport's
+/// own refusal.
+pub(crate) fn first_query_param(
+    raw_query: Option<&str>,
+    key: &str,
+) -> Result<Option<String>, PercentDecodeError> {
+    let pairs = read_query_pairs(raw_query)?;
+    Ok(query_first(&pairs, key).map(str::to_owned))
 }
 
 #[cfg(test)]
@@ -54,43 +48,27 @@ mod tests {
 
     /// The shared table, asserted against
     /// `src/test/fixtures/parity/query_param.json` — the TS twin's
-    /// `src/test/server/query_params.test.ts` reads the same rows.
+    /// `src/test/server/query_params.test.ts` reads the same rows. A row
+    /// carries `refused` (the refusal's wire name) or `expected` (the value,
+    /// `null` for absent).
     #[test]
-    fn first_query_param_reads_whatwg_form_urlencoded() {
+    fn first_query_param_reads_strictly() {
         for row in parity_rows(QUERY_PARAM_FIXTURE, "queries") {
             let raw_query = row["input"].as_str();
             let key = row["key"].as_str().expect("a key");
-            let expected = row["expected"].as_str();
-            assert_eq!(
-                first_query_param(raw_query, key).as_deref(),
-                expected,
-                "raw_query {raw_query:?}",
-            );
+            let got = first_query_param(raw_query, key);
+            match row.get("refused") {
+                Some(refused) => assert_eq!(
+                    got.map_err(PercentDecodeError::as_str),
+                    Err(refused.as_str().expect("a refusal name")),
+                    "raw_query {raw_query:?}",
+                ),
+                None => assert_eq!(
+                    got.as_ref().map(Option::as_deref),
+                    Ok(row["expected"].as_str()),
+                    "raw_query {raw_query:?}",
+                ),
+            }
         }
-    }
-
-    /// The strict-object half. There is no shared fixture for it: the TS side
-    /// has no helper of this shape — it reads the refusal off a
-    /// strict `object` query schema — so the rows below are this side's alone.
-    #[test]
-    fn has_unknown_query_key_mirrors_strict_object() {
-        // Nothing to refuse.
-        assert!(!has_unknown_query_key(None, &["acting"]));
-        assert!(!has_unknown_query_key(Some(""), &["acting"]));
-        assert!(!has_unknown_query_key(Some("acting=x"), &["acting"]));
-        // A duplicated known key is still only the known key.
-        assert!(!has_unknown_query_key(
-            Some("acting=a&acting=b"),
-            &["acting"]
-        ));
-        // A nameless pair is ignored, as Hono's record builder ignores it.
-        assert!(!has_unknown_query_key(Some("=x"), &["acting"]));
-        // Any other key fails the parse, wherever it sits.
-        assert!(has_unknown_query_key(Some("other=1"), &["acting"]));
-        assert!(has_unknown_query_key(Some("acting=a&other=1"), &["acting"]));
-        assert!(has_unknown_query_key(Some("other=1&acting=a"), &["acting"]));
-        // Keys are percent-decoded before comparison, so an encoded spelling of
-        // a known key is known.
-        assert!(!has_unknown_query_key(Some("%61cting=a"), &["acting"]));
     }
 }

@@ -3,7 +3,7 @@
 	"source_ts": "src/lib/server/routes/repo_git.ts",
 	"source_rust": "crates/fuz_forge_server/src/forge_git/mod.rs",
 	"counts": {
-		"queries": 16
+		"queries": 18
 	},
 	"tables": {
 		"queries": [
@@ -79,8 +79,18 @@
 			},
 			{
 				"input": "service=%ZZ",
-				"expected": "%ZZ",
-				"note": "an invalid escape stays literal rather than erroring"
+				"refused": "malformed_escape",
+				"note": "an escape that does not decode refuses the query rather than staying literal"
+			},
+			{
+				"input": "service=git-upload-pack&x=%FF",
+				"refused": "invalid_utf8",
+				"note": "decoded bytes that are not UTF-8, in a key the reader skips, refuse the whole query"
+			},
+			{
+				"input": "service=git%25upload",
+				"expected": "git%upload",
+				"note": "an escaped `%` decodes to a literal `%`"
 			}
 		]
 	}

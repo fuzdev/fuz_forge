@@ -14,11 +14,13 @@
 //! The loopback peer check is defense-in-depth: a reverse proxy on the same
 //! host would make every peer loopback, so the per-repo secret is the real
 //! guard. Every *rejection* returns a bare `401` with no detail — no schema or
-//! existence enumeration — except a callback `POST` whose `Content-Type` isn't
-//! `application/json`, refused first with the spine's flat
-//! [`fuz_http::unsupported_content_type_response`] (`415`), as the TS twin's
-//! route pipeline refuses every non-`raw_body` `POST` ahead of the handler; it
-//! names no repo and reads no body. An unexpected internal failure (the cell
+//! existence enumeration — except two the TS twin's route pipeline answers
+//! ahead of the handler, each naming no repo: a callback `POST` whose
+//! `Content-Type` isn't `application/json`, refused first with the spine's flat
+//! [`fuz_http::unsupported_content_type_response`] (`415`), reading no body;
+//! and a `repo-config` id whose percent escape doesn't decode, the flat
+//! `400 {"error": "invalid_route_params"}` of [`RouteParams`], as the twin's
+//! params stage refuses it. An unexpected internal failure (the cell
 //! lookup or write) instead returns the spine's canonical flat-REST
 //! [`fuz_http::internal_error_response`] — `500 {"error": "internal_error"}`,
 //! the same body the TS twin's route-spec error mapper produces for a thrown
@@ -30,13 +32,13 @@ use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::sync::Arc;
 
 use axum::Router;
-use axum::extract::{ConnectInfo, Path, State};
+use axum::extract::{ConnectInfo, State};
 use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::{IntoResponse, Json, Response};
 use axum::routing::{get, post};
 use fuz_db::Pool;
 use fuz_http::{
-    db_unavailable_response_with_source, internal_error_response,
+    RouteParams, db_unavailable_response_with_source, internal_error_response,
     internal_error_response_with_source,
 };
 use fuz_realtime::ConnectionRegistry;
@@ -201,7 +203,7 @@ fn secret_header(headers: &HeaderMap) -> Option<&str> {
 async fn handle_repo_config(
     State(state): State<InternalRouteState>,
     ConnectInfo(peer): ConnectInfo<SocketAddr>,
-    Path(id): Path<String>,
+    RouteParams(id): RouteParams<String>,
     headers: HeaderMap,
 ) -> Response {
     if !pre_auth_ok(peer, &headers) {

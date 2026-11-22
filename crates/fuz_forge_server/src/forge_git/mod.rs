@@ -32,12 +32,12 @@ pub(crate) mod parse;
 pub(crate) mod read;
 
 use axum::body::Body;
-use axum::extract::{Path as AxumPath, RawQuery, State};
+use axum::extract::{RawQuery, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Extension, Router};
-use fuz_http::ClientIp;
+use fuz_http::{ClientIp, RouteParams, invalid_query_params_response};
 
 use crate::query_params::first_query_param;
 use crate::token_policy;
@@ -134,7 +134,7 @@ fn service_bad_request() -> Response {
     (StatusCode::BAD_REQUEST, BAD_REQUEST_BODY).into_response()
 }
 
-/// The first `service` value in a raw query string, percent-decoded.
+/// The first `service` value in a raw query string, percent-decoded strictly.
 ///
 /// Deliberately **not** an axum `Query<T>` extractor. An extractor runs before
 /// the handler body, so a duplicate `?service=` key would be rejected with axum's
@@ -144,26 +144,36 @@ fn service_bad_request() -> Response {
 /// anonymous callers. Reading the raw query inside the handler keeps
 /// grammar → auth → service in order.
 ///
-/// [`first_query_param`] is WHATWG `application/x-www-form-urlencoded`: keys
-/// are percent-decoded before comparison, `+` is a space in the value, and the
-/// first matching pair wins. Hono's `c.req.query('service')` is *not* those
-/// semantics — it scans the un-decoded query for the literal key substring
-/// first and only falls back to a decoding parse when that finds nothing, so
+/// [`first_query_param`] reads through the spine's strict reader: keys are
+/// percent-decoded before comparison, `+` is a space in the value, the first
+/// matching pair wins, and an escape that doesn't decode anywhere in the query
+/// refuses it. Hono's `c.req.query('service')` is *not* those semantics — it
+/// scans the un-decoded query for the literal key substring first and only
+/// falls back to a decoding parse when that finds nothing, so
 /// `?%73ervice=git-upload-pack&service=bogus` reads as `bogus` there — so the
-/// TS twin was converged onto the standard (`new URLSearchParams`) instead of
-/// this side adopting the quirk. `repo_git.ts`'s `first_service_param` is the
-/// twin.
-fn first_service_param(raw_query: Option<&str>) -> Option<String> {
+/// TS twin reads the route context's strict `query_pairs` instead of this side
+/// adopting the quirk. `repo_git.ts`'s `first_service_param` is the twin.
+///
+/// # Errors
+///
+/// [`fuz_http::PercentDecodeError`] when the query doesn't decode.
+fn first_service_param(
+    raw_query: Option<&str>,
+) -> Result<Option<String>, fuz_http::PercentDecodeError> {
     first_query_param(raw_query, "service")
 }
 
 async fn handle_info_refs(
     State(state): State<ForgeRouteState>,
-    AxumPath((org, repo)): AxumPath<(String, String)>,
+    RouteParams((org, repo)): RouteParams<(String, String)>,
     RawQuery(raw_query): RawQuery,
     client_ip: Option<Extension<ClientIp>>,
     headers: HeaderMap,
 ) -> Response {
+    // An escape in either segment that doesn't decode was refused already, by
+    // `RouteParams` (400 `invalid_route_params`), as the TS twin's params
+    // stage refuses it ahead of its handler.
+    //
     // Grammar gate BEFORE auth: a URL without the `.git` suffix is not a git
     // URL at all, so it gets the router's 404 rather than a credential check
     // (the TS twin's route regex never matches it). Purely syntactic — it
@@ -185,7 +195,13 @@ async fn handle_info_refs(
         Ok(auth) => auth,
         Err(err) => return auth::refusal_response(&err),
     };
-    let Some(service) = first_service_param(raw_query.as_deref()) else {
+    // Read past auth, where the TS handler reads it: an undecodable query is
+    // the spine's 400 `invalid_query_params`, an unusable `service` the git
+    // refusal.
+    let Ok(service) = first_service_param(raw_query.as_deref()) else {
+        return invalid_query_params_response();
+    };
+    let Some(service) = service else {
         return service_bad_request();
     };
     let op = match service.as_str() {
@@ -201,34 +217,46 @@ async fn handle_info_refs(
 
 async fn handle_upload_pack(
     state: State<ForgeRouteState>,
-    path: AxumPath<(String, String)>,
+    params: Result<RouteParams<(String, String)>, Response>,
     client_ip: Option<Extension<ClientIp>>,
     headers: HeaderMap,
     body: Body,
 ) -> Response {
-    handle_pack(GitOp::Pull, state, path, client_ip, headers, body).await
+    handle_pack(GitOp::Pull, state, params, client_ip, headers, body).await
 }
 
 async fn handle_receive_pack(
     state: State<ForgeRouteState>,
-    path: AxumPath<(String, String)>,
+    params: Result<RouteParams<(String, String)>, Response>,
     client_ip: Option<Extension<ClientIp>>,
     headers: HeaderMap,
     body: Body,
 ) -> Response {
-    handle_pack(GitOp::Push, state, path, client_ip, headers, body).await
+    handle_pack(GitOp::Push, state, params, client_ip, headers, body).await
 }
 
-/// The body both pack POST handlers share: content type, slug, auth, then the
-/// capability `op` requires, before the CGI runs.
+/// The body both pack POST handlers share: content type, path params, slug,
+/// auth, then the capability `op` requires, before the CGI runs.
+///
+/// The params arrive as a `Result` so their refusal follows the 415, as the TS
+/// twin's params stage follows its content-type stage. A refused path has no
+/// segments to judge the `.git` suffix on, so its content type alone decides
+/// the 415 there.
 async fn handle_pack(
     op: GitOp,
     State(state): State<ForgeRouteState>,
-    AxumPath((org, repo)): AxumPath<(String, String)>,
+    params: Result<RouteParams<(String, String)>, Response>,
     client_ip: Option<Extension<ClientIp>>,
     headers: HeaderMap,
     body: Body,
 ) -> Response {
+    let (org, repo) = match params {
+        Ok(RouteParams(segments)) => segments,
+        Err(_) if fuz_http::is_cors_simple_content_type(&headers) => {
+            return fuz_http::unsupported_content_type_response();
+        }
+        Err(refusal) => return refusal,
+    };
     if git_post_content_type_refused(&repo, &headers) {
         return fuz_http::unsupported_content_type_response();
     }
@@ -488,21 +516,28 @@ mod tests {
     const SERVICE_PARAM_FIXTURE: &str =
         include_str!("../../../../src/test/fixtures/parity/service_param.json");
 
-    /// WHATWG `application/x-www-form-urlencoded` reading of `?service=`, the
-    /// contract the TS twin's `first_service_param` (`repo_git.ts`) was
-    /// converged onto. Asserted against
+    /// The strict reading of `?service=`, the contract the TS twin's
+    /// `first_service_param` (`repo_git.ts`) shares. Asserted against
     /// `src/test/fixtures/parity/service_param.json`, which the TS side's
-    /// `repo_git.service_param.test.ts` reads too.
+    /// `repo_git.service_param.test.ts` reads too. A row carries `refused`
+    /// (the refusal's wire name) or `expected` (the value, `null` for absent).
     #[test]
-    fn service_param_reads_the_query_as_urlsearchparams_does() {
+    fn service_param_reads_the_query_strictly() {
         for row in parity_rows(SERVICE_PARAM_FIXTURE, "queries") {
             let raw_query = row["input"].as_str();
-            let expected = row["expected"].as_str();
-            assert_eq!(
-                first_service_param(raw_query).as_deref(),
-                expected,
-                "raw_query {raw_query:?}",
-            );
+            let got = first_service_param(raw_query);
+            match row.get("refused") {
+                Some(refused) => assert_eq!(
+                    got.map_err(fuz_http::PercentDecodeError::as_str),
+                    Err(refused.as_str().expect("a refusal name")),
+                    "raw_query {raw_query:?}",
+                ),
+                None => assert_eq!(
+                    got.as_ref().map(Option::as_deref),
+                    Ok(row["expected"].as_str()),
+                    "raw_query {raw_query:?}",
+                ),
+            }
         }
     }
 }

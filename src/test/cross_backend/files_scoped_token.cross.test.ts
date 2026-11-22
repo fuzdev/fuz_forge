@@ -490,7 +490,7 @@ describe('file metadata wire shape (cross-process, both backends)', () => {
 describe('strict query params on file mutations (cross-process, both backends)', () => {
 	// The POST/DELETE file routes declare a strict `{acting}` query in
 	// TS; the Rust twins read the same rule off the raw query
-	// (`parse_acting_strict_query` over `has_unknown_query_key`). An
+	// (`parse_acting_strict_query` over `fuz_http::assert_known_query_keys`). An
 	// unrecognized query key is a 400 `invalid_query_params` on BOTH backends,
 	// rejected ahead of auth (the framework validates `query` before the auth
 	// gate, and the Rust handler reads the query as its first step). Sent with

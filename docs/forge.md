@@ -176,6 +176,14 @@ The refusal's shape is not contractual: `fuzfd` answers its router 404, while
 the TS reference server, which also mounts the SPA fallback, answers the SPA or
 a generic 401.
 
+A percent escape that doesn't decode (`%G0`, a bare `%`, bytes that aren't
+UTF-8) in a URL whose raw path ends `<repo>.git/<endpoint>` is refused before
+the rest of the grammar on both spines: `400 {"error":"invalid_route_params"}`.
+Off that shape the refusal is the off-grammar one above (`fuzfd` answers the
+same 400; the TS reference server its fallback). In the query, the advertisement's
+`?service=` is read past the credential, and a query that doesn't decode there
+is `400 {"error":"invalid_query_params"}`.
+
 ## Push semantics
 
 - **Force-push to the default branch is refused** by the pre-receive hook;

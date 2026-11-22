@@ -720,8 +720,9 @@ describe('?meta query leniency (cross-process, both backends)', () => {
 	// took the query through an axum `Query<T>` extractor, which runs
 	// before the auth gate and refused a duplicate key with its own pre-auth 400
 	// naming the field — the same class the `?service=` convergence closed on the
-	// git route. Both backends now read the raw query with WHATWG
-	// `application/x-www-form-urlencoded` semantics, first value winning.
+	// git route. Both backends now read the query through their spine's strict
+	// reader, first value winning; an escape that doesn't decode is refused
+	// (`request_target.cross.test.ts`).
 
 	const seed_meta_file = async (bearer: string, bytes: Uint8Array): Promise<void> => {
 		const up = await upload(bearer, 'lenient.bin', bytes);

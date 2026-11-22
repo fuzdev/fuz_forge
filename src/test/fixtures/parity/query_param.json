@@ -3,7 +3,7 @@
 	"source_ts": "src/lib/server/query_params.ts",
 	"source_rust": "crates/fuz_forge_server/src/query_params.rs",
 	"counts": {
-		"queries": 9
+		"queries": 15
 	},
 	"tables": {
 		"queries": [
@@ -59,6 +59,42 @@
 				"input": "a=1&meta=x&b=2",
 				"expected": "x",
 				"note": "other keys are ignored, in either position",
+				"key": "meta"
+			},
+			{
+				"input": "meta=%25FF",
+				"expected": "%FF",
+				"note": "an escaped `%` decodes to a literal `%`, never read as a second escape",
+				"key": "meta"
+			},
+			{
+				"input": "meta=%G0",
+				"refused": "malformed_escape",
+				"note": "a `%` not followed by two hex digits refuses the query rather than reading as text",
+				"key": "meta"
+			},
+			{
+				"input": "meta=100%",
+				"refused": "malformed_escape",
+				"note": "a trailing bare `%` refuses the query",
+				"key": "meta"
+			},
+			{
+				"input": "meta=%FF",
+				"refused": "invalid_utf8",
+				"note": "decoded bytes that are not UTF-8 refuse the query rather than reading as U+FFFD",
+				"key": "meta"
+			},
+			{
+				"input": "meta=x&other=%G0",
+				"refused": "malformed_escape",
+				"note": "an undecodable escape in a key no reader reads still refuses the whole query, wherever it sits",
+				"key": "meta"
+			},
+			{
+				"input": "%FF=1&meta=x",
+				"refused": "invalid_utf8",
+				"note": "an undecodable key refuses the query too",
 				"key": "meta"
 			}
 		]
