@@ -162,7 +162,7 @@ async fn publish_then_install_tool_over_forge_storage() {
         seed_from_allow_private_hosts: false,
     };
     let hasher: Arc<dyn fuz_auth::PasswordHasher> = Arc::new(fuz_auth::Argon2idHasher::new());
-    let router = build_router(
+    let fuz_forge_server::router::BuiltRouter::Live { router, .. } = build_router(
         &env,
         fuz_forge_server::router::BuildRouterOptions {
             backend: fuz_actions::server::SpineBackendOptions::production(hasher),
@@ -173,8 +173,9 @@ async fn publish_then_install_tool_over_forge_storage() {
         },
     )
     .await
-    .expect("build_router")
-    .router;
+    .expect("build_router") else {
+        panic!("a database builds the full router");
+    };
 
     // Seed an admin account + a max-privilege (unscoped) API token so the file
     // store's POST (publish) `require_admin_role` and GET (install)

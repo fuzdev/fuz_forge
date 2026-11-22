@@ -47,7 +47,7 @@
 //! `fuz_fact`.
 
 use fuz_actions::server::{
-    AppBackendSpec, BootedAppBackend, SpineBackendOptions, StartupError, boot_only,
+    AppBackendSpec, BootOnlyRouter, BootedAppBackend, SpineBackendOptions, StartupError, boot_only,
     create_app_backend,
 };
 use fuz_db::MigrationNamespace;
@@ -170,22 +170,31 @@ pub struct BuildRouterOptions {
     pub action_rate_limit_max_attempts: Option<u32>,
 }
 
-/// What [`build_router`] builds: the router, and the composition root behind
-/// it for the work [`crate::runtime::run_app`] runs beside the server (the
-/// upkeep tasks, [`crate::runtime::upkeep_options`]).
+/// What [`build_router`] builds: the boot-only router, or the full one with
+/// its composition root.
+///
+/// The app is for the work [`crate::runtime::run_app`] runs beside the
+/// server (the upkeep tasks, [`crate::runtime::upkeep_options`]).
 #[derive(Debug)]
-pub struct BuiltRouter {
-    /// The composed router — served by `fuz_http::serve_with_shutdown`, the
-    /// only thing that takes it.
-    pub router: GatedRouter,
-    /// `None` in boot-only mode, with no database.
-    pub app: Option<FuzForgeApp>,
+#[expect(
+    clippy::large_enum_variant,
+    reason = "built once per process at boot and destructured at once; boxing buys nothing"
+)]
+pub enum BuiltRouter {
+    /// No database: the probes alone, served with no backend.
+    BootOnly(BootOnlyRouter),
+    /// A database: the composed router, served as `ServeMode::Live` with its
+    /// app's `serve_backend`, and the app it serves over.
+    Live {
+        router: GatedRouter,
+        app: FuzForgeApp,
+    },
 }
 
 /// Build the top-level axum router.
 ///
 /// Spawns nothing: the background upkeep that runs beside the server is
-/// [`crate::runtime::run_app`]'s, over the returned [`BuiltRouter::app`].
+/// [`crate::runtime::run_app`]'s, over the returned [`BuiltRouter::Live`] app.
 ///
 /// Boots the spine core through `fuz_actions::server::create_app_backend` —
 /// the READ COMMITTED guard, the pre-migration hook (the test binary's
@@ -224,10 +233,11 @@ pub async fn build_router(
     // Hello-world / smoke-test path: no DB, no spine wiring. Useful for a
     // boot / smoke check before a deploy wires up real PostgreSQL.
     if env.base.database_url.is_none() {
-        return Ok(BuiltRouter {
-            router: boot_only(&env.base, &FUZ_FORGE_BACKEND_SPEC, SERVER_NAME)?,
-            app: None,
-        });
+        return Ok(BuiltRouter::BootOnly(boot_only(
+            &env.base,
+            &FUZ_FORGE_BACKEND_SPEC,
+            SERVER_NAME,
+        )?));
     }
 
     let BootedAppBackend { backend, ready } =
@@ -247,10 +257,7 @@ pub async fn build_router(
         action_rate_limiters,
         action_rate_limit_max_attempts,
     )?;
-    Ok(BuiltRouter {
-        router,
-        app: Some(app),
-    })
+    Ok(BuiltRouter::Live { router, app })
 }
 
 #[cfg(test)]
@@ -294,7 +301,9 @@ mod tests {
         let built = super::build_router(&env_over("http://localhost:5173", false), options())
             .await
             .expect("boot-only builds without a database");
-        assert!(built.app.is_none());
+        let super::BuiltRouter::BootOnly(router) = built else {
+            panic!("no database builds boot-only");
+        };
         let mut builder = Request::builder().uri(path);
         if let Some(origin) = origin {
             builder = builder.header(header::ORIGIN, origin);
@@ -306,8 +315,8 @@ mod tests {
                 .parse::<SocketAddr>()
                 .expect("the peer parses"),
         ));
-        let response = built
-            .router
+        let response = router
+            .into_gated_router()
             .into_router_for_testing()
             .oneshot(request)
             .await
@@ -334,7 +343,7 @@ mod tests {
             "{message:?}"
         );
         let built = super::build_router(&env_over("http://localhost:*", true), options()).await;
-        assert!(built.is_ok_and(|built| built.app.is_none()));
+        assert!(matches!(built, Ok(super::BuiltRouter::BootOnly(_))));
     }
 
     #[tokio::test]

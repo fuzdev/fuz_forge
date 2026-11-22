@@ -17,6 +17,7 @@
 
 #![expect(
     clippy::expect_used,
+    clippy::panic,
     reason = "test helpers outside `#[test]` fns panic on a failed setup or check"
 )]
 
@@ -108,7 +109,7 @@ async fn boot() -> Booted {
         seed_from_allow_private_hosts: false,
     };
     let hasher: Arc<dyn fuz_auth::PasswordHasher> = Arc::new(fuz_auth::Argon2idHasher::new());
-    let router = build_router(
+    let fuz_forge_server::router::BuiltRouter::Live { router, .. } = build_router(
         &env,
         fuz_forge_server::router::BuildRouterOptions {
             backend: fuz_actions::server::SpineBackendOptions::production(hasher),
@@ -119,8 +120,9 @@ async fn boot() -> Booted {
         },
     )
     .await
-    .expect("build_router")
-    .router;
+    .expect("build_router") else {
+        panic!("a database builds the full router");
+    };
 
     let g = fuz_auth::api_token::generate_api_token();
     let actor_id = seed_admin_actor(&pool, &g).await;

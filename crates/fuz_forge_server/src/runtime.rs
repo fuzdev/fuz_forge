@@ -9,7 +9,7 @@
 use std::net::SocketAddr;
 
 use fuz_actions::server::{
-    ServeOptions, SpineRunOptions, StartupError, UpkeepOptions, serve_until_shutdown,
+    ServeMode, ServeOptions, SpineRunOptions, StartupError, UpkeepOptions, serve_until_shutdown,
 };
 
 use crate::app::FuzForgeApp;
@@ -163,7 +163,7 @@ pub async fn run_app(options: RunAppOptions) -> Result<(), StartupError> {
     let addr = env.base.bind_addr(default_addr)?;
     let shutdown = fuz_http::shutdown_token();
 
-    let BuiltRouter { router, app } = build_router(
+    let built = build_router(
         &env,
         BuildRouterOptions {
             backend,
@@ -175,19 +175,23 @@ pub async fn run_app(options: RunAppOptions) -> Result<(), StartupError> {
     )
     .await?;
 
+    let mode = match built {
+        BuiltRouter::BootOnly(router) => ServeMode::BootOnly(router),
+        BuiltRouter::Live { router, app } => ServeMode::Live {
+            router,
+            backend: app.backend.serve_backend(Some(upkeep_options(
+                app.backend.auth_cleanup_options(),
+                env.fact_store_root(),
+            ))),
+        },
+    };
     serve_until_shutdown(
-        router,
+        mode,
         ServeOptions {
             server_name: SERVER_NAME,
             addr,
             drain_timeout,
             shutdown,
-            backend: app.as_ref().map(|app| {
-                app.backend.serve_backend(Some(upkeep_options(
-                    app.backend.auth_cleanup_options(),
-                    env.fact_store_root(),
-                )))
-            }),
         },
     )
     .await
