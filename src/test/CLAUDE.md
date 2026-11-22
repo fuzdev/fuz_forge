@@ -42,8 +42,10 @@ Rust-side suites:
   `fuz_sign`'s own `FileStorage` loop, not a TS twin); `columns.rs`, the
   column-drift guard; `upkeep.rs`, which pins that `run_app` schedules its
   upkeep tasks (`runtime::upkeep_options`; the sweeps themselves are tested in
-  `fuz_auth` and `fuz_fact`); `fuzfd_args.rs`, `fuzfd`'s command parsing and
-  exit codes.
+  `fuz_auth` and `fuz_fact`); `repo_receive_callback_past_commit.rs`, which
+  pins that the post-receive callback, dropped by its hook mid-commit, still
+  broadcasts (a Rust-only concern: hyper drops a request with its
+  connection); `fuzfd_args.rs`, `fuzfd`'s command parsing and exit codes.
 - `crates/fuz_forge/tests/` — the real `fuzf` binary, offline: home
   resolution, `tool publish`'s key loading, `repo clone`'s flag rules.
 - `crates/testing_fuz_forge_server/tests/` — `testing_fuzfd_args.rs`, the test

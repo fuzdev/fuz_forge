@@ -307,7 +307,7 @@ async fn handle_repo_receive_callback(
     let Ok(data_text) = serde_json::to_string(&next) else {
         return internal_error_response();
     };
-    let client = match state.pool.get().await {
+    let mut client = match state.pool.get().await {
         Ok(client) => client,
         Err(e) => {
             return db_unavailable_response_with_source(
@@ -316,16 +316,32 @@ async fn handle_repo_receive_callback(
             );
         }
     };
-    if client
+    // A transaction committed through `commit_checked`, not an autocommit
+    // write, though it holds one statement: the commit marks the request, so a
+    // hook that gives up past it (its client times out) no longer cancels the
+    // broadcast below — the serve's write tracker finishes the request. Every
+    // early return drops `tx`, which rolls it back.
+    let tx = match client.transaction().await {
+        Ok(tx) => tx,
+        Err(e) => {
+            return internal_error_response_with_source(
+                "internal_routes: transaction begin failed",
+                &e,
+            );
+        }
+    };
+    if let Err(e) = tx
         .execute(
             "UPDATE cell SET data = $1::text::jsonb, updated_at = NOW() \
              WHERE id = $2 AND deleted_at IS NULL",
             &[&data_text, &verified.id],
         )
         .await
-        .is_err()
     {
-        return internal_error_response();
+        return internal_error_response_with_source("internal_routes: repo cell write", &e);
+    }
+    if let Err(e) = fuz_db::commit_checked(tx).await {
+        return internal_error_response_with_source("internal_routes: repo cell commit", &e);
     }
 
     broadcast_repo_updated(
