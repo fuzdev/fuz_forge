@@ -1,6 +1,6 @@
 //! The upkeep tasks `run_app` runs beside the server
-//! (`fuz_forge_server::runtime::upkeep_options`, spawned by the spine's
-//! `fuz_actions::server::spawn_upkeep`), over real Postgres and a
+//! (the spine's `fuz_auth::AuthCleanup` and
+//! `fuz_forge_server::runtime::extra_upkeep`), over real Postgres and a
 //! scratch fact-store root: their startup passes run the spine's auth cleanup
 //! (an expired session is deleted and closed through the closer they're
 //! handed, an expired role-grant offer audited through the emitter) and the
@@ -8,7 +8,7 @@
 //!
 //! The sweeps and their schedulers are covered where they live (`fuz_auth`'s
 //! `auth_cleanup` suite, `fuz_fact`'s sweeper tests); this pins that the
-//! server schedules both.
+//! server's own extra upkeep is the orphan-temp sweeper, beside the cleanup.
 //!
 //! Requires a local Postgres (`FUZ_FORGE_SERVER_TEST_URL`, default
 //! `postgres://localhost/fuz_forge_server_test`); marked `#[ignore]` and run
@@ -26,12 +26,12 @@ use std::time::{Duration, SystemTime};
 
 use common::fresh_db_pool;
 
-use fuz_actions::server::spawn_upkeep;
 use fuz_auth::{
     AuditEmitter, AuditLogEvent, ConnectionCloseTarget, ConnectionCloser,
     CreateRoleGrantOfferInput, query_role_grant_offer_create,
 };
-use fuz_forge_server::runtime::upkeep_options;
+use fuz_forge_server::runtime::extra_upkeep;
+use fuz_http::Upkeep;
 use fuz_sys::fs::CleanupGuard;
 use fuz_sys::rand::random_hex_suffix;
 use fuz_testing::seed_account_actor;
@@ -134,16 +134,21 @@ async fn the_upkeep_tasks_sweep_at_startup_and_stop_on_shutdown() {
     let recording = Arc::new(RecordingCloser::default());
     let connection_closer: Arc<dyn ConnectionCloser> = Arc::<RecordingCloser>::clone(&recording);
     let shutdown = CancellationToken::new();
-    let tasks = spawn_upkeep(
-        upkeep_options(
-            fuz_auth::AuthCleanupOptions {
+    let mut tasks = vec![
+        fuz_auth::AuthCleanup {
+            options: fuz_auth::AuthCleanupOptions {
                 pool: pool.clone(),
                 audit: Arc::clone(&audit),
                 connection_closer,
             },
-            fact_store_root,
-        ),
-        &shutdown,
+            interval: fuz_auth::DEFAULT_AUTH_CLEANUP_INTERVAL,
+        }
+        .spawn(shutdown.clone()),
+    ];
+    tasks.extend(
+        extra_upkeep(fact_store_root)
+            .into_iter()
+            .map(|spawn| spawn(shutdown.clone())),
     );
     assert_eq!(
         tasks.len(),

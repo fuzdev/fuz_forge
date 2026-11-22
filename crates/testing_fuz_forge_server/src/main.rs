@@ -412,7 +412,10 @@ async fn main() -> ExitCode {
                 // `'disabled_for_testing'`, except for the login-security cross
                 // project — see `resolve_login_rate_limiter_mode`.
                 rate_limiters,
-                ..testing_backend_options(daemon_token_state)
+                ..testing_backend_options(
+                    daemon_token_state,
+                    fuz_auth::AuthCleanupSchedule::Every(fuz_auth::DEFAULT_AUTH_CLEANUP_INTERVAL),
+                )
             },
             default_addr: TESTING_DEFAULT_ADDR,
             drain_timeout: DEFAULT_DRAIN_TIMEOUT,

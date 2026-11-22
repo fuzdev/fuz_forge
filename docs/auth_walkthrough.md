@@ -29,7 +29,7 @@ Expected behavior when testing the auth system end-to-end.
 - [ ] Revoking a session deletes it — that cookie stops working
 - [ ] Revoke-all invalidates all sessions including the current one (UI shows login)
 - [ ] Expired sessions (30-day lifetime, `expires_at` fixed at mint) stop authenticating — the session lookup gates on `expires_at > NOW()`
-- [ ] Both backends sweep expired sessions at startup and then once per interval: Rust `fuz_auth::spawn_auth_cleanup` (`DEFAULT_AUTH_CLEANUP_INTERVAL`), TS `create_app_server`'s `auth_cleanup` (fuz_app's `start_auth_cleanup`, `DEFAULT_AUTH_CLEANUP_INTERVAL_MS`)
+- [ ] Both backends sweep expired sessions at startup and then once per interval: Rust `fuz_auth::AuthCleanup` on the router's serve duties (`AuthCleanupSchedule::Every(DEFAULT_AUTH_CLEANUP_INTERVAL)`), TS `create_app_server`'s `auth_cleanup` (fuz_app's `start_auth_cleanup`, `DEFAULT_AUTH_CLEANUP_INTERVAL_MS`)
 - [ ] A sweep deletes expired session rows, closes the sockets and audit streams they opened, and audits each expired role-grant offer once — so an expired session drops out of `account_session_list` (which doesn't filter on expiry) and its live connections end within an interval
 - [ ] An expired API token's row is not swept; its connections close at its `expires_at`
 - [ ] Login while at session cap (default 5) evicts the oldest session and closes the connections it opened

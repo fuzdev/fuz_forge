@@ -2,14 +2,14 @@
 //!
 //! Over the spine's server toolkit (`fuz_actions::server`): env load, signal
 //! handler, router build, listener bind, the upkeep tasks
-//! ([`upkeep_options`]), graceful drain — so the production `fuzfd`'s
+//! ([`extra_upkeep`] beside the spine's auth cleanup), graceful drain — so the production `fuzfd`'s
 //! `main.rs` and `testing_fuz_forge_server`'s `main.rs` collapse to a
 //! tracing-init + swap-point selection + `run_app` call.
 
 use std::net::SocketAddr;
 
 use fuz_actions::server::{
-    ServeOptions, SpineRunOptions, StartupError, UpkeepOptions, serve_until_shutdown,
+    ServeOptions, SpineRunOptions, StartupError, UpkeepTask, serve_until_shutdown,
 };
 
 use crate::app::FuzForgeApp;
@@ -94,34 +94,19 @@ pub struct RunAppOptions {
     pub action_rate_limit_max_attempts: Option<u32>,
 }
 
-/// The upkeep [`run_app`] runs beside the server, each task a pass now and
-/// then one per interval until shutdown:
+/// The upkeep [`run_app`] runs beside the server beyond the spine's own auth
+/// cleanup (which rides on the router's serve duties), each task a pass now
+/// and then one per interval until shutdown:
 ///
-/// - the spine's auth cleanup ([`fuz_auth::spawn_auth_cleanup`]): expired
-///   sessions deleted and the connections they opened closed (through the
-///   app's closer, over the sockets and the audit streams), expired
-///   role-grant offers audited once (through the app's emitter, so the expiry
-///   audits reach the admin audit streams), every
-///   [`fuz_auth::DEFAULT_AUTH_CLEANUP_INTERVAL`];
 /// - the fact store's orphan-temp sweeper
 ///   ([`fuz_fact::spawn_orphan_temp_sweeper`]) over the facts root, every
 ///   [`fuz_fact::ORPHAN_TEMP_SWEEP_INTERVAL`]: the crash backstop for the
 ///   streaming-upload temps (`.tmp/*`).
-///
-/// `auth_cleanup` is the app's ([`fuz_actions::server::AppBackend::auth_cleanup_options`]):
-/// its emitter, so the expiry audits reach the admin audit streams, and its
-/// closer, over the sockets and the streams.
 #[must_use]
-pub fn upkeep_options(
-    auth_cleanup: fuz_auth::AuthCleanupOptions,
-    fact_store_root: std::path::PathBuf,
-) -> UpkeepOptions {
-    UpkeepOptions {
-        auth_cleanup,
-        extra: vec![Box::new(move |shutdown| {
-            fuz_fact::spawn_orphan_temp_sweeper(fact_store_root, shutdown)
-        })],
-    }
+pub fn extra_upkeep(fact_store_root: std::path::PathBuf) -> Vec<UpkeepTask> {
+    vec![Box::new(move |shutdown| {
+        fuz_fact::spawn_orphan_temp_sweeper(fact_store_root, shutdown)
+    })]
 }
 
 /// Run the `fuz_forge_server` lifecycle to completion.
@@ -132,7 +117,7 @@ pub fn upkeep_options(
 /// closed with 1001 and every audit stream ended, then in-flight requests
 /// drain, the upkeep is joined, and the audit writes in flight drain, all
 /// within one drain timeout. With a database, the upkeep
-/// ([`upkeep_options`]) runs beside the server, from the bind until shutdown
+/// (the spine's auth cleanup and [`extra_upkeep`]) runs beside the server, from the bind until shutdown
 /// begins, and is joined before this returns. `serve_with_shutdown` inserts
 /// `ConnectInfo<SocketAddr>` into every request — the `/internal/*` callback
 /// routes gate on a loopback peer (defense-in-depth alongside the per-repo
@@ -176,15 +161,9 @@ pub async fn run_app(options: RunAppOptions) -> Result<(), StartupError> {
     )
     .await?;
 
-    let (router, upkeep) = match built {
-        BuiltRouter::BootOnly(router) => (router, None),
-        BuiltRouter::Live { router, app } => (
-            router,
-            Some(upkeep_options(
-                app.backend.auth_cleanup_options(),
-                env.fact_store_root(),
-            )),
-        ),
+    let (router, extra_upkeep) = match built {
+        BuiltRouter::BootOnly(router) => (router, Vec::new()),
+        BuiltRouter::Live { router, .. } => (router, extra_upkeep(env.fact_store_root())),
     };
     serve_until_shutdown(
         router,
@@ -193,7 +172,7 @@ pub async fn run_app(options: RunAppOptions) -> Result<(), StartupError> {
             addr,
             drain_timeout,
             shutdown,
-            upkeep,
+            extra_upkeep,
         },
     )
     .await

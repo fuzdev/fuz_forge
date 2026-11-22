@@ -97,7 +97,10 @@ async fn a_receive_callback_dropped_mid_commit_still_broadcasts() {
     let BuiltRouter::Live { router, app } = build_router(
         &env,
         BuildRouterOptions {
-            backend: fuz_actions::server::SpineBackendOptions::production(hasher),
+            backend: fuz_actions::server::SpineBackendOptions::production(
+                hasher,
+                fuz_auth::AuthCleanupSchedule::Off,
+            ),
             extra_action_specs_factory: None,
             final_action_specs_factory: None,
             action_rate_limiters: fuz_auth::RateLimiterMode::Enforced,
@@ -145,7 +148,7 @@ async fn a_receive_callback_dropped_mid_commit_still_broadcasts() {
         .expect("bind");
     let addr = listener.local_addr().expect("local_addr");
     // served as `fuzfd` serves it: `serve_with_shutdown` over the composed
-    // router, which carries the backend's shutdown duties (its write tracker)
+    // router, which carries the backend's serve duties (its write tracker)
     tokio::spawn(fuz_http::serve_with_shutdown(
         listener,
         router,

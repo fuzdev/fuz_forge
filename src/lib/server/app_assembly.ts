@@ -14,7 +14,7 @@
  * - `create_fact_store` — fact-store disk root + `PgFactStore` + upload
  *   semaphore + orphan-temp sweeper (Rust: `fact_store.rs` `FactStoreHandle` +
  *   `fuz_fact::spawn_orphan_temp_sweeper`, run from `runtime.rs`
- *   `upkeep_options`).
+ *   `extra_upkeep`).
  * - `create_testing_wiring` — the test-only daemon-token rotation +
  *   injected actions + rate-limiter gates (Rust: the
  *   `testing_fuz_forge_server` crate boundary).
@@ -286,7 +286,7 @@ export interface FactStoreBundle {
  * oversize upload.
  *
  * Twin of the Rust `fact_store.rs` `FactStoreHandle::new` +
- * `fuz_fact::spawn_orphan_temp_sweeper` (run from `runtime.rs` `upkeep_options`).
+ * `fuz_fact::spawn_orphan_temp_sweeper` (run from `runtime.rs` `extra_upkeep`).
  */
 export const create_fact_store = async (
 	runtime: RuntimeDeps,

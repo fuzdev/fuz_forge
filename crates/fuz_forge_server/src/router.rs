@@ -173,8 +173,7 @@ pub struct BuildRouterOptions {
 /// What [`build_router`] builds: the boot-only router, or the full one with
 /// its composition root.
 ///
-/// The app is for the work [`crate::runtime::run_app`] runs beside the
-/// server (the upkeep tasks, [`crate::runtime::upkeep_options`]).
+/// Only tests read the live app, to reach what sits behind the router.
 #[derive(Debug)]
 #[expect(
     clippy::large_enum_variant,
@@ -183,8 +182,9 @@ pub struct BuildRouterOptions {
 pub enum BuiltRouter {
     /// No database: the probes alone, served with no backend.
     BootOnly(GatedRouter),
-    /// A database: the composed router, carrying its backend's shutdown
-    /// duties (`AppBackend::stack_options`), and the app it serves over.
+    /// A database: the composed router, carrying its backend's serve duties
+    /// (`AppBackend::stack_options`: the auth cleanup, the shutdown closes,
+    /// the write drain), and the app it serves over.
     Live {
         router: GatedRouter,
         app: FuzForgeApp,
@@ -194,7 +194,8 @@ pub enum BuiltRouter {
 /// Build the top-level axum router.
 ///
 /// Spawns nothing: the background upkeep that runs beside the server is
-/// [`crate::runtime::run_app`]'s, over the returned [`BuiltRouter::Live`] app.
+/// [`crate::runtime::run_app`]'s, from the returned [`BuiltRouter::Live`]
+/// router's serve duties and [`crate::runtime::extra_upkeep`].
 ///
 /// Boots the spine core through `fuz_actions::server::create_app_backend` —
 /// the READ COMMITTED guard, the pre-migration hook (the test binary's
@@ -287,9 +288,10 @@ mod tests {
 
     fn options() -> super::BuildRouterOptions {
         super::BuildRouterOptions {
-            backend: fuz_actions::server::SpineBackendOptions::production(std::sync::Arc::new(
-                fuz_auth::Argon2idHasher::new(),
-            )),
+            backend: fuz_actions::server::SpineBackendOptions::production(
+                std::sync::Arc::new(fuz_auth::Argon2idHasher::new()),
+                fuz_auth::AuthCleanupSchedule::Off,
+            ),
             extra_action_specs_factory: None,
             final_action_specs_factory: None,
             action_rate_limiters: fuz_auth::RateLimiterMode::Enforced,

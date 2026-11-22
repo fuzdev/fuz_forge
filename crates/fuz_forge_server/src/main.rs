@@ -79,7 +79,10 @@ async fn main() -> ExitCode {
                 // binary must never link. No hook, and no in-flight audit
                 // tracking: the counter exists only so the test binary's
                 // `_testing_drain_effects` can await detached audit writes.
-                ..SpineBackendOptions::production(password_hasher)
+                ..SpineBackendOptions::production(
+                    password_hasher,
+                    fuz_auth::AuthCleanupSchedule::Every(fuz_auth::DEFAULT_AUTH_CLEANUP_INTERVAL),
+                )
             },
             default_addr: DEFAULT_ADDR,
             drain_timeout: fuz_http::DEFAULT_DRAIN_TIMEOUT,

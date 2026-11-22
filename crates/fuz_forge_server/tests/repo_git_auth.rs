@@ -112,7 +112,10 @@ async fn boot() -> Booted {
     let fuz_forge_server::router::BuiltRouter::Live { router, .. } = build_router(
         &env,
         fuz_forge_server::router::BuildRouterOptions {
-            backend: fuz_actions::server::SpineBackendOptions::production(hasher),
+            backend: fuz_actions::server::SpineBackendOptions::production(
+                hasher,
+                fuz_auth::AuthCleanupSchedule::Off,
+            ),
             extra_action_specs_factory: None,
             final_action_specs_factory: None,
             action_rate_limiters: fuz_auth::RateLimiterMode::Enforced,

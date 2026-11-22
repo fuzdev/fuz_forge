@@ -41,7 +41,7 @@ Rust-side suites:
   § In-process parity suites); `signed_tool_install.rs` (its counterpart is
   `fuz_sign`'s own `FileStorage` loop, not a TS twin); `columns.rs`, the
   column-drift guard; `upkeep.rs`, which pins that `run_app` schedules its
-  upkeep tasks (`runtime::upkeep_options`; the sweeps themselves are tested in
+  upkeep tasks (`runtime::extra_upkeep` and the spine's auth cleanup; the sweeps themselves are tested in
   `fuz_auth` and `fuz_fact`); `repo_receive_callback_past_commit.rs`, which
   pins that the post-receive callback, dropped by its hook mid-commit, still
   broadcasts (a Rust-only concern: hyper drops a request with its

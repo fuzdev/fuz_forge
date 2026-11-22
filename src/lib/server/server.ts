@@ -283,7 +283,7 @@ export const create_app = async (deps: ServerDeps): Promise<ServerApp> => {
 		// once. `close_app_server` stops the schedule, waiting for a pass in
 		// progress, before it closes the pool. On in every posture, the test
 		// binary included, as the Rust twin's `run_app` schedules
-		// `fuz_auth::spawn_auth_cleanup` (`runtime.rs` `upkeep_options`) for
+		// `fuz_auth::AuthCleanup` (the router's serve duties) for
 		// `fuzfd` and `testing_fuzfd` alike.
 		auth_cleanup: true,
 		session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME,
