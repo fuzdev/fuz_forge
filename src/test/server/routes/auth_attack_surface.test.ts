@@ -98,18 +98,7 @@ describe_standard_attack_surface_tests({
 		//
 		// The route's own auth shape is still asserted by the snapshot + the
 		// census.
-		'GET /api/facts/:hash',
-		// The per-file read and delete declare a 404 whose body requires a
-		// `message` (`REST_FILE_NOT_FOUND`), and the adversarial 404 group stubs
-		// each route's first 404 with the code alone, which that body refuses —
-		// a fuz_app harness limit. Skipping drops all three groups for the two
-		// routes; the auth matrix (anonymous 401, roleless 403, the `acting`
-		// gates) and the duplicate-query shape are pinned cross-process in
-		// `cross_backend/files.cross.test.ts`, the scope gates in
-		// `files.scoped_token.db.test.ts`. The upload and list routes, which
-		// declare no 404, stay on the list.
-		'GET /api/fuz_forge/files/:filename{.+}',
-		'DELETE /api/fuz_forge/files/:filename{.+}'
+		'GET /api/facts/:hash'
 	],
 	security_policy: {
 		public_mutation_allowlist: [
@@ -153,15 +142,6 @@ const EXEMPT_OPTIONAL_CELL_READS: ReadonlySet<string> = new Set([
 	'cell_item_list'
 ]);
 
-/**
- * Methods whose handler re-reads the caller's account live and answers the
- * dead credential's 401 when it finds none — which the harness's stub database
- * always is, so "correct auth passes" reads a 401 there. `account_verify` is
- * the spine's credential probe; its gate is fuz_app's and is pinned in its own
- * suites and cross-process by the conformance table.
- */
-const EXEMPT_LIVE_ACCOUNT_READS: ReadonlySet<string> = new Set(['account_verify']);
-
 const build_rpc_surface_without_exempt_methods = (): AppSurfaceSpec => {
 	const spec = create_fuz_forge_app_surface_spec();
 	return {
@@ -170,9 +150,7 @@ const build_rpc_surface_without_exempt_methods = (): AppSurfaceSpec => {
 			...spec.surface,
 			rpc_endpoints: spec.surface.rpc_endpoints.map((endpoint) => ({
 				...endpoint,
-				methods: endpoint.methods.filter(
-					(m) => !EXEMPT_OPTIONAL_CELL_READS.has(m.name) && !EXEMPT_LIVE_ACCOUNT_READS.has(m.name)
-				)
+				methods: endpoint.methods.filter((m) => !EXEMPT_OPTIONAL_CELL_READS.has(m.name))
 			}))
 		}
 	};

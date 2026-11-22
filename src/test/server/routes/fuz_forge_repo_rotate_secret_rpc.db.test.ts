@@ -29,10 +29,10 @@
  * @module
  */
 
-import { assert, test, beforeAll, beforeEach } from 'vitest';
-import { ROLE_ADMIN, ROLE_KEEPER } from '@fuzdev/fuz_app/auth/role_schema.ts';
+import { assert, test, beforeEach } from 'vitest';
+import { ROLE_ADMIN } from '@fuzdev/fuz_app/auth/role_schema.ts';
 import { rpc_call } from '@fuzdev/fuz_app/testing/rpc_helpers.ts';
-import type { TestApp, TestAccount } from '@fuzdev/fuz_app/testing/app_server.ts';
+import type { TestApp, TestAccount } from '@fuzdev/fuz_app/testing/test_app.ts';
 import { Logger } from '@fuzdev/fuz_util/log.ts';
 
 import { repo_cell_path, type RepoCellData } from '#lib/fuz_forge/repo/plan_repo.ts';
@@ -112,13 +112,13 @@ describe_db('fuz_forge_repo_rotate_secret', (get_db) => {
 	/** Subprocess calls the storage layer makes (`chmod 0700` per hook script). */
 	const spawn_calls: Array<{ cmd: string; args: Array<string> }> = [];
 
-	beforeAll(async () => {
+	beforeEach(async () => {
 		runtime = create_mock_runtime();
 		runtime.mock_env.set('FUZ_FORGE_REPO_STORE_PATH', REPO_STORE);
 
 		// Wrap `write_text_file` to support per-test failure injection.
 		// Closes over the `inject_write_fault` slot so each test sets
-		// its own policy without rebuilding the app.
+		// its own policy.
 		const original_write = runtime.write_text_file;
 		let n = 0;
 		runtime.write_text_file = async (path: string, content: string) => {
@@ -130,7 +130,6 @@ describe_db('fuz_forge_repo_rotate_secret', (get_db) => {
 		inject_write_fault = null;
 
 		test_app = await create_fuz_forge_test_app(get_db, {
-			roles: [ROLE_KEEPER, ROLE_ADMIN],
 			rpc_endpoints: (ctx) =>
 				build_rpc_endpoint_specs(ctx, {
 					fuz_forge_deps: {

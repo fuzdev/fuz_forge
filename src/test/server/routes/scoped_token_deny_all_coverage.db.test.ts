@@ -20,9 +20,9 @@
  * @module
  */
 
-import { test, assert, beforeAll, beforeEach } from 'vitest';
-import { ROLE_ADMIN, ROLE_KEEPER } from '@fuzdev/fuz_app/auth/role_schema.ts';
-import type { TestApp, TestAccount } from '@fuzdev/fuz_app/testing/app_server.ts';
+import { test, assert, beforeEach } from 'vitest';
+import { ROLE_ADMIN } from '@fuzdev/fuz_app/auth/role_schema.ts';
+import type { TestApp, TestAccount } from '@fuzdev/fuz_app/testing/test_app.ts';
 
 import { describe_db } from '../../db_fixture.ts';
 import { create_fuz_forge_admin_test_app } from './fuz_forge_test_helpers.ts';
@@ -32,10 +32,8 @@ describe_db('scoped-token deny-all coverage', (get_db) => {
 	let test_app: TestApp;
 	let admin: TestAccount;
 
-	beforeAll(async () => {
-		test_app = await create_fuz_forge_admin_test_app(get_db, {
-			roles: [ROLE_KEEPER, ROLE_ADMIN]
-		});
+	beforeEach(async () => {
+		test_app = await create_fuz_forge_admin_test_app(get_db);
 	});
 
 	beforeEach(async () => {

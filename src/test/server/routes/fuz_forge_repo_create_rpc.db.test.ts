@@ -48,7 +48,7 @@ import { join } from 'node:path';
 import { assert, test, beforeAll, afterAll, beforeEach } from 'vitest';
 import { ROLE_ADMIN } from '@fuzdev/fuz_app/auth/role_schema.ts';
 import { rpc_call } from '@fuzdev/fuz_app/testing/rpc_helpers.ts';
-import type { TestApp, TestAccount } from '@fuzdev/fuz_app/testing/app_server.ts';
+import type { TestApp, TestAccount } from '@fuzdev/fuz_app/testing/test_app.ts';
 import { create_node_runtime } from '@fuzdev/fuz_app/runtime/node.ts';
 import { query_cell_get_by_path } from '@fuzdev/fuz_app/db/cell_queries.ts';
 import { Logger } from '@fuzdev/fuz_util/log.ts';
@@ -87,7 +87,11 @@ describe_db('fuz_forge_repo_create', (get_db) => {
 		await mkdir(store_root, { recursive: true });
 
 		upstream = await create_upstream_git_server('create_rpc');
+	});
 
+	// A fresh app per test: `describe_db` truncates the auth tables before each
+	// one, and the app's keeper bootstrap and invariant check are per test.
+	beforeEach(async () => {
 		// Runtime that resolves the repo store under the per-suite tmp dir.
 		const scoped_runtime = {
 			...runtime,
@@ -96,7 +100,6 @@ describe_db('fuz_forge_repo_create', (get_db) => {
 		};
 
 		test_app = await create_fuz_forge_test_app(get_db, {
-			roles: [ROLE_ADMIN],
 			rpc_endpoints: (ctx) =>
 				build_rpc_endpoint_specs(ctx, {
 					fuz_forge_deps: {
@@ -410,13 +413,16 @@ describe_db('fuz_forge_repo_create seed_from host policy', (get_db) => {
 	beforeAll(async () => {
 		store_root = join(tmpdir(), `fuz_forge-create-hostpolicy-${randomBytes(16).toString('hex')}`);
 		await mkdir(store_root, { recursive: true });
+	});
+
+	// A fresh app per test, as above.
+	beforeEach(async () => {
 		const scoped_runtime = {
 			...runtime,
 			env_get: (name: string) =>
 				name === 'FUZ_FORGE_REPO_STORE_PATH' ? store_root : runtime.env_get(name)
 		};
 		test_app = await create_fuz_forge_test_app(get_db, {
-			roles: [ROLE_ADMIN],
 			rpc_endpoints: (ctx) =>
 				build_rpc_endpoint_specs(ctx, {
 					fuz_forge_deps: {

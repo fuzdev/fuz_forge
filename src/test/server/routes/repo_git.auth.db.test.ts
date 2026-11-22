@@ -22,10 +22,11 @@
 
 import { assert, test, describe } from 'vitest';
 import { ROLE_ADMIN, ROLE_KEEPER } from '@fuzdev/fuz_app/auth/role_schema.ts';
-import { create_test_app, type TestApp } from '@fuzdev/fuz_app/testing/app_server.ts';
+import { create_test_app, type TestApp } from '@fuzdev/fuz_app/testing/test_app.ts';
 import type { AppServerContext } from '@fuzdev/fuz_app/server/app_server_context.ts';
 import { TEST_ORIGIN } from '@fuzdev/fuz_app/testing/test_origin.ts';
 import type { Db } from '@fuzdev/fuz_app/db/db.ts';
+import type { DbInvariantExclusions } from '@fuzdev/fuz_app/testing/db_invariant_queries.ts';
 import type { QueryDeps } from '@fuzdev/fuz_app/db/query_deps.ts';
 import { Logger } from '@fuzdev/fuz_util/log.ts';
 
@@ -49,7 +50,10 @@ const SLUG = 'fuzdev/fuz_app';
  * reach the subprocess return 503. Auth-failure tests use this to
  * verify they 401 BEFORE the no-subprocess gate fires.
  */
-const build_test_app = async (get_db: () => Db): Promise<TestApp> => {
+const build_test_app = async (
+	get_db: () => Db,
+	exclude_db_invariants?: DbInvariantExclusions
+): Promise<TestApp> => {
 	const log = new Logger('test-repo-git-auth', { level: 'off' });
 	const create_route_specs = (ctx: AppServerContext) => {
 		const query_deps: QueryDeps = { db: ctx.deps.db };
@@ -90,7 +94,7 @@ const build_test_app = async (get_db: () => Db): Promise<TestApp> => {
 		session_options: fuz_forge_session_config,
 		create_route_specs,
 		db: get_db(),
-		roles: [ROLE_ADMIN]
+		exclude_db_invariants
 	});
 };
 
@@ -241,7 +245,10 @@ describe_db('repo_git auth failure paths', (get_db) => {
 		});
 
 		test('rejects an admin whose granting actor is soft-deleted', async () => {
-			const test_app = await build_test_app(get_db);
+			const test_app = await build_test_app(get_db, {
+				actor_tombstone_disagrees_with_account:
+					'tombstones the actor alone (`query_actor_soft_delete`), a state no wire path leaves, to pin the git gate on it'
+			});
 			const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
 			await seed_repo_cell(get_db());
 			// Control: the same credential reaches the subprocess while the

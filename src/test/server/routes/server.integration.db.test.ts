@@ -5,8 +5,8 @@
  * integration, rate limiting, route + RPC round-trip, data exposure) plus
  * fuz_forge-specific smoke tests in separate describe blocks. Suite options use
  * the `default_in_process_suite_options(...)` consolidation helper for the
- * shared `{setup_test, surface_source, capabilities}` triple; admin passes
- * `extra_keeper_roles: [ROLE_ADMIN]` so the bootstrapped keeper can
+ * shared `{setup_test, surface_source, capabilities}` triple, whose
+ * bootstrapped keeper holds admin as a production bootstrap grants, so it can
  * hit admin-gated RPC methods. The two suites that drive the whole route set
  * (round-trip, data exposure) override `setup_test` with
  * `fuz_forge_in_process_setup`, which migrates the forge's own namespaces so
@@ -18,7 +18,7 @@
  * @module
  */
 
-import { test, assert, describe, beforeAll, beforeEach } from 'vitest';
+import { test, assert, describe, beforeEach } from 'vitest';
 import { describe_standard_integration_tests } from '@fuzdev/fuz_app/testing/integration.ts';
 import { describe_standard_admin_integration_tests } from '@fuzdev/fuz_app/testing/admin_integration.ts';
 import { describe_rate_limiting_tests } from '@fuzdev/fuz_app/testing/rate_limiting.ts';
@@ -29,12 +29,12 @@ import {
 	default_in_process_setup,
 	default_in_process_suite_options
 } from '@fuzdev/fuz_app/testing/cross_backend/in_process_setup.ts';
-import { ROLE_ADMIN, ROLE_KEEPER, create_role_registry } from '@fuzdev/fuz_app/auth/role_schema.ts';
-import type { TestApp, TestAccount } from '@fuzdev/fuz_app/testing/app_server.ts';
+import { ROLE_ADMIN, create_role_registry } from '@fuzdev/fuz_app/auth/role_schema.ts';
+import type { TestApp, TestAccount } from '@fuzdev/fuz_app/testing/test_app.ts';
 import type { RouteSpec } from '@fuzdev/fuz_app/http/route_spec.ts';
 import type { AppServerContext } from '@fuzdev/fuz_app/server/app_server_context.ts';
 import { stub } from '@fuzdev/fuz_app/testing/stubs.ts';
-import { create_describe_db } from '@fuzdev/fuz_app/testing/db.ts';
+import { create_describe_db } from '@fuzdev/fuz_app/testing/describe_db.ts';
 import { assert_response_matches_spec } from '@fuzdev/fuz_app/testing/integration_helpers.ts';
 import { Logger } from '@fuzdev/fuz_util/log.ts';
 
@@ -134,7 +134,7 @@ const fuz_forge_bootstrap_config = { mode: 'surface_only' } as const;
  * `setup_test` with this one.
  *
  * The fields match what the helper would have produced for these two call
- * sites: `roles: [ROLE_KEEPER]` (neither passes `extra_keeper_roles`), no
+ * sites: the default keeper roles (neither passes `extra_keeper_roles`), no
  * `rpc_endpoints` (neither passes one — RPC methods are covered by
  * `describe_rpc_round_trip_tests`), and no `app_options` / `extra_accounts` /
  * `extra_actors`.
@@ -143,7 +143,6 @@ const fuz_forge_in_process_setup = default_in_process_setup({
 	session_options: fuz_forge_session_config,
 	create_route_specs: create_fuz_forge_test_route_specs,
 	bootstrap: fuz_forge_bootstrap_config,
-	roles: [ROLE_KEEPER],
 	migration_namespaces: fuz_forge_own_migration_namespaces
 });
 
@@ -154,17 +153,6 @@ describe_standard_integration_tests(
 		session_options: fuz_forge_session_config,
 		create_route_specs: create_fuz_forge_test_route_specs,
 		rpc_endpoints: fuz_forge_rpc_endpoints,
-		// The signup-invite-edge-case groups drive keeper-side `invite_create`
-		// (admin-gated) now that `/signup` is mounted, so the bootstrapped
-		// keeper needs ROLE_ADMIN.
-		//
-		// Load-bearing here, and NOT redundant the way it was in the cross
-		// files: the in-process seed is `roles: [ROLE_KEEPER,
-		// ...extra_keeper_roles]` (fuz_app's `default_in_process_suite_options`),
-		// so admin arrives only if it is named — where `_testing_reset` on the
-		// cross-process side seeds `[ROLE_KEEPER, ROLE_ADMIN]` unconditionally.
-		// The two defaults differ; don't "clean this up" by analogy.
-		extra_keeper_roles: [ROLE_ADMIN],
 		bootstrap: fuz_forge_bootstrap_config
 	})
 );
@@ -176,7 +164,6 @@ describe_standard_admin_integration_tests({
 		session_options: fuz_forge_session_config,
 		create_route_specs: create_fuz_forge_test_route_specs,
 		rpc_endpoints: fuz_forge_rpc_endpoints,
-		extra_keeper_roles: [ROLE_ADMIN],
 		bootstrap: fuz_forge_bootstrap_config
 	}),
 	roles: fuz_forge_roles
@@ -254,7 +241,6 @@ describe_forge_schema_db('RPC round-trip on the forge schema', (get_db) => {
 				create_route_specs: create_fuz_forge_test_route_specs,
 				rpc_endpoints: fuz_forge_db_rpc_endpoints,
 				bootstrap: fuz_forge_bootstrap_config,
-				roles: [ROLE_KEEPER],
 				db: get_db()
 			})(),
 		// `fuz_forge_repo_create` is side-effecting (real `git init` + disk +
@@ -289,16 +275,16 @@ describe_data_exposure_tests({
 
 // --- fuz_forge-specific smoke tests ---
 //
-// Each describe block creates one TestApp in beforeAll (shares the Hono app +
-// deps across tests) and re-bootstraps the account(s) it needs in beforeEach,
-// because describe_db truncates the auth tables before every test.
+// Each describe block builds its TestApp and the account(s) it needs in
+// beforeEach, after describe_db's per-test truncate, so every test starts from
+// a freshly bootstrapped keeper and is invariant-checked by `create_test_app`.
 
 describe_db('fuz_forge-specific routes', (get_db) => {
 	describe('server status', () => {
 		let test_app: TestApp;
 		let authed: TestAccount;
 
-		beforeAll(async () => {
+		beforeEach(async () => {
 			test_app = await create_fuz_forge_test_app(get_db);
 		});
 
@@ -322,7 +308,7 @@ describe_db('fuz_forge-specific routes', (get_db) => {
 		let test_app: TestApp;
 		let admin: TestAccount;
 
-		beforeAll(async () => {
+		beforeEach(async () => {
 			test_app = await create_fuz_forge_test_app(get_db);
 		});
 

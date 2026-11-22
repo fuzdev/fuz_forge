@@ -10,7 +10,7 @@
  */
 
 import { test } from 'vitest';
-import { assert_columns_match_live } from '@fuzdev/fuz_app/testing/db.ts';
+import { assert_columns_match_live } from '@fuzdev/fuz_app/testing/describe_db.ts';
 
 import { FUZ_FORGE_API_TOKEN_POLICY_COLUMNS } from '#lib/server/db/fuz_forge_api_token_policy_queries.ts';
 

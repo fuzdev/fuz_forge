@@ -16,11 +16,11 @@
 import { readFile } from 'node:fs/promises';
 import {
 	create_pg_factory,
-	create_describe_db,
 	auth_integration_truncate_tables,
 	log_db_factory_status,
 	type DbFactory
 } from '@fuzdev/fuz_app/testing/db.ts';
+import { create_describe_db } from '@fuzdev/fuz_app/testing/describe_db.ts';
 import { load_env_file } from '@fuzdev/fuz_app/env/dotenv.ts';
 
 import {
@@ -65,8 +65,8 @@ export const TRUNCATE_TABLES = [
 ];
 
 // `create_pg_factory` resets the `public` schema per `create()`, so each suite's
-// `beforeAll` (e.g. `create_test_app`'s keeper bootstrap) starts against an empty
-// database — the per-test `TRUNCATE` runs only after `beforeAll`
+// `beforeAll` starts against an empty database — the per-test `TRUNCATE` runs
+// only after `beforeAll`
 const pg_factory = create_pg_factory(init_fuz_forge_schema, TEST_DATABASE_URL);
 
 /**
@@ -84,6 +84,11 @@ log_db_factory_status(db_factories);
  * `beforeEach` `TRUNCATE` of all tables. The `db` vitest project runs serially
  * (`isolate: false`, `fileParallelism: false`), so a single shared DB + per-test
  * truncation gives clean isolation without per-worker databases.
+ *
+ * Build a `create_test_app` app in the test or a `beforeEach`, after the
+ * truncate: the app bootstraps its keeper there and checks fuz_app's database
+ * invariants when the test finishes. One built in a `beforeAll` loses its
+ * keeper to the first truncate and registers no check.
  *
  * @example
  * ```ts

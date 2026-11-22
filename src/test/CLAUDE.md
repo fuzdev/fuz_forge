@@ -520,15 +520,21 @@ beforeEach(() => { runtime = create_mock_runtime(); });
 
 **`describe_db`** runs every suite against real **PostgreSQL**, the engine the
 production Rust backend uses — `create_describe_db` from
-`@fuzdev/fuz_app/testing/db.ts`, bound to fuz_forge's `pg_factory` and
+`@fuzdev/fuz_app/testing/describe_db.ts`, bound to fuz_forge's `pg_factory` and
 `TRUNCATE_TABLES` (the general pattern is in the [fuz-stack skill](https://docs.fuz.dev/skills/fuz-stack)).
 
 Each suite's `create()` runs a clean-slate init (`DROP SCHEMA public CASCADE`
-→ `CREATE SCHEMA public` → migrate), so a suite's `beforeAll` (e.g.
-`create_test_app`'s keeper bootstrap) starts against an EMPTY DB; each test's
-`beforeEach` then `TRUNCATE`s all tables. The `db` project runs serially
-(`isolate: false`, `fileParallelism: false`), so one shared DB isolates
-cleanly without per-worker databases.
+→ `CREATE SCHEMA public` → migrate), so a suite's `beforeAll` starts against
+an EMPTY DB; each test's `beforeEach` then `TRUNCATE`s all tables. The `db`
+project runs serially (`isolate: false`, `fileParallelism: false`), so one
+shared DB isolates cleanly without per-worker databases.
+
+Build a `create_test_app` app in the test or a `beforeEach`, after the
+truncate: it bootstraps a fresh keeper and checks fuz_app's database
+invariants when the test finishes. An app built in a `beforeAll` loses its
+keeper to the first truncate and is never checked. A test that writes a state
+no wire path leaves (an actor tombstoned alone) excludes the invariant it
+breaks, with the reason, on its own app (`exclude_db_invariants`).
 
 `TRUNCATE_TABLES` spreads `fuz_forge_domain_truncate_tables` (the cell tables,
 children first, and the fact substrate — one list in

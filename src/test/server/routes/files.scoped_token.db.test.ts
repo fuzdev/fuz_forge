@@ -19,7 +19,7 @@ import { join } from 'node:path';
 
 import { assert, test, describe, beforeAll, afterAll } from 'vitest';
 import { ROLE_ADMIN } from '@fuzdev/fuz_app/auth/role_schema.ts';
-import { create_test_app, type TestApp } from '@fuzdev/fuz_app/testing/app_server.ts';
+import { create_test_app, type TestApp } from '@fuzdev/fuz_app/testing/test_app.ts';
 import { create_node_runtime } from '@fuzdev/fuz_app/runtime/node.ts';
 import type { AppServerContext } from '@fuzdev/fuz_app/server/app_server_context.ts';
 import type { Db } from '@fuzdev/fuz_app/db/db.ts';
@@ -106,8 +106,7 @@ const build_test_app = async (
 	return await create_test_app({
 		session_options: fuz_forge_session_config,
 		create_route_specs,
-		db: get_db(),
-		roles: [ROLE_ADMIN]
+		db: get_db()
 	});
 };
 

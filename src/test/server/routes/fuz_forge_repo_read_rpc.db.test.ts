@@ -14,10 +14,10 @@
  * @module
  */
 
-import { assert, describe, test, beforeAll, beforeEach } from 'vitest';
+import { assert, describe, test, beforeEach } from 'vitest';
 import { ROLE_ADMIN } from '@fuzdev/fuz_app/auth/role_schema.ts';
 import { rpc_call } from '@fuzdev/fuz_app/testing/rpc_helpers.ts';
-import type { TestApp, TestAccount } from '@fuzdev/fuz_app/testing/app_server.ts';
+import type { TestApp, TestAccount } from '@fuzdev/fuz_app/testing/test_app.ts';
 
 import { repo_cell_path, type RepoCellData } from '#lib/fuz_forge/repo/plan_repo.ts';
 import { query_cell_create } from '@fuzdev/fuz_app/db/cell_queries.ts';
@@ -83,7 +83,7 @@ describe_db('fuz_forge_repo_list / fuz_forge_repo_get', (get_db) => {
 	let test_app: TestApp;
 	let admin: TestAccount;
 
-	beforeAll(async () => {
+	beforeEach(async () => {
 		test_app = await create_fuz_forge_admin_test_app(get_db);
 	});
 

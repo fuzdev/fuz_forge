@@ -15,8 +15,7 @@
  */
 
 import { assert, test, describe } from 'vitest';
-import { ROLE_ADMIN } from '@fuzdev/fuz_app/auth/role_schema.ts';
-import { create_test_app, type TestApp } from '@fuzdev/fuz_app/testing/app_server.ts';
+import { create_test_app, type TestApp } from '@fuzdev/fuz_app/testing/test_app.ts';
 import type { AppServerContext } from '@fuzdev/fuz_app/server/app_server_context.ts';
 import type { Db } from '@fuzdev/fuz_app/db/db.ts';
 import type { JsonObject } from '@fuzdev/fuz_util/json.ts';
@@ -104,7 +103,6 @@ const build_test_app = async (get_db: () => Db, options: { connection_ip?: strin
 		session_options: fuz_forge_session_config,
 		create_route_specs,
 		db: get_db(),
-		roles: [ROLE_ADMIN],
 		app_options: {
 			// production's `/internal/*` carve-out, so the in-handler fences answer
 			origin_carve_outs: [...FUZ_FORGE_ORIGIN_CARVE_OUTS],

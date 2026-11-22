@@ -12,7 +12,7 @@
  * @module
  */
 
-import { assert, beforeAll, test } from 'vitest';
+import { assert, test, beforeEach } from 'vitest';
 import { ROLE_ADMIN } from '@fuzdev/fuz_app/auth/role_schema.ts';
 import { ConnectionRegistry } from '@fuzdev/fuz_app/actions/connection_registry.ts';
 import {
@@ -20,7 +20,7 @@ import {
 	token_scope_denied_body,
 	token_scope_methods
 } from '@fuzdev/fuz_app/auth/token_scope.ts';
-import type { TestApp } from '@fuzdev/fuz_app/testing/app_server.ts';
+import type { TestApp } from '@fuzdev/fuz_app/testing/test_app.ts';
 import { create_stub_upgrade, type StubUpgrade } from '@fuzdev/fuz_app/testing/ws_round_trip.ts';
 
 import { build_ws_endpoint_specs } from '#lib/server/routes/fuz_forge_route_specs.ts';
@@ -34,7 +34,7 @@ describe_db('fuz_forge /api/ws upgrade refusals', (get_db) => {
 	let test_app: TestApp;
 	let stub: StubUpgrade;
 
-	beforeAll(async () => {
+	beforeEach(async () => {
 		stub = create_stub_upgrade();
 		test_app = await create_fuz_forge_admin_test_app(get_db, {
 			app_options: {

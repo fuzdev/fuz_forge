@@ -22,10 +22,10 @@
  * @module
  */
 
-import { assert, test, beforeAll, beforeEach } from 'vitest';
-import { ROLE_ADMIN, ROLE_KEEPER } from '@fuzdev/fuz_app/auth/role_schema.ts';
+import { assert, test, beforeEach } from 'vitest';
+import { ROLE_ADMIN } from '@fuzdev/fuz_app/auth/role_schema.ts';
 import { rpc_call } from '@fuzdev/fuz_app/testing/rpc_helpers.ts';
-import type { TestApp, TestAccount } from '@fuzdev/fuz_app/testing/app_server.ts';
+import type { TestApp, TestAccount } from '@fuzdev/fuz_app/testing/test_app.ts';
 import { Logger } from '@fuzdev/fuz_util/log.ts';
 
 import { repo_cell_path, type RepoCellData } from '#lib/fuz_forge/repo/plan_repo.ts';
@@ -91,7 +91,7 @@ describe_db('fuz_forge_repo_resync', (get_db) => {
 	let fake_calls: Array<SpawnCall>;
 	let fake_response: (call: SpawnCall) => { stdout?: string; stderr?: string; code: number };
 
-	beforeAll(async () => {
+	beforeEach(async () => {
 		fake_calls = [];
 		fake_response = () => ({ stdout: '', code: 0 });
 		const fake_spawn: SpawnCollect = (cmd, args, _options) => {
@@ -109,7 +109,6 @@ describe_db('fuz_forge_repo_resync', (get_db) => {
 		const runtime = create_mock_runtime();
 
 		test_app = await create_fuz_forge_test_app(get_db, {
-			roles: [ROLE_KEEPER, ROLE_ADMIN],
 			rpc_endpoints: (ctx) =>
 				build_rpc_endpoint_specs(ctx, {
 					fuz_forge_deps: {

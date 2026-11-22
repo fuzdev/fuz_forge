@@ -31,7 +31,7 @@ import {
 	create_test_app,
 	type TestApp,
 	type TestAccount
-} from '@fuzdev/fuz_app/testing/app_server.ts';
+} from '@fuzdev/fuz_app/testing/test_app.ts';
 import { create_node_runtime } from '@fuzdev/fuz_app/runtime/node.ts';
 import type { AppServerContext } from '@fuzdev/fuz_app/server/app_server_context.ts';
 import { Db } from '@fuzdev/fuz_app/db/db.ts';

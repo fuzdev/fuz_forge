@@ -106,9 +106,8 @@ export interface ServerDeps {
 	 * on — `FUZ_LOGIN_RATE_LIMIT_ENABLED` the auth limiters,
 	 * `FUZ_ACTION_RATE_LIMIT_ENABLED` (with an optional
 	 * `FUZ_ACTION_RATE_LIMIT_MAX_ATTEMPTS` cap) the action limiters, both set
-	 * by the login-security cross projects — `await_pending_effects` on, a tracking
-	 * audit emitter (`track_inflight`, so `_testing_drain_effects` awaits
-	 * in-flight writes), and the injected `_testing_*` actions.
+	 * by the login-security cross projects — `await_pending_effects` on, and the
+	 * injected `_testing_*` actions.
 	 *
 	 * Grouped into one labeled field (rather than flat optionals on `ServerDeps`)
 	 * so the test boundary is unmistakable and the production deps above stay
@@ -234,16 +233,11 @@ export const create_app = async (deps: ServerDeps): Promise<ServerApp> => {
 		db_audit_checkout_timeout_ms: env.FUZ_DB_AUDIT_CHECKOUT_TIMEOUT_MS,
 		// Register the cell-domain audit events so the mounted cell handlers'
 		// `deps.audit.emit(...)` calls validate against a known event type.
-		// Test mode tracks in-flight audit writes so `_testing_drain_effects`
-		// awaits them, a real barrier for WS mutations, whose effects flush
-		// after the reply. Production never tracks. Twin of the Rust test
-		// binary's `audit_inflight_tracking: true` (`testing_fuz_forge_server`).
 		audit_factory: ({ db, log }) =>
 			create_audit_emitter({
 				db,
 				log,
-				audit_log_config: create_audit_log_config({ extra_events: cell_audit_events }),
-				track_inflight: testing !== undefined
+				audit_log_config: create_audit_log_config({ extra_events: cell_audit_events })
 			})
 	});
 
@@ -321,8 +315,7 @@ export const create_app = async (deps: ServerDeps): Promise<ServerApp> => {
 		// mutation's audit emits are durable by response time. Test mode only.
 		// WS replies don't wait on it — a socket message's effects flush after
 		// its reply — so the barrier for those is `_testing_drain_effects`
-		// awaiting the tracking emitter's in-flight writes (`audit_factory`
-		// above).
+		// awaiting the audit emitter's in-flight writes.
 		await_pending_effects,
 		bootstrap: bootstrap_options,
 		transform_middleware: (api_middleware) => [

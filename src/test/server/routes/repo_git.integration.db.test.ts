@@ -34,7 +34,7 @@ import {
 	create_test_app,
 	type TestApp,
 	type TestAccount
-} from '@fuzdev/fuz_app/testing/app_server.ts';
+} from '@fuzdev/fuz_app/testing/test_app.ts';
 import { create_node_runtime } from '@fuzdev/fuz_app/runtime/node.ts';
 import type { AppServerContext } from '@fuzdev/fuz_app/server/app_server_context.ts';
 import type { Db } from '@fuzdev/fuz_app/db/db.ts';
@@ -154,8 +154,7 @@ const boot_server = async (get_db: () => Db): Promise<BootedServer> => {
 	const test_app = await create_test_app({
 		session_options: fuz_forge_session_config,
 		create_route_specs,
-		db: get_db(),
-		roles: [ROLE_ADMIN]
+		db: get_db()
 	});
 	const admin = await test_app.create_account({
 		username: 'forge_admin',

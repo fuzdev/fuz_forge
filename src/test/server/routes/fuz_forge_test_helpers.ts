@@ -1,7 +1,7 @@
 /**
  * Shared test app factories for fuz_forge server tests.
  *
- * Wraps `create_test_app` from `@fuzdev/fuz_app/testing/app_server` with
+ * Wraps `create_test_app` from `@fuzdev/fuz_app/testing/test_app.ts` with
  * `fuz_forge_session_config` + fuz_forge route/RPC factories already wired. Pinned route
  * factory uses real DB query deps so handlers can hit the test Postgres DB.
  *
@@ -13,10 +13,9 @@ import {
 	create_test_app,
 	type CreateTestAppOptions,
 	type TestApp
-} from '@fuzdev/fuz_app/testing/app_server.ts';
+} from '@fuzdev/fuz_app/testing/test_app.ts';
 import type { AppServerContext } from '@fuzdev/fuz_app/server/app_server_context.ts';
 import type { RouteSpec } from '@fuzdev/fuz_app/http/route_spec.ts';
-import { ROLE_ADMIN, ROLE_KEEPER } from '@fuzdev/fuz_app/auth/role_schema.ts';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import type { AuditLogRouteOptions } from '@fuzdev/fuz_app/auth/audit_log_routes.ts';
@@ -160,8 +159,8 @@ export const create_fuz_forge_test_app = (
 	});
 
 /**
- * Create a fuz_forge test app with the RPC surface mounted and the bootstrapped
- * account holding `keeper` + `admin` roles.
+ * Create a fuz_forge test app with the RPC surface mounted. The bootstrapped
+ * account holds `keeper` + `admin`, `create_test_app`'s default.
  *
  * Use for tests that exercise admin-only RPC methods (audit log reads,
  * role grant create/revoke, account listing). Additional accounts created via
@@ -172,7 +171,6 @@ export const create_fuz_forge_admin_test_app = (
 	overrides?: FuzForgeTestAppOverrides
 ): Promise<TestApp> =>
 	create_fuz_forge_test_app(get_db, {
-		roles: [ROLE_KEEPER, ROLE_ADMIN],
 		rpc_endpoints: (ctx) =>
 			build_rpc_endpoint_specs(ctx, {
 				fuz_forge_deps: {

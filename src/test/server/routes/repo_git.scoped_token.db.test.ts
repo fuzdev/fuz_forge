@@ -21,7 +21,7 @@
 
 import { assert, test, describe } from 'vitest';
 import { ROLE_ADMIN } from '@fuzdev/fuz_app/auth/role_schema.ts';
-import { create_test_app, type TestApp } from '@fuzdev/fuz_app/testing/app_server.ts';
+import { create_test_app, type TestApp } from '@fuzdev/fuz_app/testing/test_app.ts';
 import type { AppServerContext } from '@fuzdev/fuz_app/server/app_server_context.ts';
 import type { Db } from '@fuzdev/fuz_app/db/db.ts';
 import type { QueryDeps } from '@fuzdev/fuz_app/db/query_deps.ts';
@@ -84,8 +84,7 @@ const build_test_app = async (get_db: () => Db): Promise<TestApp> => {
 	return await create_test_app({
 		session_options: fuz_forge_session_config,
 		create_route_specs,
-		db: get_db(),
-		roles: [ROLE_ADMIN]
+		db: get_db()
 	});
 };
 
