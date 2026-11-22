@@ -36,7 +36,6 @@ import type { PasswordHashDeps } from '@fuzdev/fuz_app/auth/password.ts';
 import { create_app_server, require_audit_sse } from '@fuzdev/fuz_app/server/app_server.ts';
 import { create_app_backend } from '@fuzdev/fuz_app/server/app_backend.ts';
 import type { DaemonTokenState } from '@fuzdev/fuz_app/auth/daemon_token.ts';
-import type { SessionOptions } from '@fuzdev/fuz_app/auth/session_cookie.ts';
 import type { AppDeps } from '@fuzdev/fuz_app/auth/deps.ts';
 import type { RpcAction } from '@fuzdev/fuz_app/actions/action_types.ts';
 import { create_audit_emitter } from '@fuzdev/fuz_app/auth/audit_emitter.ts';
@@ -45,7 +44,7 @@ import { cell_audit_events } from '@fuzdev/fuz_app/auth/cell_audit_events.ts';
 import type { RuntimeDeps } from '@fuzdev/fuz_app/runtime/deps.ts';
 
 import { ServerEnv } from './env/schema.ts';
-import { fuz_forge_session_config } from './routes/account.ts';
+import { FUZ_FORGE_SESSION_COOKIE_NAME } from './routes/account.ts';
 import { init_fuz_forge_schema } from './db/fuz_forge_schema.ts';
 import {
 	create_fuz_forge_app_route_specs,
@@ -147,7 +146,7 @@ export interface ServerTestingOptions {
 		deps: AppDeps,
 		options: {
 			daemon_token_state: DaemonTokenState | null;
-			session_options: SessionOptions<string>;
+			session_cookie_name: string;
 		}
 	) => ReadonlyArray<RpcAction>;
 	/**
@@ -287,7 +286,7 @@ export const create_app = async (deps: ServerDeps): Promise<ServerApp> => {
 		// `fuz_auth::spawn_auth_cleanup` (`runtime.rs` `upkeep_options`) for
 		// `fuzfd` and `testing_fuzfd` alike.
 		auth_cleanup: true,
-		session_options: fuz_forge_session_config,
+		session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME,
 		allowed_origins,
 		// the operator's `FUZ_ALLOW_ORIGIN_WILDCARDS` — without it a wildcard entry refuses to boot
 		allow_origin_wildcards,
@@ -315,7 +314,8 @@ export const create_app = async (deps: ServerDeps): Promise<ServerApp> => {
 		// mutation's audit emits are durable by response time. Test mode only.
 		// WS replies don't wait on it — a socket message's effects flush after
 		// its reply — so the barrier for those is `_testing_drain_effects`
-		// awaiting the audit emitter's in-flight writes.
+		// awaiting every request's effect flush and the audit emitter's
+		// in-flight writes.
 		await_pending_effects,
 		bootstrap: bootstrap_options,
 		transform_middleware: (api_middleware) => [

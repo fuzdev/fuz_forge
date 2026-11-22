@@ -2,7 +2,7 @@
  * Shared test app factories for fuz_forge server tests.
  *
  * Wraps `create_test_app` from `@fuzdev/fuz_app/testing/test_app.ts` with
- * `fuz_forge_session_config` + fuz_forge route/RPC factories already wired. Pinned route
+ * `FUZ_FORGE_SESSION_COOKIE_NAME` + fuz_forge route/RPC factories already wired. Pinned route
  * factory uses real DB query deps so handlers can hit the test Postgres DB.
  *
  * @module
@@ -24,7 +24,7 @@ import { Logger } from '@fuzdev/fuz_util/log.ts';
 import { AsyncSemaphore } from '@fuzdev/fuz_util/async.ts';
 import type { RouteParamValues } from '@fuzdev/fuz_app/testing/schema_generators.ts';
 
-import { fuz_forge_session_config } from '#lib/server/routes/account.ts';
+import { FUZ_FORGE_SESSION_COOKIE_NAME } from '#lib/server/routes/account.ts';
 import { FUZ_FORGE_ORIGIN_CARVE_OUTS } from '#lib/server/app_assembly.ts';
 import type { FileRoutesDeps } from '#lib/server/routes/files.ts';
 import {
@@ -97,7 +97,7 @@ export const test_facts_dir = (): string => join(tmpdir(), 'fuz_forge-test-facts
 
 /** Fields callers may override on the fuz_forge test app. */
 export type FuzForgeTestAppOverrides = Partial<
-	Omit<CreateTestAppOptions, 'session_options' | 'create_route_specs' | 'db'>
+	Omit<CreateTestAppOptions, 'session_cookie_name' | 'create_route_specs' | 'db'>
 >;
 
 /**
@@ -141,7 +141,7 @@ const create_fuz_forge_db_route_specs = (ctx: AppServerContext): Array<RouteSpec
 /**
  * Create a fuz_forge test app bound to the given database.
  *
- * `session_options` and `create_route_specs` are pinned to the canonical
+ * `session_cookie_name` and `create_route_specs` are pinned to the canonical
  * fuz_forge wiring with real DB query deps — overrides cover roles, password
  * deps, app_options, etc.
  */
@@ -150,7 +150,7 @@ export const create_fuz_forge_test_app = (
 	overrides?: FuzForgeTestAppOverrides
 ): Promise<TestApp> =>
 	create_test_app({
-		session_options: fuz_forge_session_config,
+		session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME,
 		create_route_specs: create_fuz_forge_db_route_specs,
 		db: get_db(),
 		...overrides,

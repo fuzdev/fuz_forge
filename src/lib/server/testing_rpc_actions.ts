@@ -34,7 +34,6 @@ import {
 } from '@fuzdev/fuz_schema/schema.ts';
 import type { AppDeps } from '@fuzdev/fuz_app/auth/deps.ts';
 import type { DaemonTokenState } from '@fuzdev/fuz_app/auth/daemon_token.ts';
-import type { SessionOptions } from '@fuzdev/fuz_app/auth/session_cookie.ts';
 import {
 	create_testing_action_manifest_action,
 	create_testing_actions,
@@ -118,8 +117,8 @@ export interface FuzForgeTestingRpcActionsOptions {
 	 * `_testing_reset` points it at the freshly seeded keeper.
 	 */
 	daemon_token_state: DaemonTokenState;
-	/** The session options `create_app_server` was wired with. */
-	session_options: SessionOptions<string>;
+	/** The session cookie name `create_app_server` was wired with. */
+	session_cookie_name: string;
 }
 
 /**
@@ -127,7 +126,7 @@ export interface FuzForgeTestingRpcActionsOptions {
  * (HTTP RPC + `/api/ws`), ahead of `create_fuz_forge_testing_final_rpc_actions`.
  *
  * @param deps - the backend deps the seams close over
- * @param options - the daemon-token state and session options
+ * @param options - the daemon-token state and session cookie name
  * @returns the seams, in mount order
  */
 export const create_fuz_forge_testing_rpc_actions = (
@@ -135,7 +134,6 @@ export const create_fuz_forge_testing_rpc_actions = (
 	options: FuzForgeTestingRpcActionsOptions
 ): Array<RpcAction> => [
 	...create_testing_actions(deps, {
-		session_options: options.session_options,
 		daemon_token_state: options.daemon_token_state,
 		// Use the passed transactional `db` (the same connection the auth wipe
 		// ran on) — a separately-pooled connection deadlocks against the open
@@ -157,7 +155,7 @@ export const create_fuz_forge_testing_rpc_actions = (
 	// `create_testing_credential_read_action_spec`.
 	create_testing_credential_read_action({
 		keyring: deps.keyring,
-		session_options: options.session_options
+		session_cookie_name: options.session_cookie_name
 	}),
 	// `_testing_shorten_credential_expiry` — pull an account's session and
 	// token expiry in, for the credential-deadline close; also standalone

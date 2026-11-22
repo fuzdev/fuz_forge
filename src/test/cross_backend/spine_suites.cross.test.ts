@@ -22,7 +22,7 @@ import {
 	type SuiteOverrides
 } from '@fuzdev/fuz_app/testing/cross_backend/spine_suites.ts';
 
-import { fuz_forge_session_config } from '#lib/server/routes/account.ts';
+import { FUZ_FORGE_SESSION_COOKIE_NAME } from '#lib/server/routes/account.ts';
 import { fuz_forge_roles } from '#lib/server/fuz_forge_roles.ts';
 import { create_fuz_forge_app_surface_spec } from '../server/routes/auth_attack_surface_helpers.ts';
 import { fuz_forge_param_values } from '../server/routes/fuz_forge_test_helpers.ts';
@@ -58,7 +58,7 @@ const overrides: SuiteOverrides = {
 
 describe_spine_cross_suites(handle, {
 	surface_source: create_fuz_forge_app_surface_spec(),
-	session_options: fuz_forge_session_config,
+	session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME,
 	rpc_endpoints: fuz_forge_rpc_endpoints,
 	roles: fuz_forge_roles,
 	// the forge's `/api/ws` upgrade is admin-gated (`ws_role_gate`: roleless →

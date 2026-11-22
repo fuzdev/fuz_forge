@@ -38,7 +38,7 @@ import { Db } from '@fuzdev/fuz_app/db/db.ts';
 import type { QueryDeps } from '@fuzdev/fuz_app/db/query_deps.ts';
 import { Logger } from '@fuzdev/fuz_util/log.ts';
 
-import { fuz_forge_session_config } from '#lib/server/routes/account.ts';
+import { FUZ_FORGE_SESSION_COOKIE_NAME } from '#lib/server/routes/account.ts';
 import { create_fuz_forge_app_route_specs } from '#lib/server/routes/fuz_forge_route_specs.ts';
 import { PgFactStore } from '@fuzdev/fuz_app/db/fact_store.ts';
 import { FactStorageFullError } from '@fuzdev/fuz_app/db/fact_store_errors.ts';
@@ -137,7 +137,7 @@ const build_test_app = async (
 	};
 
 	return create_test_app({
-		session_options: fuz_forge_session_config,
+		session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME,
 		create_route_specs,
 		db: get_db()
 	});

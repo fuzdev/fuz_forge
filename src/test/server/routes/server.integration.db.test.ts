@@ -38,7 +38,7 @@ import { create_describe_db } from '@fuzdev/fuz_app/testing/describe_db.ts';
 import { assert_response_matches_spec } from '@fuzdev/fuz_app/testing/integration_helpers.ts';
 import { Logger } from '@fuzdev/fuz_util/log.ts';
 
-import { fuz_forge_session_config } from '#lib/server/routes/account.ts';
+import { FUZ_FORGE_SESSION_COOKIE_NAME } from '#lib/server/routes/account.ts';
 import { fuz_forge_own_migration_namespaces } from '#lib/server/db/fuz_forge_schema.ts';
 import {
 	build_rpc_endpoint_specs,
@@ -140,7 +140,7 @@ const fuz_forge_bootstrap_config = { mode: 'surface_only' } as const;
  * `extra_actors`.
  */
 const fuz_forge_in_process_setup = default_in_process_setup({
-	session_options: fuz_forge_session_config,
+	session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME,
 	create_route_specs: create_fuz_forge_test_route_specs,
 	bootstrap: fuz_forge_bootstrap_config,
 	migration_namespaces: fuz_forge_own_migration_namespaces
@@ -150,7 +150,7 @@ const fuz_forge_in_process_setup = default_in_process_setup({
 
 describe_standard_integration_tests(
 	default_in_process_suite_options({
-		session_options: fuz_forge_session_config,
+		session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME,
 		create_route_specs: create_fuz_forge_test_route_specs,
 		rpc_endpoints: fuz_forge_rpc_endpoints,
 		bootstrap: fuz_forge_bootstrap_config
@@ -161,7 +161,7 @@ describe_standard_integration_tests(
 
 describe_standard_admin_integration_tests({
 	...default_in_process_suite_options({
-		session_options: fuz_forge_session_config,
+		session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME,
 		create_route_specs: create_fuz_forge_test_route_specs,
 		rpc_endpoints: fuz_forge_rpc_endpoints,
 		bootstrap: fuz_forge_bootstrap_config
@@ -173,7 +173,7 @@ describe_standard_admin_integration_tests({
 
 describe_rate_limiting_tests({
 	...default_in_process_suite_options({
-		session_options: fuz_forge_session_config,
+		session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME,
 		create_route_specs: create_fuz_forge_test_route_specs,
 		rpc_endpoints: fuz_forge_rpc_endpoints,
 		bootstrap: fuz_forge_bootstrap_config
@@ -185,7 +185,7 @@ describe_rate_limiting_tests({
 
 describe_round_trip_validation({
 	...default_in_process_suite_options({
-		session_options: fuz_forge_session_config,
+		session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME,
 		create_route_specs: create_fuz_forge_test_route_specs,
 		bootstrap: fuz_forge_bootstrap_config
 	}),
@@ -227,7 +227,7 @@ const describe_forge_schema_db = create_describe_db(db_factories, []);
 describe_forge_schema_db('RPC round-trip on the forge schema', (get_db) => {
 	describe_rpc_round_trip_tests({
 		...default_in_process_suite_options({
-			session_options: fuz_forge_session_config,
+			session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME,
 			create_route_specs: create_fuz_forge_test_route_specs,
 			rpc_endpoints: fuz_forge_rpc_endpoints,
 			bootstrap: fuz_forge_bootstrap_config
@@ -237,7 +237,7 @@ describe_forge_schema_db('RPC round-trip on the forge schema', (get_db) => {
 		// so the repo, cell and token-policy reads reach their handlers.
 		setup_test: () =>
 			default_in_process_setup({
-				session_options: fuz_forge_session_config,
+				session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME,
 				create_route_specs: create_fuz_forge_test_route_specs,
 				rpc_endpoints: fuz_forge_db_rpc_endpoints,
 				bootstrap: fuz_forge_bootstrap_config,
@@ -254,7 +254,7 @@ describe_forge_schema_db('RPC round-trip on the forge schema', (get_db) => {
 
 describe_data_exposure_tests({
 	...default_in_process_suite_options({
-		session_options: fuz_forge_session_config,
+		session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME,
 		create_route_specs: create_fuz_forge_test_route_specs,
 		bootstrap: fuz_forge_bootstrap_config
 	}),

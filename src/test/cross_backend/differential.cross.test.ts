@@ -37,7 +37,7 @@ import { ERROR_CELL_NOT_FOUND } from '@fuzdev/fuz_app/auth/cell_action_specs.ts'
 import { generate_rpc_auth_conformance_cases } from '@fuzdev/fuz_app/testing/cross_backend/conformance_rpc_auth.ts';
 import { resolve_rpc_endpoints_for_setup } from '@fuzdev/fuz_app/testing/rpc_helpers.ts';
 
-import { fuz_forge_session_config } from '#lib/server/routes/account.ts';
+import { FUZ_FORGE_SESSION_COOKIE_NAME } from '#lib/server/routes/account.ts';
 import { create_fuz_forge_app_surface_spec } from '../server/routes/auth_attack_surface_helpers.ts';
 import {
 	differential_known_divergences,
@@ -57,14 +57,14 @@ const cases = generate_rpc_auth_conformance_cases({
 	surface_source,
 	live_rpc_endpoints: resolve_rpc_endpoints_for_setup(
 		fuz_forge_live_rpc_endpoints,
-		fuz_forge_session_config
+		FUZ_FORGE_SESSION_COOKIE_NAME
 	)
 });
 const shared = {
 	surface_source,
 	rpc_endpoints: fuz_forge_rpc_endpoints,
 	live_rpc_endpoints: fuz_forge_live_rpc_endpoints,
-	session_options: fuz_forge_session_config
+	session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME
 };
 const ws_target = (
 	handle: ReconstructedBootstrappedBackendHandle

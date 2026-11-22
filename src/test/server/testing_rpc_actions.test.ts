@@ -3,11 +3,12 @@ import { parse } from '@fuzdev/fuz_schema/schema.ts';
 import type { AppDeps } from '@fuzdev/fuz_app/auth/deps.ts';
 
 import { create_fuz_forge_testing_rpc_actions } from '#lib/server/testing_rpc_actions.ts';
+import { FUZ_FORGE_SESSION_COOKIE_NAME } from '#lib/server/routes/account.ts';
 
 describe('_testing_await_signal input', () => {
 	const action = create_fuz_forge_testing_rpc_actions({} as AppDeps, {
 		daemon_token_state: {} as never,
-		session_options: {} as never
+		session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME
 	}).find((a) => a.spec.method === '_testing_await_signal');
 
 	test('takes an integer timeout in 1..=60000, as the Rust twin does', () => {

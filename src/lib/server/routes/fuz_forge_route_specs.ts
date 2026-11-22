@@ -103,7 +103,7 @@ export const create_fuz_forge_app_route_specs = (
 	}),
 	...prefix_route_specs('/api/account', [
 		...create_account_route_specs(ctx.deps, {
-			session_options: ctx.session_options,
+			session_cookie_name: ctx.session_cookie_name,
 			login_ip_rate_limiter: ctx.login_ip_rate_limiter,
 			login_account_rate_limiter: ctx.login_account_rate_limiter,
 			// `/status` is bundled into the account routes upstream (relative
@@ -114,7 +114,7 @@ export const create_fuz_forge_app_route_specs = (
 		// Rust backend so cross-process tests can mint per-test accounts
 		// through the production RPC surface against either backend.
 		...create_signup_route_specs(ctx.deps, {
-			session_options: ctx.session_options,
+			session_cookie_name: ctx.session_cookie_name,
 			signup_ip_rate_limiter: ctx.signup_ip_rate_limiter,
 			signup_account_rate_limiter: ctx.signup_account_rate_limiter
 		})

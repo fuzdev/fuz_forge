@@ -182,7 +182,7 @@ upstream suite reaches the same surface on either backend:
 | method | what it does |
 | --- | --- |
 | `_testing_reset` | auth-table wipe + fresh-keeper re-seed + the forge domain truncate |
-| `_testing_drain_effects` | audit barrier before an `audit_log_list` read — awaits the emitter's in-flight writes |
+| `_testing_drain_effects` | audit barrier before an `audit_log_list` read — awaits every request's effect flush and the emitter's in-flight writes |
 | `_testing_flood_notifications` | a burst of notifications onto the caller's own socket, for the outbound-overflow cases (refuses over HTTP) |
 | `_testing_mint_session` | expired-by-construction server-side session |
 | `_testing_put_fact` | seed a fact row without a store handle — embedded, or external naming a given URL |
@@ -611,7 +611,7 @@ test('derived updates', () => {
 ## Route / RPC Integration Tests
 
 - `server/routes/fuz_forge_test_helpers.ts` — the test-app factories: wraps
-  `create_test_app` with `fuz_forge_session_config` and the forge's route/RPC
+  `create_test_app` with `FUZ_FORGE_SESSION_COOKIE_NAME` and the forge's route/RPC
   factories.
 - `server/routes/scoped_token_helpers.ts` — scoped-token coverage.
 - `server/routes/auth_attack_surface_helpers.ts` — the attack-surface suites'

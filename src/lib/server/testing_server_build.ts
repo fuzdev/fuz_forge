@@ -135,7 +135,7 @@ export const build_fuz_forge_testing_app = async (
 		testing: {
 			password: stub_password_deps,
 			daemon_token_path,
-			extra_rpc_actions_factory: (deps, { daemon_token_state, session_options }) => {
+			extra_rpc_actions_factory: (deps, { daemon_token_state, session_cookie_name }) => {
 				if (!daemon_token_state) {
 					throw new Error(
 						'testing server requires daemon-token rotation (it provides keeper credentials for _testing_reset)'
@@ -143,7 +143,10 @@ export const build_fuz_forge_testing_app = async (
 				}
 				// one list for both mounts (HTTP RPC + WS), and the one the cross
 				// suites resolve off-surface methods from (`testing_rpc_actions.ts`)
-				return create_fuz_forge_testing_rpc_actions(deps, { daemon_token_state, session_options });
+				return create_fuz_forge_testing_rpc_actions(deps, {
+					daemon_token_state,
+					session_cookie_name
+				});
 			},
 			// last-position: `_testing_action_manifest` dumps the live method set,
 			// so each mount builds it over its own assembled list

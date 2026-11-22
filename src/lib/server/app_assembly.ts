@@ -56,7 +56,7 @@ import type { MiddlewareCarveOut, MiddlewareSpec } from '@fuzdev/fuz_app/http/mi
 import { fuz_forge_home, resolve_tilde } from '../runtime/path.ts';
 import type { ServerEnv } from './env/schema.ts';
 import { load_env } from './env/load.ts';
-import { fuz_forge_session_config } from './routes/account.ts';
+import { FUZ_FORGE_SESSION_COOKIE_NAME } from './routes/account.ts';
 import { create_backend_actions_api } from './backend_actions_api.ts';
 import { GIT_SMART_HTTP_ROUTE_PATHS } from './routes/repo_git.ts';
 // Type-only — `server.ts` imports the values back, so this edge is erased at
@@ -612,7 +612,7 @@ export const create_testing_wiring = async (
 	// state.
 	const extra_rpc_actions = testing.extra_rpc_actions_factory(deps, {
 		daemon_token_state: daemon_token_rotation.state,
-		session_options: fuz_forge_session_config
+		session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME
 	});
 
 	return {

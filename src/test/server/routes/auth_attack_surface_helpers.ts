@@ -16,7 +16,7 @@ import { ConnectionRegistry } from '@fuzdev/fuz_app/actions/connection_registry.
 import { Logger } from '@fuzdev/fuz_util/log.ts';
 import { AsyncSemaphore } from '@fuzdev/fuz_util/async.ts';
 
-import { fuz_forge_session_config } from '#lib/server/routes/account.ts';
+import { FUZ_FORGE_SESSION_COOKIE_NAME } from '#lib/server/routes/account.ts';
 import {
 	FUZ_FORGE_ORIGIN_CARVE_OUTS,
 	generic_body_cap_middleware
@@ -73,7 +73,7 @@ const fuz_forge_surface_allowed_origins = parsed_surface_allowed_origins.origins
 /** Build the full app surface bundle from route and middleware specs. */
 export const create_fuz_forge_app_surface_spec = (): AppSurfaceSpec =>
 	create_test_app_surface_spec({
-		session_options: fuz_forge_session_config,
+		session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME,
 		bootstrap: fuz_forge_bootstrap_config,
 		create_route_specs: (ctx) =>
 			create_fuz_forge_app_route_specs(ctx, {
