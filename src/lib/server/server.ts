@@ -35,6 +35,8 @@ import { argon2_password_deps } from '@fuzdev/fuz_app/auth/password_argon2.ts';
 import type { PasswordHashDeps } from '@fuzdev/fuz_app/auth/password.ts';
 import { create_app_server, require_audit_sse } from '@fuzdev/fuz_app/server/app_server.ts';
 import { create_app_backend } from '@fuzdev/fuz_app/server/app_backend.ts';
+import { DEFAULT_AUTH_CLEANUP_INTERVAL_MS } from '@fuzdev/fuz_app/auth/cleanup.ts';
+import type { ShutdownDrainGivenUp } from '@fuzdev/fuz_app/server/shutdown_drain.ts';
 import type { DaemonTokenState } from '@fuzdev/fuz_app/auth/daemon_token.ts';
 import type { AppDeps } from '@fuzdev/fuz_app/auth/deps.ts';
 import type { RpcAction } from '@fuzdev/fuz_app/actions/action_types.ts';
@@ -178,15 +180,18 @@ export interface ServerApp {
 	 * cleanup schedule, closes every live WebSocket and audit stream, releases
 	 * what assembly acquired (the rate limiters it built, the listeners it
 	 * registered on the audit emitter, the members it added to the connection
-	 * closer), and closes the DB pool; a sweep or cleanup
-	 * pass in progress finishes first. Safe to call more than once: the sweep
-	 * and rotation stops tolerate a repeat, and the app server's close is
-	 * idempotent. The server entry (`server/server_main.ts`) calls it on
-	 * SIGINT / SIGTERM, as the cross-process test binary does on shutdown —
-	 * after the listener stops accepting connections and before awaiting its
-	 * drain.
+	 * closer), and closes the DB pool; a sweep pass in progress finishes
+	 * first, and the cleanup pass, the requests and the audit writes are
+	 * waited for within the app server's drain bound. Resolves the app
+	 * server's `ShutdownDrainGivenUp` — what that drain gave up on, every count
+	 * `0` when it drained everything. Safe to call more than once: the sweep
+	 * and rotation stops tolerate a repeat, and the app server's close resolves
+	 * the same report again. The server entry (`server/server_main.ts`) calls
+	 * it on SIGINT / SIGTERM, as the cross-process test binary does on
+	 * shutdown — after the listener stops accepting connections and before
+	 * awaiting its drain — and each exits `1` on a give-up.
 	 */
-	close: () => Promise<void>;
+	close: () => Promise<ShutdownDrainGivenUp>;
 }
 
 /**
@@ -280,12 +285,12 @@ export const create_app = async (deps: ServerDeps): Promise<ServerApp> => {
 		// assembly, then one per interval: expired sessions deleted and the
 		// sockets and audit streams they opened closed through
 		// `backend.deps.connection_closer`, expired role-grant offers audited
-		// once. `close_app_server` stops the schedule, waiting for a pass in
-		// progress, before it closes the pool. On in every posture, the test
-		// binary included, as the Rust twin's `run_app` schedules
-		// `fuz_auth::AuthCleanup` (the router's serve duties) for
+		// once. `close_app_server` stops the schedule and waits for a pass in
+		// progress within its drain bound, before it closes the pool. On in
+		// every posture, the test binary included, as the Rust twin's `run_app`
+		// schedules `fuz_auth::AuthCleanup` (the router's serve duties) for
 		// `fuzfd` and `testing_fuzfd` alike.
-		auth_cleanup: true,
+		auth_cleanup: { every_ms: DEFAULT_AUTH_CLEANUP_INTERVAL_MS },
 		session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME,
 		allowed_origins,
 		// the operator's `FUZ_ALLOW_ORIGIN_WILDCARDS` — without it a wildcard entry refuses to boot
@@ -391,11 +396,11 @@ export const create_app = async (deps: ServerDeps): Promise<ServerApp> => {
 
 	console.log(`[server] Database initialized (${backend.db_type}: ${backend.db_name})`);
 
-	const close = async (): Promise<void> => {
+	const close = async (): Promise<ShutdownDrainGivenUp> => {
 		// ends the sweep schedule and waits for a pass in progress
 		await stop_sweep();
 		await stop_testing();
-		await close_app_server();
+		return close_app_server();
 	};
 
 	return { app, env, db: backend.deps.db, surface: surface_spec.surface, close };

@@ -6,13 +6,18 @@
 
 import { assert, describe, test, vi } from 'vitest';
 
+import type { ShutdownDrainGivenUp } from '@fuzdev/fuz_app/server/shutdown_drain.ts';
+
 import { create_shutdown_handler } from '#lib/server/shutdown_signals.ts';
 
+/** The report of a close that drained everything. */
+const DRAINED: ShutdownDrainGivenUp = { requests: 0, audit_writes: 0, upkeep: 0 };
+
 /** A step the test settles by hand, recording that it started. */
-const create_step = () => {
-	let resolve!: () => void;
+const create_step = <T = void>() => {
+	let resolve!: (value: T) => void;
 	let reject!: (error: Error) => void;
-	const promise = new Promise<void>((res, rej) => {
+	const promise = new Promise<T>((res, rej) => {
 		resolve = res;
 		reject = rej;
 	});
@@ -23,7 +28,7 @@ const create_step = () => {
 describe('create_shutdown_handler', () => {
 	test('stops the listener and closes the app together, then exits 0', async () => {
 		const listener = create_step();
-		const app = create_step();
+		const app = create_step<ShutdownDrainGivenUp>();
 		const exits: Array<number> = [];
 		const shutdown = create_shutdown_handler({
 			stop_listening: listener.step,
@@ -35,7 +40,7 @@ describe('create_shutdown_handler', () => {
 		// the drain is not awaited before the close: live sockets hold it open
 		assert.strictEqual(listener.step.mock.calls.length, 1);
 		assert.strictEqual(app.step.mock.calls.length, 1);
-		app.resolve();
+		app.resolve(DRAINED);
 		// a macrotask flushes every microtask the settled close queued
 		await new Promise((resolve) => setTimeout(resolve, 0));
 		assert.deepStrictEqual(exits, [], 'waits for the drain too');
@@ -44,14 +49,15 @@ describe('create_shutdown_handler', () => {
 		assert.deepStrictEqual(exits, [0]);
 	});
 
-	test('a failed close exits 1 after the drain settles, and is logged', async () => {
+	test('a failed close exits 1 without waiting for the drain, and is logged', async () => {
 		const error_log = vi.spyOn(console, 'error').mockImplementation(() => {});
 		const log = vi.spyOn(console, 'log').mockImplementation(() => {});
 		try {
 			const exits: Array<number> = [];
 			const boom = new Error('close failed');
+			const listener = create_step();
 			const shutdown = create_shutdown_handler({
-				stop_listening: () => Promise.resolve(),
+				stop_listening: listener.step,
 				close: () => Promise.reject(boom),
 				exit: (code) => exits.push(code)
 			});
@@ -64,13 +70,37 @@ describe('create_shutdown_handler', () => {
 		}
 	});
 
+	test('a close whose drain gave up exits 1 without waiting for the drain', async () => {
+		const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+		try {
+			for (const given_up of [
+				{ ...DRAINED, requests: 1 },
+				{ ...DRAINED, audit_writes: 1 },
+				{ ...DRAINED, upkeep: 1 }
+			]) {
+				const exits: Array<number> = [];
+				// a given-up request's connection holds the listener's drain open
+				const listener = create_step();
+				const shutdown = create_shutdown_handler({
+					stop_listening: listener.step,
+					close: () => Promise.resolve(given_up),
+					exit: (code) => exits.push(code)
+				});
+				await shutdown();
+				assert.deepStrictEqual(exits, [1], JSON.stringify(given_up));
+			}
+		} finally {
+			log.mockRestore();
+		}
+	});
+
 	test('a failed listener stop exits 1 after the close settles, and is logged', async () => {
 		const error_log = vi.spyOn(console, 'error').mockImplementation(() => {});
 		const log = vi.spyOn(console, 'log').mockImplementation(() => {});
 		try {
 			const exits: Array<number> = [];
 			const boom = new Error('listener stop failed');
-			const close = vi.fn(() => Promise.resolve());
+			const close = vi.fn(() => Promise.resolve(DRAINED));
 			const shutdown = create_shutdown_handler({
 				stop_listening: () => Promise.reject(boom),
 				close,
@@ -91,7 +121,7 @@ describe('create_shutdown_handler', () => {
 		const log = vi.spyOn(console, 'log').mockImplementation(() => {});
 		try {
 			const listener = create_step();
-			const app = create_step();
+			const app = create_step<ShutdownDrainGivenUp>();
 			const exits: Array<number> = [];
 			const shutdown = create_shutdown_handler({
 				stop_listening: listener.step,
@@ -104,7 +134,7 @@ describe('create_shutdown_handler', () => {
 			assert.deepStrictEqual(exits, [1], 'the second signal did not wait for the first');
 			assert.strictEqual(app.step.mock.calls.length, 1, 'and closed nothing twice');
 			listener.resolve();
-			app.resolve();
+			app.resolve(DRAINED);
 			await first;
 		} finally {
 			error_log.mockRestore();
@@ -118,7 +148,7 @@ describe('create_shutdown_handler', () => {
 		try {
 			const exits: Array<number> = [];
 			const boom = new Error('listener stop threw');
-			const close = vi.fn(() => Promise.resolve());
+			const close = vi.fn(() => Promise.resolve(DRAINED));
 			const shutdown = create_shutdown_handler({
 				stop_listening: () => {
 					throw boom;
@@ -145,7 +175,7 @@ describe('create_shutdown_handler', () => {
 			const exits: Array<number> = [];
 			const shutdown = create_shutdown_handler({
 				stop_listening: listener.step,
-				close: () => Promise.resolve(),
+				close: () => Promise.resolve(DRAINED),
 				exit: (code) => exits.push(code),
 				timeout_ms: 500
 			});
@@ -171,13 +201,48 @@ describe('create_shutdown_handler', () => {
 		}
 	});
 
+	test('a close that never settles exits 1 after the timeout', async () => {
+		vi.useFakeTimers();
+		const error_log = vi.spyOn(console, 'error').mockImplementation(() => {});
+		const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+		try {
+			const app = create_step<ShutdownDrainGivenUp>();
+			const exits: Array<number> = [];
+			const shutdown = create_shutdown_handler({
+				stop_listening: () => Promise.resolve(),
+				close: app.step,
+				exit: (code) => exits.push(code),
+				timeout_ms: 500
+			});
+			const done = shutdown();
+			await vi.advanceTimersByTimeAsync(499);
+			assert.deepStrictEqual(exits, [], 'not before the timeout');
+			await vi.advanceTimersByTimeAsync(1);
+			await done;
+			assert.deepStrictEqual(exits, [1]);
+			assert.ok(
+				error_log.mock.calls.some((args) =>
+					args.includes('[server] shutdown timed out after 500 ms')
+				)
+			);
+			// a close that settles after the timeout never exits again
+			app.resolve(DRAINED);
+			await vi.advanceTimersByTimeAsync(0);
+			assert.deepStrictEqual(exits, [1], 'no late exit');
+		} finally {
+			error_log.mockRestore();
+			log.mockRestore();
+			vi.useRealTimers();
+		}
+	});
+
 	test('the timeout is cleared when the steps settle first', async () => {
 		vi.useFakeTimers();
 		try {
 			const exits: Array<number> = [];
 			const shutdown = create_shutdown_handler({
 				stop_listening: () => Promise.resolve(),
-				close: () => Promise.resolve(),
+				close: () => Promise.resolve(DRAINED),
 				exit: (code) => exits.push(code),
 				timeout_ms: 500
 			});

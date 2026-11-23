@@ -225,10 +225,16 @@ const make_ts_forge_backend_config = (opts: {
 
 /**
  * The Node test-server spawn argv, shared by the standard and login-security
- * backends: `gro run` runs the `.ts` entry and its `.ts` source specifiers
- * with Gro's loader.
+ * backends: plain Node type stripping, with the `development` condition so
+ * `esm-env` reads DEV. Never through `gro run` — Gro's CLI passes a SIGTERM
+ * on but then dies by the signal itself rather than exiting with the server's
+ * code, which fails the harness's teardown.
  */
-const NODE_START_COMMAND = ['gro', 'run', 'src/lib/server/testing_server_node.ts'];
+const NODE_START_COMMAND = [
+	'node',
+	'--conditions=development',
+	'src/lib/server/testing_server_node.ts'
+];
 
 /** TS backend on Node. Spawns `testing_server_node.ts`. */
 export const node_backend_config = (options: TsBackendConfigOptions = {}): BackendConfig =>

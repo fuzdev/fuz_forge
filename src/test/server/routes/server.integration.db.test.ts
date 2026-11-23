@@ -1,25 +1,27 @@
 /**
  * Integration tests using a real Postgres auth database.
  *
- * Mounts the fuz_app cross-backend suites (standard integration, admin
- * integration, rate limiting, route + RPC round-trip, data exposure) plus
- * fuz_forge-specific smoke tests in separate describe blocks. Suite options use
- * the `default_in_process_suite_options(...)` consolidation helper for the
- * shared `{setup_test, surface_source, capabilities}` triple, whose
- * bootstrapped keeper holds admin as a production bootstrap grants, so it can
- * hit admin-gated RPC methods. The two suites that drive the whole route set
+ * Mounts the fuz_app cross-backend suites (standard integration and its
+ * middleware-gate probes, admin integration, rate limiting, route + RPC
+ * round-trip, data exposure) plus fuz_forge-specific smoke tests in separate
+ * describe blocks. Suite options use the
+ * `default_in_process_suite_options(...)` consolidation helper for the shared
+ * `{setup_test, surface_source, capabilities}` triple, whose bootstrapped
+ * keeper holds admin as a production bootstrap grants, so it can hit
+ * admin-gated RPC methods. The two suites that drive the whole route set
  * (round-trip, data exposure) override `setup_test` with
  * `fuz_forge_in_process_setup`, which migrates the forge's own namespaces so
- * the fact-serving routes reach their handlers. The RPC round-trip runs on the
- * whole forge schema in real Postgres with real query deps, so every method it
- * drives reaches its handler. The attack-surface suites live
- * in sibling files; SSE and WS are covered cross-process, in `cross_backend/`.
+ * the fact-serving routes reach their handlers. The RPC round-trip runs on
+ * the whole forge schema in real Postgres with real query deps, so every
+ * method it drives reaches its handler. The attack-surface suites live in
+ * sibling files; SSE and WS are covered cross-process, in `cross_backend/`.
  *
  * @module
  */
 
 import { test, assert, describe, beforeEach } from 'vitest';
 import { describe_standard_integration_tests } from '@fuzdev/fuz_app/testing/integration.ts';
+import { describe_middleware_gate_tests } from '@fuzdev/fuz_app/testing/middleware_gate_probes.ts';
 import { describe_standard_admin_integration_tests } from '@fuzdev/fuz_app/testing/admin_integration.ts';
 import { describe_rate_limiting_tests } from '@fuzdev/fuz_app/testing/rate_limiting.ts';
 import { describe_round_trip_validation } from '@fuzdev/fuz_app/testing/round_trip.ts';
@@ -146,18 +148,20 @@ const fuz_forge_in_process_setup = default_in_process_setup({
 	migration_namespaces: fuz_forge_own_migration_namespaces
 });
 
-// --- Standard auth integration suite (9 test groups) ---
+// --- Standard auth integration suite and its middleware-gate probes ---
 
-describe_standard_integration_tests(
-	default_in_process_suite_options({
-		session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME,
-		create_route_specs: create_fuz_forge_test_route_specs,
-		rpc_endpoints: fuz_forge_rpc_endpoints,
-		bootstrap: fuz_forge_bootstrap_config
-	})
-);
+const standard_integration_options = default_in_process_suite_options({
+	session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME,
+	create_route_specs: create_fuz_forge_test_route_specs,
+	rpc_endpoints: fuz_forge_rpc_endpoints,
+	bootstrap: fuz_forge_bootstrap_config
+});
 
-// --- Standard admin integration tests (7 groups) ---
+describe_standard_integration_tests(standard_integration_options);
+
+describe_middleware_gate_tests(standard_integration_options);
+
+// --- Standard admin integration tests ---
 
 describe_standard_admin_integration_tests({
 	...default_in_process_suite_options({

@@ -12,8 +12,9 @@
  * adapter's `prepare_websocket` builds the `ws` server, its frames capped at
  * twice the endpoint's message limit, and hands it to `serve`.
  *
- * Run with:
- *   gro run src/lib/server/testing_server_node.ts
+ * Run with (`node`, never `gro run`, whose CLI dies by a SIGTERM rather than
+ * exiting with the server's code):
+ *   node --conditions=development src/lib/server/testing_server_node.ts
  *
  * **Never ships in a release** — reaches into fuz_app's `testing/cross_backend/`
  * modules which throw on production load.
