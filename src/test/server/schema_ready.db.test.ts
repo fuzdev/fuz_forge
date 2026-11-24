@@ -2,7 +2,7 @@
  * Schema-readiness fixture + drift-check test (fuz_forge).
  *
  * Bootstraps the full fuz_forge migration chain (auth + api-token policy +
- * facts + cells) on Postgres and asserts the committed
+ * facts + cells) on each `describe_db` engine and asserts the committed
  * `expected_schema.json` — served by the `/ready` deploy gate — matches the
  * live column map. Regenerate after an intentional schema change with
  * `UPDATE_SCHEMA_READY=1` (the helper writes raw `JSON.stringify`, one array

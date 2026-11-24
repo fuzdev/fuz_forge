@@ -17,7 +17,7 @@ src/test/
 ├── CLAUDE.md                           # this file
 ├── runtime_mock.ts                     # RuntimeDeps mock
 ├── capture_console.ts                  # collects a flow's console output
-├── db_fixture.ts                       # describe_db + db_factories (Postgres)
+├── db_fixture.ts                       # describe_db + db_factories (pglet-wasm, + Postgres opt-in)
 ├── git_upstream_server.ts              # loopback dumb-HTTP git origin for `seed_from` clones
 ├── action_spec_input_invariants.test.ts
 ├── nginx_locations.test.ts
@@ -77,8 +77,9 @@ npx vitest run --project cross_backend_login_security_rust
 
 Run those **one at a time**. `groupOrder` orders projects only inside one
 run, so concurrent cross runs — or a cross run overlapping a `.db.test.ts`
-run — collide on the fixed ports *and* on the local Postgres that the `db`
-project and the Rust cross projects share.
+run — collide on the fixed ports *and* on the local Postgres that the Rust
+cross projects share (with the `db` project's `pg` leg, when
+`TEST_DATABASE_URL` is set).
 
 The Rust suites `#[ignore]`d behind a real Postgres
 (`FUZ_FORGE_SERVER_TEST_URL`, default `postgres://localhost/fuz_forge_server_test`)
@@ -524,16 +525,20 @@ beforeEach(() => { runtime = create_mock_runtime(); });
 
 ## Database Testing (`db_fixture.ts`)
 
-**`describe_db`** runs every suite against real **PostgreSQL**, the engine the
-production Rust backend uses — `create_describe_db` from
-`@fuzdev/fuz_app/testing/describe_db.ts`, bound to fuz_forge's `pg_factory` and
-`TRUNCATE_TABLES` (the general pattern is in the [fuz-stack skill](https://docs.fuz.dev/skills/fuz-stack)).
+**`describe_db`** runs every suite on fuz_app's default test database, the
+in-memory **pglet-wasm** engine, and again on **PostgreSQL** when
+`TEST_DATABASE_URL` is set — `create_describe_db` from
+`@fuzdev/fuz_app/testing/describe_db.ts`, bound to `db_factories`
+(`create_default_db_factory` + `create_pg_factory`) and `TRUNCATE_TABLES` (the
+general pattern is in the [fuz-stack skill](https://docs.fuz.dev/skills/fuz-stack)).
+The production backends run on Postgres, so the `pg` leg is the one on the
+production engine; CI sets the var.
 
 Each suite's `create()` runs a clean-slate init (`DROP SCHEMA public CASCADE`
 → `CREATE SCHEMA public` → migrate), so a suite's `beforeAll` starts against
 an EMPTY DB; each test's `beforeEach` then `TRUNCATE`s all tables. The `db`
 project runs serially (`isolate: false`, `fileParallelism: false`), so one
-shared DB isolates cleanly without per-worker databases.
+shared DB per engine isolates cleanly without per-worker databases.
 
 Build a `create_test_app` app in the test or a `beforeEach`, after the
 truncate: it bootstraps a fresh keeper and checks fuz_app's database
@@ -548,14 +553,13 @@ children first, and the fact substrate — one list in
 `auth_integration_truncate_tables`. The file store is cell-primary, so there
 is no file table to truncate.
 
-DB tests need a local PostgreSQL. `db_fixture.ts` reads `TEST_DATABASE_URL`
-from the process env, else `.env.development` (default
-`postgres://localhost/fuz_forge_test`):
+The DB tests need no setup. To add the `pg` leg, point `TEST_DATABASE_URL`
+at a database used only for tests — every `create()` drops its `public`
+schema:
 
 ```bash
 createdb fuz_forge_test
-# .env.development
-TEST_DATABASE_URL=postgres://localhost/fuz_forge_test
+TEST_DATABASE_URL=postgres://localhost/fuz_forge_test npx vitest run --project db
 ```
 
 ## Filesystem Testing

@@ -91,7 +91,6 @@ links `fuz_testing` / `fuz_audit`, plus layering and test-only features).
 ```bash
 npm i
 npm run dev:setup                      # copies .env, generates secrets, creates the DB
-createdb fuz_forge_test                # required to run the tests
 npm run dev:fuzf -- init --server http://localhost:4041   # writes the project-local .fuz_forge/config.json
 gro dev                                # Vite + the TS server on 127.0.0.1:4041 (`npm run dev:server` for the server alone)
 ```

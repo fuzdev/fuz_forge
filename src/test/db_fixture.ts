@@ -1,50 +1,28 @@
 /**
  * Database test fixtures.
  *
- * `describe_db` runs every suite against real **PostgreSQL** — the engine the
- * production Rust backend uses (native `tokio-postgres`), so every in-process
- * suite tests on the same engine as production rather than an in-memory WASM
- * Postgres. No in-memory engine is reached from here; the cross-backend TS
- * spawn's default database is fuz_app's in-memory `memory://` (see
- * `cross_backend/fuz_forge_backend_config.ts`). The DB is `TEST_DATABASE_URL`
- * (default `postgres://localhost/fuz_forge_test`); create it once with
- * `createdb fuz_forge_test`.
+ * `describe_db` runs every suite on fuz_app's default test database, the
+ * in-memory pglet-wasm engine, and again on PostgreSQL when
+ * `TEST_DATABASE_URL` names a database (the `pg` leg skips otherwise). The
+ * production backends run on Postgres, so the `pg` leg is the one that tests
+ * the production engine; CI sets the var.
  *
  * @module
  */
 
-import { readFile } from 'node:fs/promises';
 import {
+	create_default_db_factory,
 	create_pg_factory,
 	auth_integration_truncate_tables,
 	log_db_factory_status,
 	type DbFactory
 } from '@fuzdev/fuz_app/testing/db.ts';
 import { create_describe_db } from '@fuzdev/fuz_app/testing/describe_db.ts';
-import { load_env_file } from '@fuzdev/fuz_app/env/dotenv.ts';
 
 import {
 	init_fuz_forge_schema,
 	fuz_forge_domain_truncate_tables
 } from '#lib/server/db/fuz_forge_schema.ts';
-
-// Load .env.development for test configuration
-const env_file = await load_env_file(
-	{ read_text_file: (path) => readFile(path, 'utf-8') },
-	'.env.development'
-);
-if (env_file) {
-	for (const [key, value] of Object.entries(env_file)) {
-		process.env[key] ??= value;
-	}
-}
-
-/**
- * Postgres test DB — the engine production uses. Defaults to a conventional
- * local DB; override via `TEST_DATABASE_URL`. Create it once with
- * `createdb fuz_forge_test`.
- */
-const TEST_DATABASE_URL = process.env.TEST_DATABASE_URL ?? 'postgres://localhost/fuz_forge_test';
 
 /**
  * All tables to truncate between tests (order: children first for FK safety).
@@ -64,26 +42,28 @@ export const TRUNCATE_TABLES = [
 	...auth_integration_truncate_tables
 ];
 
-// `create_pg_factory` resets the `public` schema per `create()`, so each suite's
+// Each factory resets the `public` schema per `create()`, so each suite's
 // `beforeAll` starts against an empty database — the per-test `TRUNCATE` runs
 // only after `beforeAll`
-const pg_factory = create_pg_factory(init_fuz_forge_schema, TEST_DATABASE_URL);
 
 /**
- * Database factories iterated by driver-agnostic suites (e.g. rate limiting).
- * One engine: these suites run on Postgres.
+ * Database factories iterated by driver-agnostic suites (e.g. rate limiting):
+ * the default pglet-wasm engine, then Postgres when `TEST_DATABASE_URL` is set.
  */
-export const db_factories: Array<DbFactory> = [pg_factory];
+export const db_factories: Array<DbFactory> = [
+	create_default_db_factory(init_fuz_forge_schema),
+	create_pg_factory(init_fuz_forge_schema, process.env.TEST_DATABASE_URL)
+];
 
 log_db_factory_status(db_factories);
 
 /**
- * Helper for database tests on Postgres.
+ * Helper for database tests, run once per factory in `db_factories`.
  *
- * Every suite shares one Postgres DB (`TEST_DATABASE_URL`) with automatic
+ * Each engine holds one database shared by every suite, with automatic
  * `beforeEach` `TRUNCATE` of all tables. The `db` vitest project runs serially
- * (`isolate: false`, `fileParallelism: false`), so a single shared DB + per-test
- * truncation gives clean isolation without per-worker databases.
+ * (`isolate: false`, `fileParallelism: false`), so a single shared database +
+ * per-test truncation gives clean isolation without per-worker databases.
  *
  * Build a `create_test_app` app in the test or a `beforeEach`, after the
  * truncate: the app bootstraps its keeper there and checks fuz_app's database
@@ -104,4 +84,4 @@ log_db_factory_status(db_factories);
  * });
  * ```
  */
-export const describe_db = create_describe_db([pg_factory], TRUNCATE_TABLES);
+export const describe_db = create_describe_db(db_factories, TRUNCATE_TABLES);

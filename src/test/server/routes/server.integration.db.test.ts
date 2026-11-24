@@ -1,5 +1,5 @@
 /**
- * Integration tests using a real Postgres auth database.
+ * Integration tests of the in-process app.
  *
  * Mounts the fuz_app cross-backend suites (standard integration and its
  * middleware-gate probes, admin integration, rate limiting, route + RPC
@@ -11,7 +11,7 @@
  * admin-gated RPC methods. The two suites that drive the whole route set
  * (round-trip, data exposure) override `setup_test` with
  * `fuz_forge_in_process_setup`, which builds the app on the whole forge schema
- * in real Postgres with the file-store routes on real deps, so every route
+ * with the file-store routes on real deps, so every route
  * reaches its handler's queries. The RPC round-trip runs on the same schema
  * with real query deps, so every method it drives reaches its handler. The
  * attack-surface suites live in sibling files; SSE and WS are covered
