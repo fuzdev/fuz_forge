@@ -80,10 +80,11 @@ run — collide on the fixed ports *and* on the local Postgres that the Rust
 cross projects share (with the `db` project's `pg` leg, when
 `TEST_DATABASE_URL` is set).
 
-The Rust DB suites (`repo_git_auth`, `signed_tool_install`, `columns`,
-`upkeep`) run in `cargo test --workspace`, each test on a database of its own
-through the spine's `fuz_testing::fresh_test_db`: an in-process pglet server
-by default, so they run in parallel with nothing to create first.
+The Rust DB suites (`repo_git_auth`, `repo_create_rpc`,
+`signed_tool_install`, `columns`, `upkeep`) run in `cargo test --workspace`,
+each test on a database of its own through the spine's
+`fuz_testing::fresh_test_db`: an in-process pglet server by default, so
+they run in parallel with nothing to create first.
 `repo_receive_callback_past_commit` observes what only PostgreSQL has (a
 plpgsql trigger holding `COMMIT` open, seen in `pg_stat_activity`), so it's
 `#[ignore = "postgres-only: …"]`. The PostgreSQL leg runs every DB test
@@ -92,7 +93,7 @@ again, that one included, each in a database it creates and drops through
 against a Postgres service, and locally run it when the path they gate moves:
 `FUZ_TEST_POSTGRES_URL=postgres://localhost/postgres cargo test -p fuz_forge_server -- --include-ignored`,
 or add `--test <name>` for one. The databases (via `tests/common/`: bare for
-`repo_git_auth`, `signed_tool_install`, and
+`repo_git_auth`, `repo_create_rpc`, `signed_tool_install`, and
 `repo_receive_callback_past_commit`, whose `build_router` call runs the
 migrations; migrated for `columns` and `upkeep`), the account / actor /
 admin-grant seeding, and the `columns` assertion come from `fuz_testing`, a
@@ -419,7 +420,7 @@ over the wire, or why there is none.
 | `server/routes/repo_git.service_param.test.ts` | first-occurrence-wins on a duplicated `?service=`, across percent-encoded spellings of the key | `service_param.json` | `forge_git/mod.rs` |
 | `server/schema_ready.db.test.ts` | the committed `expected_schema.json` still matches a fresh bootstrap, and the drift check flags a missing table or column | `src/lib/server/expected_schema.json`, which the other backend reads verbatim | `router::FUZ_FORGE_BACKEND_SPEC`, whose `expected_schema_json` `include_str!`s the same file; the spine's `create_app_backend` builds `/ready` from it |
 | `fuz_forge/repo/plan_repo.test.ts` | the repo-cell narrow's null-on-missing behavior | a corrupt cell, which no spawn can write | `handlers/repo_cell.rs` — `RepoCellData` is the crate's single authority on a repo cell's `data`, unit-pinned in `handlers/repo_cell/tests.rs` |
-| `server/routes/fuz_forge_repo_create_rpc.db.test.ts` | the `seed_from` host policy with the override **off**, the whole `-32602` envelope, and the on-disk unwind (`readdir` before/after) | a policy-off env; both cross spawns set the override on | none, on purpose: a Rust route twin would land `#[ignore]`d and be a second copy of an assertion rather than a second gate |
+| `server/routes/fuz_forge_repo_create_rpc.db.test.ts` | the `seed_from` host policy with the override **off**, the whole `-32602` envelope, and the on-disk unwind (`readdir` before/after) | a policy-off env; both cross spawns set the override on | `crates/fuz_forge_server/tests/repo_create_rpc.rs`, run in `cargo test` on pglet (§ Running), which pins the on-disk unwind on a failure past the init (an unsettable `default_branch`) — git deletes its own target on a failed clone, so that case's `readdir` holds with no unwind |
 | `server/routes/repo_git.auth.db.test.ts` | the git admin gate refusing an admin whose granting actor is soft-deleted | a soft-deleted granting actor, which has no wire spelling | `crates/fuz_forge_server/tests/repo_git_auth.rs`, run in `cargo test` on pglet (§ Running) |
 | `server/routes/repo_git.cgi_head.db.test.ts` | the CGI-head parser's 502 when the subprocess closes before the `\r\n\r\n` separator or overruns the head cap | an injected misbehaving `spawn_streaming` | hand-duplicated twin tables against `forge_git::cgi::tests` — status-line parsing, lone-`CR` framing, the CGI env key set |
 | `server/routes/repo_internal.db.test.ts` | partial and type-corrupt repo cells → 401 on both internal routes | a type-corrupt cell, same reason | the two narrows, unit-pinned: `internal_routes::tests::cell_without_default_branch_does_not_narrow` and `handlers::repo_write::tests::mutation_narrow_rejects_a_wrong_typed_optional` |

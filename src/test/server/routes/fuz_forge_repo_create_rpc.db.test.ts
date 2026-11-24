@@ -401,12 +401,12 @@ describe_db('fuz_forge_repo_create', (get_db) => {
  * proves the refusal is the handler's `invalid_params` rather than a schema
  * failure carrying DEV-mode issues.
  *
- * The Rust twin is the `seed_from` unit table
+ * The Rust twins are the `seed_from` unit table
  * (`require_seed_from_url_applies_the_host_policy_unless_overridden`), which
- * drives the same URLs through the same call the handler makes. A route-level
- * Rust twin would have to boot `build_router` over a real Postgres and would
- * land `#[ignore]`d — outside `cargo test --workspace` — so it would add a
- * second copy of this assertion without adding a gate.
+ * drives the same URLs through the same call the handler makes, and the route
+ * suite `crates/fuz_forge_server/tests/repo_create_rpc.rs`, which boots
+ * `build_router` with the override off and pins this envelope through the
+ * dispatcher.
  */
 describe_db('fuz_forge_repo_create seed_from host policy', (get_db) => {
 	let test_app: TestApp;
