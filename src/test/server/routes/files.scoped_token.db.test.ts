@@ -18,6 +18,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { assert, test, describe, beforeAll, afterAll } from 'vitest';
+import { expect_logged_error } from '@fuzdev/fuz_app/testing/logged_errors.ts';
 import { ROLE_ADMIN } from '@fuzdev/fuz_app/auth/role_schema.ts';
 import { create_test_app, type TestApp } from '@fuzdev/fuz_app/testing/test_app.ts';
 import { create_node_runtime } from '@fuzdev/fuz_app/runtime/node.ts';
@@ -366,6 +367,9 @@ describe_db('files.ts scoped-token gating', (get_db) => {
 		 * `null`-returning spelling — as unscoped, which allows everything.
 		 */
 		test('a future grammar version denies every files op', async () => {
+			expect_logged_error(
+				/fuz_forge_token_policy: stored policy for tok_[\w-]+ is unreadable; denying every capability/
+			);
 			const test_app = await build_test_app(get_db);
 			const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
 
@@ -518,6 +522,9 @@ describe_db('files.ts scoped-token gating', (get_db) => {
 			new Proxy({}, { get: () => () => Promise.reject(error) }) as unknown as Db;
 
 		test('a failed checkout answers the flat 503 on every files route', async () => {
+			expect_logged_error(
+				'pool checkout failed: DbCheckoutError: database checkout failed: timeout exceeded when trying to connect'
+			);
 			// A narrowed token, so the old fall-through would have answered the
 			// 403 surface denial — the 503 is the checkout, not the scope.
 			const checkout_failure = new DbCheckoutError({
@@ -547,6 +554,7 @@ describe_db('files.ts scoped-token gating', (get_db) => {
 		});
 
 		test('any other lookup error falls through unscoped', async () => {
+			expect_logged_error('hydrate_policy: policy lookup failed Error: relation does not exist');
 			// Unscoped means the spine scope decides: the narrowed token is
 			// refused, never widened.
 			const test_app = await build_test_app(get_db, () =>

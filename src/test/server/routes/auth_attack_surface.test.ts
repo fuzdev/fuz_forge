@@ -8,6 +8,7 @@
  */
 
 import { test, assert, describe } from 'vitest';
+import { allow_logged_error } from '@fuzdev/fuz_app/testing/logged_errors.ts';
 import { describe_standard_attack_surface_tests } from '@fuzdev/fuz_app/testing/attack_surface.ts';
 import { describe_rpc_attack_surface_tests } from '@fuzdev/fuz_app/testing/rpc_attack_surface.ts';
 import type { AppSurfaceSpec } from '@fuzdev/fuz_app/http/surface.ts';
@@ -17,6 +18,15 @@ import {
 	create_fuz_forge_app_surface_spec,
 	resolve_fuz_forge_fixture_path
 } from './auth_attack_surface_helpers.ts';
+
+// The surface spec wires the file-store routes over the throwing `stub` query
+// deps, so in "correct auth passes guard" their handlers reach the stub past
+// the guard and answer the 500 — the harness asserts only the gates' statuses
+// there, by design.
+allow_logged_error(
+	"Unhandled handler error Error: Throwing stub 'stub' — unexpected access to 'db'.",
+	'the file-store handlers run on the stub deps once the guard passes'
+);
 
 describe_standard_attack_surface_tests({
 	build: create_fuz_forge_app_surface_spec,

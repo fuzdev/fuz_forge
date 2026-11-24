@@ -20,6 +20,7 @@
  */
 
 import { assert, test, describe } from 'vitest';
+import { expect_logged_error } from '@fuzdev/fuz_app/testing/logged_errors.ts';
 import { ROLE_ADMIN } from '@fuzdev/fuz_app/auth/role_schema.ts';
 import { create_test_app, type TestApp } from '@fuzdev/fuz_app/testing/test_app.ts';
 import type { AppServerContext } from '@fuzdev/fuz_app/server/app_server_context.ts';
@@ -136,6 +137,7 @@ const post_pack = async (
 describe_db('repo_git scoped-token capability gating', (get_db) => {
 	describe("unscoped token (regression: today's behavior)", () => {
 		test('admin token with no policy row reaches subprocess for push', async () => {
+			expect_logged_error('repo_git: spawn_streaming not configured');
 			const test_app = await build_test_app(get_db);
 			const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
 			await seed_repo_cell(get_db(), SLUG);
@@ -146,6 +148,7 @@ describe_db('repo_git scoped-token capability gating', (get_db) => {
 			assert.strictEqual(res.status, 503);
 		});
 		test('admin token with no policy row reaches subprocess for pull', async () => {
+			expect_logged_error('repo_git: spawn_streaming not configured');
 			const test_app = await build_test_app(get_db);
 			const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
 			await seed_repo_cell(get_db(), SLUG);
@@ -158,6 +161,7 @@ describe_db('repo_git scoped-token capability gating', (get_db) => {
 
 	describe('forge_push scoped token', () => {
 		test('push to allowed repo reaches subprocess', async () => {
+			expect_logged_error('repo_git: spawn_streaming not configured');
 			const test_app = await build_test_app(get_db);
 			const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
 			const repo_id = await seed_repo_cell(get_db(), SLUG);
@@ -205,6 +209,7 @@ describe_db('repo_git scoped-token capability gating', (get_db) => {
 
 	describe('forge_pull scoped token', () => {
 		test('pull to allowed repo reaches subprocess', async () => {
+			expect_logged_error('repo_git: spawn_streaming not configured');
 			const test_app = await build_test_app(get_db);
 			const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
 			const repo_id = await seed_repo_cell(get_db(), SLUG);
@@ -236,6 +241,7 @@ describe_db('repo_git scoped-token capability gating', (get_db) => {
 
 	describe('/info/refs advertise: capability matches service= param', () => {
 		test('scoped-pull token: advertise for upload-pack reaches subprocess, advertise for receive-pack denied', async () => {
+			expect_logged_error('repo_git: spawn_streaming not configured');
 			const test_app = await build_test_app(get_db);
 			const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
 			const repo_id = await seed_repo_cell(get_db(), SLUG);
@@ -259,6 +265,7 @@ describe_db('repo_git scoped-token capability gating', (get_db) => {
 
 	describe('wildcard "*" capability', () => {
 		test('forge.push: "*" allows push to any repo', async () => {
+			expect_logged_error('repo_git: spawn_streaming not configured');
 			const test_app = await build_test_app(get_db);
 			const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
 			await seed_repo_cell(get_db(), 'fuzdev/fuz_app');

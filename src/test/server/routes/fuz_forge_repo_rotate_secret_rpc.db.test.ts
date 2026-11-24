@@ -30,6 +30,7 @@
  */
 
 import { assert, test, beforeEach } from 'vitest';
+import { expect_logged_error } from '@fuzdev/fuz_app/testing/logged_errors.ts';
 import { ROLE_ADMIN } from '@fuzdev/fuz_app/auth/role_schema.ts';
 import { rpc_call } from '@fuzdev/fuz_app/testing/rpc_helpers.ts';
 import type { TestApp, TestAccount } from '@fuzdev/fuz_app/testing/test_app.ts';
@@ -234,6 +235,9 @@ describe_db('fuz_forge_repo_rotate_secret', (get_db) => {
 	});
 
 	test('refuses before any write when the installed hooks cannot be read', async () => {
+		expect_logged_error(
+			'[fuz_forge_repo_rotate_secret] hook read failed for repos/fuzdev/fuz_app: simulated read failure'
+		);
 		const id = await seed_repo_cell(get_db, SAMPLE_DATA());
 		await runtime.write_text_file(hook_path(id, 'pre-receive'), `old pre ${OLD_SECRET}`);
 		const original_read = runtime.read_text_file;
@@ -264,6 +268,9 @@ describe_db('fuz_forge_repo_rotate_secret', (get_db) => {
 	});
 
 	test('a permission error on a hook stat cannot see is unreadable, not absent', async () => {
+		expect_logged_error(
+			'[fuz_forge_repo_rotate_secret] hook read failed for repos/fuzdev/fuz_app: EACCES: permission denied'
+		);
 		const id = await seed_repo_cell(get_db, SAMPLE_DATA());
 		// `stat` answers null for every failure, so only the read can tell a
 		// missing hook from one the server may not read.
@@ -295,6 +302,9 @@ describe_db('fuz_forge_repo_rotate_secret', (get_db) => {
 	});
 
 	test('rolls back cell + disk when a hook write fails and recovery succeeds', async () => {
+		expect_logged_error(
+			'[fuz_forge_repo_rotate_secret] hook write failed for repos/fuzdev/fuz_app: simulated disk failure'
+		);
 		const id = await seed_repo_cell(get_db, SAMPLE_DATA());
 		// The hooks as installed before the rotation — what recovery restores.
 		const old_pre = `old pre ${OLD_SECRET}`;
@@ -331,6 +341,9 @@ describe_db('fuz_forge_repo_rotate_secret', (get_db) => {
 	});
 
 	test('recovery removes a hook that was absent before the rotation', async () => {
+		expect_logged_error(
+			'[fuz_forge_repo_rotate_secret] hook write failed for repos/fuzdev/fuz_app: simulated disk failure'
+		);
 		const id = await seed_repo_cell(get_db, SAMPLE_DATA());
 		// No hooks installed: the forward write lands `pre-receive`, then fails
 		// on `post-receive`; recovery must not leave the new `pre-receive`.
@@ -355,6 +368,12 @@ describe_db('fuz_forge_repo_rotate_secret', (get_db) => {
 	});
 
 	test('surfaces manual-reconciliation error when recovery also fails', async () => {
+		expect_logged_error(
+			'[fuz_forge_repo_rotate_secret] hook write failed for repos/fuzdev/fuz_app: persistent disk failure'
+		);
+		expect_logged_error(
+			'[fuz_forge_repo_rotate_secret] disk rollback failed for repos/fuzdev/fuz_app: persistent disk failure'
+		);
 		const id = await seed_repo_cell(get_db, SAMPLE_DATA());
 		// Installed hooks, so recovery has a `post-receive` to write back.
 		await runtime.write_text_file(hook_path(id, 'pre-receive'), `old pre ${OLD_SECRET}`);

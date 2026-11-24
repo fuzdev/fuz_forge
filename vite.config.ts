@@ -138,6 +138,7 @@ export default defineConfig(({ mode }) => ({
 					name: 'unit',
 					include: ['src/test/**/*.test.ts'],
 					exclude: ['src/test/**/*.db.test.ts', 'src/test/**/*.cross.test.ts'],
+					setupFiles: ['./src/test/logged_error_gate.ts'],
 					maxWorkers: max_workers,
 					sequence: { groupOrder: 1 }
 				}
@@ -147,6 +148,7 @@ export default defineConfig(({ mode }) => ({
 				test: {
 					name: 'db',
 					include: ['src/test/**/*.db.test.ts'],
+					setupFiles: ['./src/test/logged_error_gate.ts'],
 					isolate: false,
 					fileParallelism: false,
 					sequence: { groupOrder: 2 }

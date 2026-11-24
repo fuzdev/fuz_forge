@@ -23,6 +23,7 @@
  */
 
 import { assert, test, beforeEach } from 'vitest';
+import { expect_logged_error } from '@fuzdev/fuz_app/testing/logged_errors.ts';
 import { ROLE_ADMIN } from '@fuzdev/fuz_app/auth/role_schema.ts';
 import { rpc_call } from '@fuzdev/fuz_app/testing/rpc_helpers.ts';
 import type { TestApp, TestAccount } from '@fuzdev/fuz_app/testing/test_app.ts';
@@ -204,6 +205,9 @@ describe_db('fuz_forge_repo_resync', (get_db) => {
 	});
 
 	test('leaves the cell untouched on transient subprocess failure', async () => {
+		expect_logged_error(
+			'[fuz_forge_repo_resync] subprocess failed for repos/fuzdev/fuz_app: fatal: not a git repository'
+		);
 		const id = await seed_repo_cell(get_db, SAMPLE_DATA({ head_sha: SHA_OLD }));
 		fake_response = () => ({
 			stdout: '',

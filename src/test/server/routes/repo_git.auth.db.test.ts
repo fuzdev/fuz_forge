@@ -21,6 +21,7 @@
  */
 
 import { assert, test, describe } from 'vitest';
+import { expect_logged_error } from '@fuzdev/fuz_app/testing/logged_errors.ts';
 import { ROLE_ADMIN, ROLE_KEEPER } from '@fuzdev/fuz_app/auth/role_schema.ts';
 import { create_test_app, type TestApp } from '@fuzdev/fuz_app/testing/test_app.ts';
 import type { AppServerContext } from '@fuzdev/fuz_app/server/app_server_context.ts';
@@ -231,6 +232,7 @@ describe_db('repo_git auth failure paths', (get_db) => {
 		});
 
 		test('valid admin token + known slug reaches subprocess (503 with no spawn)', async () => {
+			expect_logged_error('repo_git: spawn_streaming not configured');
 			const test_app = await build_test_app(get_db);
 			const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
 			await seed_repo_cell(get_db());
@@ -245,6 +247,7 @@ describe_db('repo_git auth failure paths', (get_db) => {
 		});
 
 		test('rejects an admin whose granting actor is soft-deleted', async () => {
+			expect_logged_error('repo_git: spawn_streaming not configured');
 			const test_app = await build_test_app(get_db, {
 				actor_tombstone_disagrees_with_account:
 					'tombstones the actor alone (`query_actor_soft_delete`), a state no wire path leaves, to pin the git gate on it'
@@ -279,6 +282,7 @@ describe_db('repo_git auth failure paths', (get_db) => {
 		});
 
 		test('mixed-case URL slug resolves the lowercase-stored cell (case-insensitive)', async () => {
+			expect_logged_error('repo_git: spawn_streaming not configured');
 			const test_app = await build_test_app(get_db);
 			const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
 			// Cell is stored at the lowercase SLUG; request a mixed-case form of it.

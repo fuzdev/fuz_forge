@@ -12,6 +12,7 @@
  */
 
 import { assert, test, describe } from 'vitest';
+import { expect_logged_error } from '@fuzdev/fuz_app/testing/logged_errors.ts';
 import { ROLE_ADMIN } from '@fuzdev/fuz_app/auth/role_schema.ts';
 import { create_test_app } from '@fuzdev/fuz_app/testing/test_app.ts';
 import type { AppServerContext } from '@fuzdev/fuz_app/server/app_server_context.ts';
@@ -133,6 +134,9 @@ const basic_header = (username: string, password: string): string =>
 describe_db('repo_git CGI head error paths', (get_db) => {
 	describe('GET /:slug.git/info/refs', () => {
 		test('502 when subprocess closes stdout without CGI separator', async () => {
+			expect_logged_error(
+				'repo_git: git http-backend CGI head parse failed (CGI head missing separator before stdout EOF)'
+			);
 			const fake_spawn: SpawnStreaming = () => make_fake_handle(new Uint8Array(0));
 			const test_app = await build_test_app(get_db, fake_spawn);
 			const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
@@ -146,6 +150,9 @@ describe_db('repo_git CGI head error paths', (get_db) => {
 		});
 
 		test('502 when subprocess emits partial headers then EOF', async () => {
+			expect_logged_error(
+				'repo_git: git http-backend CGI head parse failed (CGI head missing separator before stdout EOF)'
+			);
 			// "Status: 200 OK\nContent-Type: foo" — no blank line, then EOF.
 			const partial = new TextEncoder().encode('Status: 200 OK\nContent-Type: foo');
 			const fake_spawn: SpawnStreaming = () => make_fake_handle(partial);
@@ -161,6 +168,9 @@ describe_db('repo_git CGI head error paths', (get_db) => {
 		});
 
 		test('502 when CGI head exceeds size cap without a separator', async () => {
+			expect_logged_error(
+				'repo_git: git http-backend CGI head parse failed (CGI head exceeded 65536 bytes without a separator)'
+			);
 			// 128 KiB of header-looking bytes with no blank line — should trip
 			// the 64 KiB cap and bail out as 502.
 			const oversize = new Uint8Array(128 * 1024).fill(0x41); // 'A'

@@ -12,6 +12,7 @@
  */
 
 import { assert, describe, test } from 'vitest';
+import { expect_logged_error } from '@fuzdev/fuz_app/testing/logged_errors.ts';
 import { Hono } from 'hono';
 import type { Db } from '@fuzdev/fuz_app/db/db.ts';
 import { generate_api_token } from '@fuzdev/fuz_app/auth/api_token.ts';
@@ -119,6 +120,7 @@ describe('git routes over a database that fails', () => {
 	};
 
 	test('a failed credential read answers the 500, not the 401', async () => {
+		expect_logged_error('Unhandled handler error Error: connection refused');
 		for (const res of await responses(generate_api_token().token)) {
 			assert.strictEqual(res.status, 500);
 			assert.isNull(res.headers.get('WWW-Authenticate'));

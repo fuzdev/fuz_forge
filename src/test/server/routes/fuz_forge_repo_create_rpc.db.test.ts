@@ -46,6 +46,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { assert, test, beforeAll, afterAll, beforeEach } from 'vitest';
+import { expect_logged_error } from '@fuzdev/fuz_app/testing/logged_errors.ts';
 import { ROLE_ADMIN } from '@fuzdev/fuz_app/auth/role_schema.ts';
 import { rpc_call } from '@fuzdev/fuz_app/testing/rpc_helpers.ts';
 import type { TestApp, TestAccount } from '@fuzdev/fuz_app/testing/test_app.ts';
@@ -343,6 +344,9 @@ describe_db('fuz_forge_repo_create', (get_db) => {
 	});
 
 	test('a failed clone unwinds the cell and the store directory', async () => {
+		expect_logged_error(
+			'[fuz_forge_repo_create] failed for slug=fuzdev/unreachable_seed: git clone --bare failed'
+		);
 		// Loopback port 1 is never listening, so `git clone` fails on
 		// ECONNREFUSED with no DNS lookup and no timeout wait. The host policy
 		// would normally refuse a loopback seed, but this app is built with
@@ -512,6 +516,9 @@ describe_db('fuz_forge_repo_create seed_from host policy', (get_db) => {
 	 * above are the policy, not the app refusing every seed.
 	 */
 	test('a public host still reaches the clone on the same app', async () => {
+		expect_logged_error(
+			'[fuz_forge_repo_create] failed for slug=fuzdev/public_host_seed: git clone --bare failed'
+		);
 		const res = await rpc_call({
 			app: test_app.app,
 			path: '/api/rpc',

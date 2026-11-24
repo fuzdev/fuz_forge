@@ -10,11 +10,12 @@
  * keeper holds admin as a production bootstrap grants, so it can hit
  * admin-gated RPC methods. The two suites that drive the whole route set
  * (round-trip, data exposure) override `setup_test` with
- * `fuz_forge_in_process_setup`, which migrates the forge's own namespaces so
- * the fact-serving routes reach their handlers. The RPC round-trip runs on
- * the whole forge schema in real Postgres with real query deps, so every
- * method it drives reaches its handler. The attack-surface suites live in
- * sibling files; SSE and WS are covered cross-process, in `cross_backend/`.
+ * `fuz_forge_in_process_setup`, which builds the app on the whole forge schema
+ * in real Postgres with the file-store routes on real deps, so every route
+ * reaches its handler's queries. The RPC round-trip runs on the same schema
+ * with real query deps, so every method it drives reaches its handler. The
+ * attack-surface suites live in sibling files; SSE and WS are covered
+ * cross-process, in `cross_backend/`.
  *
  * @module
  */
@@ -37,15 +38,23 @@ import type { RouteSpec } from '@fuzdev/fuz_app/http/route_spec.ts';
 import type { AppServerContext } from '@fuzdev/fuz_app/server/app_server_context.ts';
 import { stub } from '@fuzdev/fuz_app/testing/stubs.ts';
 import { create_describe_db } from '@fuzdev/fuz_app/testing/describe_db.ts';
+import { create_node_runtime } from '@fuzdev/fuz_app/runtime/node.ts';
+import { PgFactStore } from '@fuzdev/fuz_app/db/fact_store.ts';
+import type { Db } from '@fuzdev/fuz_app/db/db.ts';
+import { create_audit_emitter } from '@fuzdev/fuz_app/auth/audit_emitter.ts';
+import { create_audit_log_config } from '@fuzdev/fuz_app/auth/audit_log_schema.ts';
+import { cell_audit_events } from '@fuzdev/fuz_app/auth/cell_audit_events.ts';
+import type { AuditFactory } from '@fuzdev/fuz_app/server/app_backend.ts';
 import { assert_response_matches_spec } from '@fuzdev/fuz_app/testing/integration_helpers.ts';
 import { Logger } from '@fuzdev/fuz_util/log.ts';
 
 import { FUZ_FORGE_SESSION_COOKIE_NAME } from '#lib/server/routes/account.ts';
-import { fuz_forge_own_migration_namespaces } from '#lib/server/db/fuz_forge_schema.ts';
 import {
 	build_rpc_endpoint_specs,
 	create_fuz_forge_app_route_specs
 } from '#lib/server/routes/fuz_forge_route_specs.ts';
+
+import type { SpawnCollect } from '#lib/server/subprocess.ts';
 
 import { db_factories, describe_db } from '../../db_fixture.ts';
 import {
@@ -92,6 +101,61 @@ const create_fuz_forge_test_route_specs = (ctx: AppServerContext): Array<RouteSp
 		facts_dir: test_facts_dir()
 	});
 
+/**
+ * Route factory for the suites that drive the whole route set to its handlers
+ * (round-trip, data exposure): the stub factory's wiring, but the file-store
+ * routes read the test database and a `PgFactStore` over it, so their handlers
+ * answer from real queries instead of crashing on the stub.
+ */
+const create_fuz_forge_db_test_route_specs = (ctx: AppServerContext): Array<RouteSpec> => {
+	const query_deps = { db: ctx.deps.db };
+	const log = new Logger('test');
+	return create_fuz_forge_app_route_specs(ctx, {
+		audit_sse: test_audit_sse_deps(),
+		fuz_forge: {
+			runtime: stub,
+			query_deps: stub,
+			seed_from_allow_private_hosts: false,
+			log
+		},
+		files: test_file_route_deps({
+			query_deps,
+			max_upload_bytes: 800 * 1024 * 1024,
+			fact_store: new PgFactStore({
+				deps: query_deps,
+				disk_root: test_facts_dir(),
+				fs: create_node_runtime([]),
+				log
+			})
+		}),
+		repo_git: {
+			runtime: stub,
+			query_deps: stub,
+			spawn_streaming: undefined,
+			log
+		},
+		repo_internal: {
+			query_deps: stub,
+			broadcast: stub,
+			log
+		},
+		version: '',
+		get_uptime_ms: () => 0,
+		facts_dir: test_facts_dir()
+	});
+};
+
+/**
+ * Production's audit config (`server.ts`): the cell-domain events registered,
+ * so the mounted cell handlers' audit rows validate against a known event type.
+ */
+const fuz_forge_audit_factory: AuditFactory = ({ db, log }) =>
+	create_audit_emitter({
+		db,
+		log,
+		audit_log_config: create_audit_log_config({ extra_events: cell_audit_events })
+	});
+
 /** Builtin roles only — fuz_forge has no app-defined roles. */
 const fuz_forge_roles = create_role_registry([]);
 
@@ -122,18 +186,29 @@ const fuz_forge_rpc_endpoints = (ctx: AppServerContext) =>
 const fuz_forge_bootstrap_config = { mode: 'surface_only' } as const;
 
 /**
- * The setup every suite that drives the **whole route set** needs: the fuz_app
- * default plus the forge's own migration namespaces.
+ * One fresh forge schema per describe, with no per-test truncate: the suites
+ * below seed their accounts once, in `beforeAll`, and `describe_db`'s truncate
+ * would wipe them before each case. Each describe's database is built by
+ * `init_fuz_forge_schema`, the schema production runs: the auth, fact and cell
+ * namespaces plus the direct-DDL token-policy table.
+ */
+const describe_forge_schema_db = create_describe_db(db_factories, []);
+
+/**
+ * The setup every suite that drives the **whole route set** needs: the forge
+ * schema database (`describe_forge_schema_db`), so `/ready` finds every table
+ * it expects, the file-store routes on real deps
+ * (`create_fuz_forge_db_test_route_specs`), and production's audit config.
  *
  * The two fact-serving routes read the `fact` / `cell` tables, so against the
  * auth-only default fixture `GET /api/facts/:hash` and
  * `GET /api/cells/:cell_id/facts/:hash` answer a missing-relation 500 instead
  * of the route's own 404 — visible as a failure in the round-trip validator,
- * silently swallowed by the data-exposure suite's `if (!res.ok) continue`.
+ * silently skipped by the data-exposure suite, which reads only successes.
  * `default_in_process_suite_options` builds its `setup_test` from a fixed field
- * list with no slot for the namespaces, so the setup is rebuilt here rather
- * than configured, and the suites that need it override the helper's
- * `setup_test` with this one.
+ * list with no slot for the database or the audit factory, so the setup is
+ * rebuilt here rather than configured, and the suites that need it override
+ * the helper's `setup_test` with this one.
  *
  * The fields match what the helper would have produced for these two call
  * sites: the default keeper roles (neither passes `extra_keeper_roles`), no
@@ -141,12 +216,14 @@ const fuz_forge_bootstrap_config = { mode: 'surface_only' } as const;
  * `describe_rpc_round_trip_tests`), and no `app_options` / `extra_accounts` /
  * `extra_actors`.
  */
-const fuz_forge_in_process_setup = default_in_process_setup({
-	session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME,
-	create_route_specs: create_fuz_forge_test_route_specs,
-	bootstrap: fuz_forge_bootstrap_config,
-	migration_namespaces: fuz_forge_own_migration_namespaces
-});
+const fuz_forge_in_process_setup = (get_db: () => Db) => () =>
+	default_in_process_setup({
+		session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME,
+		create_route_specs: create_fuz_forge_db_test_route_specs,
+		bootstrap: fuz_forge_bootstrap_config,
+		db: get_db(),
+		audit_factory: fuz_forge_audit_factory
+	})();
 
 // --- Standard auth integration suite and its middleware-gate probes ---
 
@@ -187,27 +264,38 @@ describe_rate_limiting_tests({
 
 // --- Round-trip validation ---
 
-describe_round_trip_validation({
-	...default_in_process_suite_options({
-		session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME,
-		create_route_specs: create_fuz_forge_test_route_specs,
-		bootstrap: fuz_forge_bootstrap_config
-	}),
-	// Drives every route to its handler, so it needs the forge's own namespaces
-	// migrated — see `fuz_forge_in_process_setup`.
-	setup_test: fuz_forge_in_process_setup,
-	skip_routes: [
-		// RPC routes handled by describe_rpc_round_trip_tests below
-		'GET /api/rpc',
-		'POST /api/rpc',
-		// File store routes take raw bytes, not JSON — round-trip can't generate a body
-		'POST /api/fuz_forge/files/:filename{.+}',
-		'DELETE /api/fuz_forge/files/:filename{.+}'
-	],
-	param_values: fuz_forge_param_values
+describe_forge_schema_db('round-trip on the forge schema', (get_db) => {
+	describe_round_trip_validation({
+		...default_in_process_suite_options({
+			session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME,
+			create_route_specs: create_fuz_forge_db_test_route_specs,
+			bootstrap: fuz_forge_bootstrap_config
+		}),
+		// Drives every route to its handler, so it needs the whole forge schema —
+		// see `fuz_forge_in_process_setup`.
+		setup_test: fuz_forge_in_process_setup(get_db),
+		skip_routes: [
+			// RPC routes handled by describe_rpc_round_trip_tests below
+			'GET /api/rpc',
+			'POST /api/rpc',
+			// File store routes take raw bytes, not JSON — round-trip can't generate a body
+			'POST /api/fuz_forge/files/:filename{.+}',
+			'DELETE /api/fuz_forge/files/:filename{.+}'
+		],
+		param_values: fuz_forge_param_values
+	});
 });
 
 // --- RPC round-trip validation ---
+
+/**
+ * The round-trip's `spawn_collect`: it gets the repo actions past the spawn
+ * guard to their cell lookup. The round-trip seeds no repo, so each answers
+ * from that lookup and no git subprocess runs — one that did would fail here,
+ * and its logged error would fail the test.
+ */
+const round_trip_spawn_collect: SpawnCollect = () =>
+	Promise.reject(new Error('the RPC round-trip seeds no repo, so no git subprocess runs'));
 
 /**
  * RPC endpoints over the real database, for the round-trip — it drives every
@@ -216,17 +304,14 @@ describe_round_trip_validation({
  */
 const fuz_forge_db_rpc_endpoints = (ctx: AppServerContext) =>
 	build_rpc_endpoint_specs(ctx, {
-		fuz_forge_deps: { ...fuz_forge_rpc_stub_deps, query_deps: { db: ctx.deps.db } },
+		fuz_forge_deps: {
+			...fuz_forge_rpc_stub_deps,
+			query_deps: { db: ctx.deps.db },
+			spawn_collect: round_trip_spawn_collect
+		},
 		extra_actions: [],
 		final_actions_factory: null
 	});
-
-/**
- * One fresh forge schema per describe, with no per-test truncate: the round-trip
- * seeds its accounts once, in `beforeAll`, and `describe_db`'s truncate would
- * wipe them before each case.
- */
-const describe_forge_schema_db = create_describe_db(db_factories, []);
 
 describe_forge_schema_db('RPC round-trip on the forge schema', (get_db) => {
 	describe_rpc_round_trip_tests({
@@ -237,15 +322,17 @@ describe_forge_schema_db('RPC round-trip on the forge schema', (get_db) => {
 			bootstrap: fuz_forge_bootstrap_config
 		}),
 		// The whole forge schema (`init_fuz_forge_schema`: the cell and fact
-		// namespaces plus the direct-DDL token-policy table) and real query deps,
-		// so the repo, cell and token-policy reads reach their handlers.
+		// namespaces plus the direct-DDL token-policy table), real query deps and
+		// a `spawn_collect`, so the repo, cell and token-policy reads reach their
+		// handlers' queries, and production's audit config for the cell events.
 		setup_test: () =>
 			default_in_process_setup({
 				session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME,
 				create_route_specs: create_fuz_forge_test_route_specs,
 				rpc_endpoints: fuz_forge_db_rpc_endpoints,
 				bootstrap: fuz_forge_bootstrap_config,
-				db: get_db()
+				db: get_db(),
+				audit_factory: fuz_forge_audit_factory
 			})(),
 		// `fuz_forge_repo_create` is side-effecting (real `git init` + disk +
 		// hook install) and its `slug` needs a two-segment `org/repo` shape the
@@ -256,18 +343,19 @@ describe_forge_schema_db('RPC round-trip on the forge schema', (get_db) => {
 
 // --- Data exposure tests ---
 
-describe_data_exposure_tests({
-	...default_in_process_suite_options({
-		session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME,
-		create_route_specs: create_fuz_forge_test_route_specs,
-		bootstrap: fuz_forge_bootstrap_config
-	}),
-	// Also drives every route, and its response-shape scan reads only responses
-	// that succeeded (`if (!res.ok) continue`) — so on the auth-only default
-	// fixture the two fact routes contribute nothing at all rather than failing
-	// loudly. See `fuz_forge_in_process_setup`.
-	setup_test: fuz_forge_in_process_setup,
-	param_values: fuz_forge_param_values
+describe_forge_schema_db('data exposure on the forge schema', (get_db) => {
+	describe_data_exposure_tests({
+		...default_in_process_suite_options({
+			session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME,
+			create_route_specs: create_fuz_forge_db_test_route_specs,
+			bootstrap: fuz_forge_bootstrap_config
+		}),
+		// Also drives every route, and its response-shape scan reads only responses
+		// that succeeded — a route that 500s on a missing table or a stub contributes
+		// nothing rather than failing loudly. See `fuz_forge_in_process_setup`.
+		setup_test: fuz_forge_in_process_setup(get_db),
+		param_values: fuz_forge_param_values
+	});
 });
 
 // No SSE or WS suites here. Realtime rides the WebSocket endpoint, and both it
