@@ -1,6 +1,6 @@
 //! The upkeep tasks `run_app` runs beside the server
 //! (the spine's `fuz_auth::AuthCleanup` and
-//! `fuz_forge_server::runtime::extra_upkeep`), over real Postgres and a
+//! `fuz_forge_server::runtime::extra_upkeep`), over a real database and a
 //! scratch fact-store root: their startup passes run the spine's auth cleanup
 //! (an expired session is deleted and closed through the closer they're
 //! handed, an expired role-grant offer audited through the emitter) and the
@@ -9,10 +9,6 @@
 //! The sweeps and their schedulers are covered where they live (`fuz_auth`'s
 //! `auth_cleanup` suite, `fuz_fact`'s sweeper tests); this pins that the
 //! server's own extra upkeep is the orphan-temp sweeper, beside the cleanup.
-//!
-//! Requires a local Postgres (`FUZ_FORGE_SERVER_TEST_URL`, default
-//! `postgres://localhost/fuz_forge_server_test`); marked `#[ignore]` and run
-//! with `--ignored --test-threads=1`.
 
 #![expect(
     clippy::expect_used,
@@ -24,7 +20,7 @@ mod common;
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
-use common::fresh_db_pool;
+use common::fresh_db;
 
 use fuz_auth::{
     AuditEmitter, AuditLogEvent, ConnectionCloseTarget, ConnectionCloser,
@@ -68,10 +64,9 @@ impl fuz_http::ShutdownCloser for RecordingCloser {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-#[ignore = "requires a local Postgres (FUZ_FORGE_SERVER_TEST_URL); run with --ignored"]
 async fn the_upkeep_tasks_sweep_at_startup_and_stop_on_shutdown() {
     // Fresh DB under the chain `build_router` runs.
-    let pool = fresh_db_pool().await;
+    let pool = fresh_db().await;
 
     // What the auth cleanup audits: a role-grant offer already expired.
     let (_, grantor) = seed_account_actor(&pool, "upkeep_grantor").await;

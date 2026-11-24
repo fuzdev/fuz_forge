@@ -1,5 +1,5 @@
-//! The git smart-HTTP admin gate over a booted `fuz_forge_server` router, real
-//! Postgres, and a real bare repo — the Rust twin of
+//! The git smart-HTTP admin gate over a booted `fuz_forge_server` router, a real
+//! database, and a real bare repo — the Rust twin of
 //! `src/test/server/routes/repo_git.auth.db.test.ts`'s
 //! `rejects an admin whose granting actor is soft-deleted`.
 //!
@@ -11,9 +11,7 @@
 //! cross-process probe is refused at token validation before the role gate is
 //! consulted — which is why it is driven here against the DB directly.
 //!
-//! Requires a local Postgres (`FUZ_FORGE_SERVER_TEST_URL`, default
-//! `postgres://localhost/fuz_forge_server_test`) and `git` on `PATH`; marked
-//! `#[ignore]` and run with `--ignored --test-threads=1`.
+//! Requires `git` on `PATH`.
 
 #![expect(
     clippy::expect_used,
@@ -25,7 +23,7 @@ mod common;
 
 use std::sync::Arc;
 
-use common::{bare_db_pool, test_url};
+use common::bare_db;
 use fuz_forge_server::FuzForgeEnv;
 use fuz_forge_server::router::build_router;
 use fuz_sys::fs::CleanupGuard;
@@ -68,7 +66,7 @@ async fn seed_admin_actor(
 /// listening on a loopback port.
 struct Booted {
     _cleanup: CleanupGuard,
-    pool: fuz_db::Pool,
+    pool: fuz_testing::TestDb,
     host: String,
     basic: String,
     actor_id: uuid::Uuid,
@@ -83,11 +81,11 @@ async fn boot() -> Booted {
     let cleanup = CleanupGuard::new(scratch.clone());
 
     // Fresh DB so `build_router`'s migration chain replays clean.
-    let pool = bare_db_pool().await;
+    let pool = bare_db().await;
 
     let env = FuzForgeEnv {
         base: fuz_http::BaseServerEnv {
-            database_url: Some(test_url()),
+            database_url: Some(pool.url().to_owned()),
             cookie_keys: Some("0123456789abcdef0123456789abcdef".to_owned()),
             host: None,
             port: None,
@@ -270,7 +268,6 @@ impl Booted {
 /// gate. Swap the gate back to the tombstone-blind
 /// `query_account_has_global_role` and this test fails with a second 200.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-#[ignore = "requires a local Postgres (FUZ_FORGE_SERVER_TEST_URL); run with --ignored"]
 async fn git_auth_refuses_an_admin_whose_granting_actor_is_soft_deleted() {
     let booted = boot().await;
     assert_eq!(
@@ -309,7 +306,6 @@ async fn git_auth_refuses_an_admin_whose_granting_actor_is_soft_deleted() {
 /// succeed, so its 500 is that read's alone; the cell table hides both the git
 /// repo lookup and the callback's cell lookup.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-#[ignore = "requires a local Postgres (FUZ_FORGE_SERVER_TEST_URL); run with --ignored"]
 async fn a_failed_read_past_the_checkout_answers_the_500() {
     let booted = boot().await;
     assert_eq!(booted.advertise().await, 200, "the control");

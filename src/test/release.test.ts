@@ -86,8 +86,8 @@ interface Scenario {
 	git_status_after_build?: SpawnOutput;
 	gh_missing?: boolean;
 	build_env?: Partial<ReleaseBuildEnv>;
-	/** Whether the sibling `../fuz` checkout is absent. */
-	fuz_missing?: boolean;
+	/** The sibling checkout that is absent, if one is. */
+	missing_checkout?: '../fuz' | '../pglet';
 	gh_auth?: SpawnOutput;
 	gh_view?: SpawnOutput;
 	gh_create?: SpawnResult;
@@ -129,7 +129,7 @@ const setup = async (
 		paths: {
 			open_dir_path: async (path) => {
 				calls.opened.push(path);
-				return scenario.fuz_missing ? null : { dir, path: '' };
+				return path === scenario.missing_checkout ? null : { dir, path: '' };
 			}
 		},
 		build_env: {
@@ -383,9 +383,18 @@ describe('run_release', () => {
 
 	test('a missing ../fuz refuses, before git or the build', async () => {
 		await using dir = await fs.temp_dir();
-		const { deps, calls } = await setup(dir, { fuz_missing: true });
+		const { deps, calls } = await setup(dir, { missing_checkout: '../fuz' });
 		assert.include(await refusal(deps), '../fuz not found');
 		assert.deepEqual(calls.opened, ['../fuz']);
+		assert.deepEqual(calls.git, []);
+		assert.strictEqual(calls.builds, 0);
+	});
+
+	test('a missing ../pglet refuses, before git or the build', async () => {
+		await using dir = await fs.temp_dir();
+		const { deps, calls } = await setup(dir, { missing_checkout: '../pglet' });
+		assert.include(await refusal(deps), '../pglet not found');
+		assert.deepEqual(calls.opened, ['../fuz', '../pglet']);
 		assert.deepEqual(calls.git, []);
 		assert.strictEqual(calls.builds, 0);
 	});

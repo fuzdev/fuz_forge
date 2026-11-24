@@ -11,7 +11,7 @@ const config: CreateGroConfig = (cfg) => {
 	// what the cargo step reads, read once so the build and its cache key agree
 	const build_target = process.env.FUZ_FORGE_BUILD_TARGET || null;
 	const skip_server = process.env.FUZ_FORGE_BUILD_SKIP_SERVER === '1';
-	const has_fuz_checkout = existsSync('../fuz');
+	const has_spine_checkouts = existsSync('../fuz') && existsSync('../pglet');
 
 	const base_plugins = cfg.plugins;
 	cfg.plugins = async (ctx) => {
@@ -53,10 +53,12 @@ const config: CreateGroConfig = (cfg) => {
 		// is an opt-in for ad-hoc `gro build` runs. `release` / `deploy` never set
 		// it, so they always build + ship both.
 		//
-		// Guarded on the sibling `../fuz` spine workspace: both crates
-		// path-dep it, so when it's absent (a checkout without the spine) the
-		// cargo build can't resolve its deps and the step skips with a warning
-		// rather than failing. The deploy/release machine has the spine checked
+		// Guarded on the sibling `../fuz` spine workspace and the `../pglet`
+		// checkout beside it: the crates path-dep the spine, whose test harness
+		// (`fuz_testing`) path-deps pglet, and Cargo loads every member's path
+		// deps to resolve the workspace. When either is absent (a checkout
+		// without the spine) the cargo build can't resolve its deps and the
+		// step skips with a warning rather than failing. The deploy/release machine has the spine checked
 		// out (per Cargo.toml), so it always builds there; a missing binary is
 		// caught downstream (`release.ts` aborts on a missing artifact; the
 		// deploy's `ExecStart`/`/ready` gate fails if it's not there). `gro
@@ -66,9 +68,9 @@ const config: CreateGroConfig = (cfg) => {
 			name: 'gro_plugin_cargo_compile',
 			adapt: async ({ log }) => {
 				const output_dir = 'dist_artifacts';
-				if (!has_fuz_checkout) {
+				if (!has_spine_checkouts) {
 					log.warn(
-						'[cargo] sibling ../fuz spine workspace not found — skipping the Rust' +
+						'[cargo] sibling ../fuz or ../pglet checkout not found — skipping the Rust' +
 							' fuzf/fuzfd builds (no dist_artifacts binaries produced)'
 					);
 					return;
@@ -128,14 +130,14 @@ const config: CreateGroConfig = (cfg) => {
 	};
 
 	// The build cache keys on the commit, so what else changes the build's output
-	// goes here: the cargo plugin's variables and whether the `../fuz` checkout
-	// it builds against is present. Without them one build is served from the cache
+	// goes here: the cargo plugin's variables and whether the `../fuz` and
+	// `../pglet` checkouts it builds against are present. Without them one build is served from the cache
 	// to another at the same commit: `deploy:forge2`'s musl binaries to `deploy` or
 	// `release`, a glibc build to `deploy:forge2`, a `fuzf`-only build to either.
 	cfg.build_cache_config = {
 		build_target,
 		skip_server,
-		has_fuz_checkout
+		has_spine_checkouts
 	};
 
 	return cfg;

@@ -20,7 +20,7 @@ fuz_forge_server = { path = "../fuz_forge_server" }
 
 # Spine — same crates the production binary uses, plus fuz_testing for
 # the swap fixture. This crate is fuz_testing's only runtime dependent
-# (`fuz_forge_server` takes it as a dev-dependency for its Postgres suites, an
+# (`fuz_forge_server` takes it as a dev-dependency for its DB suites, an
 # edge the audit ignores); fuz_testing is *deliberately absent* from
 # `fuz_forge_server`'s production dep graph so the `cargo xtask check-release`
 # sanity check holds.

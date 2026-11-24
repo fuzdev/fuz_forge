@@ -23,7 +23,8 @@ AI disclosure: this codebase is LLM-generated with uneven human review.
 ## Development
 
 Building needs [Fuz](https://github.com/fuzdev/fuz) checked out beside this repo
-as `fuz/`, plus Node, a Rust toolchain, PostgreSQL, git, and Python 3 (the
+as `fuz/`, and [pglet](https://github.com/fuzdev/pglet) as `pglet/` (which
+fuz's test harness path-depends on), plus Node, a Rust toolchain, PostgreSQL, git, and Python 3 (the
 repo hooks). Deploying also needs the `zap` binary and `fgro`
 ([install](https://zap.fuz.dev/docs/install)). Start with `gro check`; the full command list is in [CLAUDE.md](CLAUDE.md), and the
 design and operator docs are in [docs/](docs/).

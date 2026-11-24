@@ -55,8 +55,7 @@ Rust-side suites:
   binary's command line.
 
 `fuzfd_args.rs`, `testing_fuzfd_args.rs` and the `fuzf` suites need no
-database and run in `cargo test --workspace`; the `#[ignore]`d ones are in
-§ Running.
+database; the DB suites and their PostgreSQL leg are in § Running.
 
 ## Running
 
@@ -81,18 +80,23 @@ run — collide on the fixed ports *and* on the local Postgres that the Rust
 cross projects share (with the `db` project's `pg` leg, when
 `TEST_DATABASE_URL` is set).
 
-The Rust suites `#[ignore]`d behind a real Postgres
-(`FUZ_FORGE_SERVER_TEST_URL`, default `postgres://localhost/fuz_forge_server_test`)
-sit outside `cargo test --workspace`: `repo_git_auth`,
-`signed_tool_install`, `columns`, `upkeep`. CI's `rust` job runs them against a
-Postgres service; locally, run them when the path they gate moves:
-`cargo test -p fuz_forge_server -- --ignored --test-threads=1`, or add
-`--test <name>` for one. Each drops and recreates the `public` schema of that
-one database, hence the single thread. The reset (via `tests/common/`: bare
-for `repo_git_auth` and `signed_tool_install`, whose `build_router` call runs
-the migrations; migrated for `columns` and `upkeep`), the account / actor /
-admin-grant seeding, and the `columns` assertion come from the spine's
-`fuz_testing`, a dev-dependency only — it never reaches `fuzfd`, and
+The Rust DB suites (`repo_git_auth`, `signed_tool_install`, `columns`,
+`upkeep`) run in `cargo test --workspace`, each test on a database of its own
+through the spine's `fuz_testing::fresh_test_db`: an in-process pglet server
+by default, so they run in parallel with nothing to create first.
+`repo_receive_callback_past_commit` observes what only PostgreSQL has (a
+plpgsql trigger holding `COMMIT` open, seen in `pg_stat_activity`), so it's
+`#[ignore = "postgres-only: …"]`. The PostgreSQL leg runs every DB test
+again, that one included, each in a database it creates and drops through
+`FUZ_TEST_POSTGRES_URL` (a role with `CREATEDB`); CI's `rust` job runs it
+against a Postgres service, and locally run it when the path they gate moves:
+`FUZ_TEST_POSTGRES_URL=postgres://localhost/postgres cargo test -p fuz_forge_server -- --include-ignored`,
+or add `--test <name>` for one. The databases (via `tests/common/`: bare for
+`repo_git_auth`, `signed_tool_install`, and
+`repo_receive_callback_past_commit`, whose `build_router` call runs the
+migrations; migrated for `columns` and `upkeep`), the account / actor /
+admin-grant seeding, and the `columns` assertion come from `fuz_testing`, a
+dev-dependency only — it never reaches `fuzfd`, and
 `cargo xtask check-release`, walking runtime dependencies, ignores it.
 
 CI runs the rustdoc doc-link gate too; the command and its pass condition are

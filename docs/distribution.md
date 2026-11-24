@@ -51,7 +51,8 @@ Which surfaces a token reaches, and how a scoped token narrows them, is
 ## Building from source
 
 Other platforms (macOS, aarch64; untested) build from source with a Rust
-toolchain and the sibling `fuz/` checkout beside this repo:
+toolchain and the sibling `fuz/` and `pglet/` checkouts beside this repo
+(pglet: which fuz's test harness path-depends on):
 
 ```bash
 cargo run --bin fuzf -- --help        # the client
@@ -201,7 +202,7 @@ and run `npm run release` (the Gro task `src/tasks/release.task.ts`, over
    unless `Cargo.toml`'s `[workspace.package]` version is the same;
 2. refuses when `gro build` would not build both binaries for the host:
    `FUZ_FORGE_BUILD_TARGET` set, `FUZ_FORGE_BUILD_SKIP_SERVER=1`, or no
-   sibling `../fuz` checkout;
+   sibling `../fuz` or `../pglet` checkout;
 3. refuses unless git is clean and `gh` is installed and authenticated, and if
    the tag already has a release;
 4. runs `gro build`, refuses if it left the working tree dirty, then checks

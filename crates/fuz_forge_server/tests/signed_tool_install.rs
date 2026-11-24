@@ -5,8 +5,8 @@
 //! `fuz_sign`'s suite already proves the sign → publish → fetch → verify → install
 //! composition against a local `FileStorage`. This suite proves the same loop
 //! survives the real HTTP transport: a signed tool artifact is published through a
-//! booted `fuz_forge_server` router (bearer-authenticated file store, real
-//! Postgres), then installed back over a `ForgeStorage` pointed at that server.
+//! booted `fuz_forge_server` router (bearer-authenticated file store, a real
+//! database), then installed back over a `ForgeStorage` pointed at that server.
 //!
 //! The verification semantics are identical to the `FileStorage` path — the forge
 //! is a dumb byte store; `fuz_release` verifies the ed25519 signature + blake3
@@ -22,10 +22,6 @@
 //!   real `verify_signature()` trust check admits it.
 //! - `fuz_home/test_home_override` — redirect `~/.fuz` in-process, since edition
 //!   2024 + the workspace `unsafe_code = "forbid"` rule out `std::env::set_var`.
-//!
-//! Requires a local Postgres (`FUZ_FORGE_SERVER_TEST_URL`, default
-//! `postgres://localhost/fuz_forge_server_test`); marked `#[ignore]` and run with
-//! `--ignored --test-threads=1`.
 
 #![expect(
     clippy::expect_used,
@@ -37,7 +33,7 @@ mod common;
 use std::os::unix::fs::PermissionsExt;
 use std::sync::Arc;
 
-use common::{bare_db_pool, test_url};
+use common::bare_db;
 use fuz_forge_server::FuzForgeEnv;
 use fuz_forge_server::router::build_router;
 use fuz_release::{ToolInstallOptions, ToolInstallOutcome, install_tool, verify_installed_tool};
@@ -85,14 +81,13 @@ async fn seed_admin_with_token(
 
 /// The headline composition: sign + publish a tool through a booted
 /// `fuz_forge_server` router (bearer-authenticated file store over a real
-/// Postgres), then install it back over a `ForgeStorage` pointed at that server.
+/// database), then install it back over a `ForgeStorage` pointed at that server.
 ///
 /// Asserts the install landed under the overridden `~/.fuz/tools/<name>/v1-<hash>/`
 /// with the published binary bytes, and that `verify_installed_tool` re-hashes
 /// them clean against the tool's `meta.json` — i.e. the ed25519 signature +
 /// blake3 pins verified end to end over HTTP, not just over `FileStorage`.
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-#[ignore = "requires a local Postgres (FUZ_FORGE_SERVER_TEST_URL); run with --ignored"]
 async fn publish_then_install_tool_over_forge_storage() {
     let _serial = SERIAL.lock().await;
 
@@ -130,14 +125,14 @@ async fn publish_then_install_tool_over_forge_storage() {
 
     // Fresh DB: reset the `public` schema so `build_router`'s full migration
     // chain (auth → cell → fact → fuz_forge) replays clean.
-    let pool = bare_db_pool().await;
+    let pool = bare_db().await;
 
     // Boot the router in-process. `build_router` runs the migration chain
     // internally; production `Argon2idHasher` is fine (api-token auth is
     // blake3-hashed + seeded directly, so no password hashing happens here).
     let env = FuzForgeEnv {
         base: fuz_http::BaseServerEnv {
-            database_url: Some(test_url()),
+            database_url: Some(pool.url().to_owned()),
             cookie_keys: Some("0123456789abcdef0123456789abcdef".to_owned()), // >= 32 chars
             host: None,
             port: None,

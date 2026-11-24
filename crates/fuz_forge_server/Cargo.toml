@@ -93,8 +93,8 @@ fuz_crypto = { workspace = true, features = ["test_trust_anchor"] }
 # Dev-only in-process `~/.fuz` redirect so the install lands under a temp home.
 fuz_home = { workspace = true, features = ["test_home_override"] }
 
-# The spine's shared Postgres-suite harness (`fuz_testing`'s `fresh_db`, `seed`,
-# and the column-projection guard) behind the `#[ignore]`d `tests/` suites. A
+# The spine's shared DB-suite harness (`fuz_testing`'s `fresh_test_db`, `seed`,
+# and the column-projection guard) behind the `tests/` suites. A
 # dev-dependency never reaches the `fuzfd` binary, and `cargo xtask
 # check-release` walks runtime edges only.
 fuz_testing.workspace = true

@@ -145,8 +145,9 @@ target rather than reusing the other's binaries.
 - **Store overrides** — a `FUZ_FORGE_FACT_STORE_PATH` /
   `FUZ_FORGE_REPO_STORE_PATH` outside `/home/fuz_forge/.fuz_forge` must also be
   added to the config's `read_write_paths`, or the sandbox keeps it read-only.
-- **Deploy machine** — the sibling `fuz/` checkout must be present (without
-  it `gro build` skips the cargo step with a warning and ships no `fuzfd`), and
+- **Deploy machine** — the sibling `fuz/` and `pglet/` checkouts must be
+  present (pglet: which fuz's test harness path-depends on; without either,
+  `gro build` skips the cargo step with a warning and ships no `fuzfd`), and
   `npm i` must have installed the `@fuzdev/zap` package.
 
 ## Fresh Alpine box

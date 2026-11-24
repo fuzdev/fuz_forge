@@ -4,7 +4,7 @@
  * `run_release` checks what it can before building: the version agrees
  * between `package.json` and `Cargo.toml`, nothing would make the build's cargo
  * step skip a binary or cross-build (`FUZ_FORGE_BUILD_TARGET`,
- * `FUZ_FORGE_BUILD_SKIP_SERVER`, a missing sibling `../fuz`), the git working
+ * `FUZ_FORGE_BUILD_SKIP_SERVER`, a missing sibling `../fuz` or `../pglet`), the git working
  * tree is clean, `gh` is installed and authenticated, and the tag has no
  * release yet. Then it builds, checks the build left the tree clean, and ships
  * each binary under its platform name (`-linux-x86_64`, a glibc build) plus a
@@ -100,9 +100,15 @@ export interface ReleaseDeps {
 	build: () => Promise<void>;
 	/** The host's values of the variables the build's cargo step reads. */
 	build_env: ReleaseBuildEnv;
-	/** Opens the sibling `../fuz` checkout the cargo step needs. */
+	/** Opens the sibling `../fuz` and `../pglet` checkouts the cargo step needs. */
 	paths: Pick<FsPaths, 'open_dir_path'>;
 }
+
+/**
+ * The sibling checkouts the cargo step builds against, as `gro.config.ts`
+ * checks them: the spine, and the pglet its test harness path-depends on.
+ */
+const SPINE_CHECKOUTS = ['fuz', 'pglet'] as const;
 
 const log_ok = (message: string): void => {
 	console.log(`  [ok] ${message}`);
@@ -205,7 +211,7 @@ const prepare_asset = async (
 	for (const path of [binary_path, sidecar_path]) {
 		if (!(await project.exists(path))) {
 			throw new TaskError(
-				`${path} not found after gro build, whose cargo step writes both binaries unless ../fuz is missing or FUZ_FORGE_BUILD_SKIP_SERVER=1 skips fuzfd`
+				`${path} not found after gro build, whose cargo step writes both binaries unless ../fuz or ../pglet is missing or FUZ_FORGE_BUILD_SKIP_SERVER=1 skips fuzfd`
 			);
 		}
 	}
@@ -275,10 +281,12 @@ export const run_release = async (deps: ReleaseDeps): Promise<void> => {
 			'FUZ_FORGE_BUILD_SKIP_SERVER=1 would make gro build skip fuzfd, which a release ships. Unset it and re-run.'
 		);
 	}
-	if ((await paths.open_dir_path('../fuz')) === null) {
-		throw new TaskError(
-			'../fuz not found: gro build skips the cargo step without the sibling fuz checkout. Clone it beside this repo and re-run.'
-		);
+	for (const sibling of SPINE_CHECKOUTS) {
+		if ((await paths.open_dir_path(`../${sibling}`)) === null) {
+			throw new TaskError(
+				`../${sibling} not found: gro build skips the cargo step without the sibling fuz and pglet checkouts. Clone it beside this repo and re-run.`
+			);
+		}
 	}
 	log_ok('gro build would build fuzf and fuzfd for the host');
 

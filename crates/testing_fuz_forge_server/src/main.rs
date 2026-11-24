@@ -31,7 +31,7 @@
 //!    no production binary reaches `fuz_testing` through a runtime
 //!    dependency. The `testing_fuz_forge_server` crate is a separate
 //!    package, so the sibling `fuz_forge_server` package takes
-//!    `fuz_testing` only as a dev-dependency for its Postgres suites, an
+//!    `fuz_testing` only as a dev-dependency for its DB suites, an
 //!    edge that never reaches `fuzfd` (this crate is `fuz_testing`'s only
 //!    runtime dependent).
 //! 3. `TestingArgon2idHasher::new` logs `WARN: test-mode argon2 hasher

@@ -14,9 +14,9 @@
 //! sleeps at `COMMIT`, so the case can drop the socket while the write's round
 //! trip is in flight — it waits for the trigger's sleep to show in `pg_stat_activity`.
 //!
-//! Requires a local Postgres (`FUZ_FORGE_SERVER_TEST_URL`, default
-//! `postgres://localhost/fuz_forge_server_test`); marked `#[ignore]` and run
-//! with `--ignored --test-threads=1`.
+//! The trigger, `pg_sleep`, and the `pg_stat_activity` wait it's observed by
+//! are PostgreSQL's alone, so the case runs only on PostgreSQL
+//! (`FUZ_TEST_POSTGRES_URL`).
 
 #![expect(
     clippy::expect_used,
@@ -28,7 +28,7 @@ mod common;
 use std::sync::Arc;
 use std::time::Duration;
 
-use common::{bare_db_pool, test_url};
+use common::bare_postgres_db;
 use fuz_forge_server::FuzForgeEnv;
 use fuz_forge_server::broadcasts::methods::FUZ_FORGE_REPO_UPDATED;
 use fuz_forge_server::router::{BuildRouterOptions, BuiltRouter, build_router};
@@ -60,7 +60,7 @@ const SECRET: &str = "past-commit-hook-secret";
 const NEW_SHA: &str = "1111111111111111111111111111111111111111";
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-#[ignore = "requires PostgreSQL with fuz_forge_server_test database"]
+#[ignore = "postgres-only: a plpgsql constraint trigger holds COMMIT open, observed in pg_stat_activity"]
 async fn a_receive_callback_dropped_mid_commit_still_broadcasts() {
     let scratch = std::env::temp_dir().join(format!(
         "fuz_forge_receive_past_commit_{}",
@@ -68,11 +68,11 @@ async fn a_receive_callback_dropped_mid_commit_still_broadcasts() {
     ));
     std::fs::create_dir_all(&scratch).expect("create scratch dir");
     let _cleanup = CleanupGuard::new(scratch.clone());
-    let pool = bare_db_pool().await;
+    let pool = bare_postgres_db().await;
 
     let env = FuzForgeEnv {
         base: fuz_http::BaseServerEnv {
-            database_url: Some(test_url()),
+            database_url: Some(pool.url().to_owned()),
             cookie_keys: Some("0123456789abcdef0123456789abcdef".to_owned()),
             host: None,
             port: None,

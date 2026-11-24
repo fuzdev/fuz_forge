@@ -9,16 +9,10 @@
 //! over the composed registries is the spine's shared
 //! `fuz_testing::assert_column_projections`. Twin of the TS
 //! `fuz_forge_api_token_policy_queries.db.test.ts` guard.
-//!
-//! `--ignored`-gated (needs Postgres, `createdb fuz_forge_server_test`):
-//!
-//! ```sh
-//! cargo test -p fuz_forge_server --test columns -- --ignored
-//! ```
 
 mod common;
 
-use common::fresh_db_pool;
+use common::fresh_db;
 use fuz_auth::AUTH_COLUMN_PROJECTIONS;
 use fuz_cell::CELL_COLUMN_PROJECTIONS;
 use fuz_db::{ColumnProjections, DB_COLUMN_PROJECTIONS};
@@ -36,9 +30,8 @@ const FUZ_FORGE_COLUMN_PROJECTIONS: ColumnProjections = ColumnProjections {
 };
 
 #[tokio::test]
-#[ignore = "needs Postgres"]
 async fn columns_match_live_schema() {
-    let pool = fresh_db_pool().await;
+    let pool = fresh_db().await;
     assert_column_projections(
         &pool,
         &[

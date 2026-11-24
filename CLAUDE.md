@@ -105,9 +105,10 @@ reach the server.
 `gro check` validates the TS side; `gro build` builds the site and both
 binaries. `rust-toolchain.toml` pins the Rust toolchain. CI
 (`.github/workflows/check.yml`) runs `gro check --build` (the site only: the
-cargo step skips without `fuz`) and the Rust commands below
-plus the `#[ignore]` Postgres suites, with `fuz` checked out beside the
-repo.
+cargo step skips without `fuz` and `pglet`) and the Rust commands below, with `fuz`
+and `pglet` checked out beside the repo. `cargo test` runs the DB suites on
+an in-process pglet; CI runs them again on a Postgres service, the
+Postgres-only ones included (src/test/CLAUDE.md § Running).
 
 ```bash
 cargo build --workspace
@@ -212,11 +213,13 @@ builds static musl binaries via `cargo zigbuild` (needs `cargo-zigbuild` + `zig`
 since a static binary is refused under a glibc publisher's default target;
 `FUZ_FORGE_BUILD_SKIP_SERVER=1` builds `fuzf` only. Every crate but
 `fuz_forge_wire` path-deps the sibling `fuz/` checkout (paths in
-`Cargo.toml`); when it is absent the cargo step skips with a warning. Both
-variables and the checkout's presence are in the build cache key
+`Cargo.toml`), and the workspace also needs `pglet/` beside it (which fuz's
+test harness path-depends on); when either is absent the cargo step skips
+with a warning. Both variables and the checkouts' presence are in the build
+cache key
 (`build_cache_config`), so a build under one setting is never reused for
-another at the same commit; changes inside `../fuz` aren't, so rebuild with
-`gro build --force_build` after the spine checkout changes.
+another at the same commit; changes inside `../fuz` and `../pglet` aren't, so
+rebuild with `gro build --force_build` after either checkout changes.
 
 ## Deploy
 
