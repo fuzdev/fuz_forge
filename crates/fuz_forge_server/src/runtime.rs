@@ -61,15 +61,14 @@ pub type FinalActionSpecsFactory =
 pub struct RunAppOptions {
     /// The spine's swap points. Production: the [`fuz_auth::Argon2idHasher`],
     /// [`DEFAULT_ADDR`], [`fuz_http::DEFAULT_DRAIN_TIMEOUT`], the auth limiters
-    /// (login, signup) enforced, no daemon token, no hook. The
+    /// (login, signup) enforced, no daemon token. The
     /// `testing_fuz_forge_server` binary: the fast test hasher,
     /// `127.0.0.1:4141` (so both can run side by side), the auth limiters
     /// `DisabledForTesting` unless its login env gate asks for `Enforced` (the
     /// twin of the TS testing server's `create_testing_wiring`,
     /// `app_assembly.ts` — a host firing many signup/login round-trips per
-    /// backend lifetime would trip the 5-per-15-min per-IP login budget), the
-    /// daemon-token state `_testing_reset` resolves the keeper through, and the
-    /// env-gated schema wipe.
+    /// backend lifetime would trip the 5-per-15-min per-IP login budget), and
+    /// the daemon-token state `_testing_reset` resolves the keeper through.
     pub spine: SpineRunOptions,
     /// Factory injecting extra action specs after the standard set.
     /// Production: `None`. Test binary: `Some(_)` for `_testing_reset`.

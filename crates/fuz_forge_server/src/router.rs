@@ -157,8 +157,7 @@ pub const FUZ_FORGE_BACKEND_SPEC: AppBackendSpec = AppBackendSpec {
     reason = "the spine options and the boxed action-spec factories have no `Debug`"
 )]
 pub struct BuildRouterOptions {
-    /// The spine's swap points: hasher, auth limiter mode, daemon-token state,
-    /// pre-migration hook.
+    /// The spine's swap points: hasher, auth limiter mode, daemon-token state.
     pub backend: SpineBackendOptions,
     /// Extra specs folded in after the standard set.
     pub extra_action_specs_factory: Option<ExtraActionSpecsFactory>,
@@ -198,8 +197,7 @@ pub enum BuiltRouter {
 /// router's serve duties and [`crate::runtime::extra_upkeep`].
 ///
 /// Boots the spine core through `fuz_actions::server::create_app_backend` —
-/// the READ COMMITTED guard, the pre-migration hook (the test binary's
-/// env-gated schema wipe), the migration chain (auth → cell → fact → the
+/// the READ COMMITTED guard, the migration chain (auth → cell → fact → the
 /// forge's token-policy table), the keeper resolved into the daemon-token
 /// state when the test binary injected one, bootstrap availability, the
 /// audit-row fan-out to the admin audit streams and then the one revocation
