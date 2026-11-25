@@ -22,7 +22,7 @@
  * **TS is the reference impl; full parity is the goal.** The reference column
  * is `node` and the report's verdict reads as each backend `vs node` per
  * scenario. The Rust backend is benched by default (parity is the standing
- * goal); set `FUZ_FORGE_BENCH_TS_ONLY=1` for a zero-Postgres, TS-only quick run.
+ * goal); set `FUZ_FORGE_BENCH_TS_ONLY=1` for a TS-only quick run (no cargo builds).
  *
  * Out-of-process for every impl by construction (that's the whole point of a
  * cross-impl bench); the correctness suites keep the fast in-process path.
@@ -33,32 +33,20 @@
  * `PATH` (the bench probes `bun --version`); otherwise it is skipped with a
  * note so the Node (+ Rust) run still completes.
  *
- * **DB-layer caveat.** By default the TS backends run fuz_app's in-memory
- * `memory://` database while the Rust backend runs real Postgres
- * (`tokio-postgres` can't reach an in-process database) — so the TS-vs-`rust` columns are NOT apples-to-apples at the DB
- * layer (the TS runtimes still are, with each other). The numbers compare
- * whole-backend wall-clock for each path, not the storage engine in isolation.
- * Same caveat fuz_app's and zzz's `cross_impl.bench` carry. The Rust backend
- * needs its Postgres DB created once (idempotent):
+ * **DB layer.** By default the TS backends run fuz_app's in-memory
+ * `memory://` database while the Rust backend runs over the wire on a
+ * `pglet_server` of its own (fuz_app's `open_test_database`, built in this
+ * repo's Cargo workspace) — so the TS-vs-`rust` columns are NOT
+ * apples-to-apples at the DB layer (the TS runtimes still are, with each
+ * other). The numbers compare whole-backend wall-clock for each path, not the
+ * storage engine in isolation. Same caveat fuz_app's and zzz's
+ * `cross_impl.bench` carry.
  *
- * ```bash
- * createdb fuz_forge_test_rust 2>/dev/null || true
- * ```
- *
- * (the Rust test binary self-wipes the schema on boot via
- * `FUZ_TESTING_RESET_DB_ON_STARTUP=true`).
- *
- * **Fair-DB option (`FUZ_FORGE_BENCH_PG=1`).** Points the TS backends at
- * real Postgres too — per-runtime DBs `fuz_forge_bench_node` /
- * `fuz_forge_bench_bun` — so the whole-backend numbers
- * compare apples-to-apples at the DB layer against Rust. Requires Postgres +
- * `dropdb` / `createdb` on `PATH`. Unlike the Rust test binary, the TS testing
- * server does NOT self-wipe its DB, and bootstrap expects an empty DB, so the
- * bench drops + recreates each TS Postgres DB before spawning. The Postgres
- * host/auth come from the standard libpq env (`PGHOST` / `PGUSER` / …) and
- * `dropdb`/`createdb` defaults — the bench builds the URLs as
- * `postgres://localhost/<db>`. Without the flag, the TS backends stay in-memory
- * (the zero-infra default).
+ * **On PostgreSQL (`FUZ_TEST_POSTGRES_URL`).** Set the variable to a server
+ * and a role with `CREATEDB`, and every backend runs on a PostgreSQL database
+ * of its own there, `fuz_testing_fuz_forge_bench_<backend>`, created empty
+ * before the spawn and dropped after the run — the whole-backend numbers then
+ * compare apples-to-apples at the DB layer.
  *
  * `git` + `python3` must be on PATH for every run — `fuz_forge_repo_create`
  * materializes an on-disk bare repo with python3 hooks.
@@ -85,10 +73,17 @@ import type { BackendConfig } from '@fuzdev/fuz_app/testing/cross_backend/backen
 import type { BootstrappedBackendHandle } from '@fuzdev/fuz_app/testing/cross_backend/setup.ts';
 import { rpc_call } from '@fuzdev/fuz_app/testing/rpc_helpers.ts';
 import { prepare_cargo_binary } from '@fuzdev/fuz_app/testing/cross_backend/cargo_binary.ts';
+import {
+	open_test_database,
+	prepare_pglet_server_binary,
+	type TestDatabase
+} from '@fuzdev/fuz_app/testing/cross_backend/test_database.ts';
+import { FUZ_TEST_POSTGRES_URL_ENV } from '@fuzdev/fuz_app/testing/db.ts';
 
 import {
 	bun_backend_config,
 	FORGE_CARGO_BINARY,
+	FORGE_PGLET_SERVER,
 	node_backend_config,
 	rust_backend_config
 } from '../test/cross_backend/fuz_forge_backend_config.ts';
@@ -98,27 +93,14 @@ const ARTIFACT_PATH = 'src/benchmarks/cross_impl.latest.json';
 /** TS is the reference impl; the report reads as each backend `vs node` per scenario. */
 const REFERENCE_BACKEND = 'node';
 
-/** Skip the Rust backend (no Postgres / cargo) for a quick TS-only run. */
+/** Skip the Rust backend (no cargo) for a quick TS-only run. */
 const TS_ONLY = process.env.FUZ_FORGE_BENCH_TS_ONLY === '1';
 
 /**
- * Fair-DB option — point the TS backends at real Postgres (per-runtime DBs)
- * instead of in-memory, so the TS-vs-Rust comparison is apples-to-apples at the
- * DB layer. See the module doc § Fair-DB option.
+ * The PostgreSQL server every backend's database goes on, when set — see the
+ * module doc § On PostgreSQL.
  */
-const FAIR_PG = process.env.FUZ_FORGE_BENCH_PG === '1';
-
-/** The TS JS runtimes benched (each runs the identical TS app). */
-type TsRuntime = 'node' | 'bun';
-
-/** Per-TS-runtime Postgres DB names used when `FUZ_FORGE_BENCH_PG=1`. */
-const TS_PG_DBS: Readonly<Record<TsRuntime, string>> = {
-	node: 'fuz_forge_bench_node',
-	bun: 'fuz_forge_bench_bun'
-};
-
-/** `postgres://localhost/<db>` URL for a fair-DB TS backend. */
-const ts_pg_url = (runtime: TsRuntime): string => `postgres://localhost/${TS_PG_DBS[runtime]}`;
+const POSTGRES_URL = process.env[FUZ_TEST_POSTGRES_URL_ENV];
 
 /** True when `bun` is on `PATH` — the Bun backend is included only then. */
 const bun_available = (): boolean => {
@@ -130,61 +112,12 @@ const bun_available = (): boolean => {
 	}
 };
 
-/**
- * Drop + recreate a TS backend's Postgres DB so each fair-DB run starts from
- * the empty DB bootstrap expects (the TS testing server, unlike the Rust one,
- * does not self-wipe). Idempotent: `dropdb --if-exists` then `createdb`. Uses
- * `node:child_process` against the libpq CLI tools + the ambient `PG*` env.
- */
-const reset_ts_pg_db = (db: string): void => {
-	execFileSync('dropdb', ['--if-exists', db], { stdio: 'ignore' });
-	execFileSync('createdb', [db], { stdio: 'ignore' });
-};
-
 /** Seeded once per backend before timing — referenced by the read scenarios. */
 const SEED_SLUG = 'bench/forge-bench';
 /** A `tools/<name>/<version>/...`-style key — the real artifact-serve layout. */
 const SEED_FILE_KEY = 'bench/artifact.bin';
 /** Modest artifact so `file_get` times a real byte transfer, not just dispatch. */
 const SEED_FILE_BYTES = new Uint8Array(16 * 1024).fill(0x42);
-
-// Fair-DB reset — when `FUZ_FORGE_BENCH_PG=1`, drop + recreate each TS
-// backend's Postgres DB before spawning (the TS testing server doesn't
-// self-wipe, and bootstrap expects an empty DB). Done up front so a failure
-// here aborts before any backend boots.
-const ts_database_url = (runtime: TsRuntime): string | undefined => {
-	if (!FAIR_PG) return undefined;
-	reset_ts_pg_db(TS_PG_DBS[runtime]);
-	return ts_pg_url(runtime);
-};
-
-if (FAIR_PG) {
-	console.log(
-		'FUZ_FORGE_BENCH_PG=1 — TS backends on real Postgres (per-runtime DBs, reset before run)'
-	);
-} else {
-	console.log('TS backends in-memory (set FUZ_FORGE_BENCH_PG=1 for fair-DB Postgres)');
-}
-
-// Order: [node, bun, rust] — node is the reference backend. Bun is included
-// only when it's on PATH (the bench gracefully skips it otherwise).
-const configs: Array<BackendConfig> = [
-	node_backend_config({ database_url: ts_database_url('node') })
-];
-if (bun_available()) {
-	configs.push(bun_backend_config({ database_url: ts_database_url('bun') }));
-	console.log('including Bun backend (bun found on PATH)');
-} else {
-	console.log('skipping Bun backend (bun not on PATH) — install Bun to bench the JSC runtime');
-}
-if (TS_ONLY) {
-	console.log('skipping Rust backend (FUZ_FORGE_BENCH_TS_ONLY=1) — TS-only run');
-} else {
-	// the config spawns the built binary, so build it first (the global setups do)
-	prepare_cargo_binary(FORGE_CARGO_BINARY);
-	configs.push(rust_backend_config());
-	console.log('including Rust backend (set FUZ_FORGE_BENCH_TS_ONLY=1 to skip)');
-}
 
 /**
  * Seed the read fixtures on a freshly-bootstrapped backend using the keeper's
@@ -272,8 +205,61 @@ const forge_scenarios: ReadonlyArray<BenchScenario> = [
 
 const scenarios: ReadonlyArray<BenchScenario> = [...default_bench_scenarios, ...forge_scenarios];
 
+// Every database is opened before any backend boots, so a failure here aborts
+// first; each is closed after the teardowns.
+const databases: Array<TestDatabase> = [];
+
+/**
+ * A TS backend's database: in-memory by default, a PostgreSQL database of its
+ * own under `FUZ_TEST_POSTGRES_URL`.
+ */
+const ts_database_url = async (runtime: 'node' | 'bun'): Promise<string | undefined> => {
+	if (!POSTGRES_URL) return undefined;
+	const database = await open_test_database({
+		name: `bench_${runtime}`,
+		postgres_url: POSTGRES_URL,
+		pglet_server_bin: null
+	});
+	databases.push(database);
+	return database.url;
+};
+
+console.log(
+	POSTGRES_URL
+		? `${FUZ_TEST_POSTGRES_URL_ENV} set — every backend on a PostgreSQL database of its own`
+		: `TS backends in-memory, Rust on a pglet_server (set ${FUZ_TEST_POSTGRES_URL_ENV} for PostgreSQL)`
+);
+
 const handles: Array<BootstrappedBackendHandle> = [];
 try {
+	// Order: [node, bun, rust] — node is the reference backend. Bun is included
+	// only when it's on PATH (the bench gracefully skips it otherwise).
+	const configs: Array<BackendConfig> = [
+		node_backend_config({ database_url: await ts_database_url('node') })
+	];
+	if (bun_available()) {
+		configs.push(bun_backend_config({ database_url: await ts_database_url('bun') }));
+		console.log('including Bun backend (bun found on PATH)');
+	} else {
+		console.log('skipping Bun backend (bun not on PATH) — install Bun to bench the JSC runtime');
+	}
+	if (TS_ONLY) {
+		console.log('skipping Rust backend (FUZ_FORGE_BENCH_TS_ONLY=1) — TS-only run');
+	} else {
+		// the config spawns the built binary, so build it first (the global setups do)
+		prepare_cargo_binary(FORGE_CARGO_BINARY);
+		const database = await open_test_database({
+			name: 'bench_rust',
+			postgres_url: POSTGRES_URL,
+			pglet_server_bin: () => prepare_pglet_server_binary(FORGE_PGLET_SERVER)
+		});
+		databases.push(database);
+		configs.push(rust_backend_config(database.url));
+		console.log(
+			`including Rust backend on ${database.engine} (set FUZ_FORGE_BENCH_TS_ONLY=1 to skip)`
+		);
+	}
+
 	// Spawn + bootstrap + seed sequentially — parallel spawns would contend
 	// during boot, and each backend needs its own seed before timing.
 	for (const config of configs) {
@@ -293,4 +279,8 @@ try {
 	console.log(`\nwrote ${ARTIFACT_PATH}`);
 } finally {
 	await Promise.allSettled(handles.map((h) => h.teardown()));
+	const closed = await Promise.allSettled(databases.map((d) => d.close()));
+	for (const c of closed) {
+		if (c.status === 'rejected') console.error('closing a bench database failed:', c.reason);
+	}
 }

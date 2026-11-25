@@ -173,8 +173,11 @@ jobs:
           --health-timeout 5s
           --health-retries 5
 
+    # The `pg` leg of the DB tests: each suite creates a database of its own
+    # on this server and drops it after, so the role needs `CREATEDB` (the
+    # service's user is a superuser).
     env:
-      TEST_DATABASE_URL: postgres://fuz_forge_test:fuz_forge_test@localhost:5432/fuz_forge_test
+      FUZ_TEST_POSTGRES_URL: postgres://fuz_forge_test:fuz_forge_test@localhost:5432/fuz_forge_test
 
     defaults:
       run:

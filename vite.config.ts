@@ -41,7 +41,7 @@ const git_info_load = async (): Promise<{ commit: string | null; branch: string 
 const git = await git_info_load();
 
 // The `cross_backend_*` projects spawn real backend binaries via `globalSetup`
-// (and the Rust ones need a Postgres DB). Gate them behind
+// (each Rust one, and both parity legs, over a database its setup provisions). Gate them behind
 // `FUZ_TEST_CROSS_BACKEND=1` so a bare `gro test` stays in-process; an explicit
 // `FUZ_TEST_CROSS_BACKEND=1 npx vitest run --project cross_backend_ts_node` runs.
 const GLOBAL_SETUP = './src/test/cross_backend/global_setup.ts';

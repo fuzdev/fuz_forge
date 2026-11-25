@@ -6,8 +6,9 @@
  * `node`), spawns + bootstraps the matching `BackendConfig`, and `provide`s
  * the serializable handle that `*.cross.test.ts` files `inject`. The Rust
  * leg's test binary is built first, with its output shown, and its database
- * created when it's missing. Both spawns allow the errors forge's own suites
- * provoke on purpose (`REPO_CREATE_SEED_FROM_BACKEND_ERRORS`,
+ * provisioned empty: a `pglet_server` of its own, or a PostgreSQL database of
+ * its own under `FUZ_TEST_POSTGRES_URL`. Both spawns allow the errors forge's
+ * own suites provoke on purpose (`REPO_CREATE_SEED_FROM_BACKEND_ERRORS`,
  * `FOREIGN_FACT_FILE_BACKEND_ERRORS`); an allowance covers the whole spawn,
  * every suite of the project, since they share the one backend.
  *
@@ -23,6 +24,7 @@ import {
 
 import {
 	FORGE_CARGO_BINARY,
+	FORGE_PGLET_SERVER,
 	node_backend_config,
 	rust_backend_config
 } from './fuz_forge_backend_config.ts';
@@ -83,9 +85,9 @@ const FORGE_SUITE_BACKEND_ERRORS: ReadonlyArray<BackendLogAllowance> = [
 export default create_cross_backend_global_setup({
 	configs: {
 		node: () => with_backend_log_allowances(node_backend_config(), FORGE_SUITE_BACKEND_ERRORS),
-		rust: () => with_backend_log_allowances(rust_backend_config(), FORGE_SUITE_BACKEND_ERRORS)
+		rust: (database_url) =>
+			with_backend_log_allowances(rust_backend_config(database_url), FORGE_SUITE_BACKEND_ERRORS)
 	},
-	// `createdb` for the Rust leg's Postgres database when it's missing
-	ensure_databases: true,
+	databases: { rust: FORGE_PGLET_SERVER },
 	before_spawn: { rust: () => prepare_cargo_binary(FORGE_CARGO_BINARY) }
 });

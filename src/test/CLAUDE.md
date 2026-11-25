@@ -65,20 +65,22 @@ gro check             # full check
 
 # the cross-backend projects are gated, so a bare `gro test` stays in-process:
 export FUZ_TEST_CROSS_BACKEND=1
-# the `_rust` projects' `fuz_forge_test_rust` is created by their setup when missing
-# the parity project also uses `fuz_forge_test_ts_parity`, which its setup creates and empties
+# each `_rust` project's setup gives the backend a `pglet_server` of its own
+# (built in this Cargo workspace), or a PostgreSQL database of its own under
+# FUZ_TEST_POSTGRES_URL; the parity project runs only under that variable
 npx vitest run --project cross_backend_ts_node                 # TS (Node), in-memory pglet
 npx vitest run --project cross_backend_rust                    # Rust (testing_fuzfd, Axum)
-npx vitest run --project cross_backend_parity                  # dual-spawn, both on Postgres: schemas, registries, differential
+FUZ_TEST_POSTGRES_URL=postgres://localhost/postgres \
+  npx vitest run --project cross_backend_parity                # dual-spawn, both on PostgreSQL: schemas, registries, differential
 npx vitest run --project cross_backend_login_security_ts_node  # own pair, limiters ENABLED
 npx vitest run --project cross_backend_login_security_rust
 ```
 
 Run those **one at a time**. `groupOrder` orders projects only inside one
-run, so concurrent cross runs — or a cross run overlapping a `.db.test.ts`
-run — collide on the fixed ports *and* on the local Postgres that the Rust
-cross projects share (with the `db` project's `pg` leg, when
-`TEST_DATABASE_URL` is set).
+run, so concurrent cross runs collide on the fixed ports; under
+`FUZ_TEST_POSTGRES_URL` a second run of a project also fails on its database
+(`fuz_testing_fuz_forge_<name>`, held by an advisory lock for the run).
+Every database a project opens starts empty and is gone after its teardown.
 
 The Rust DB suites (`repo_git_auth`, `repo_create_rpc`,
 `signed_tool_install`, `columns`, `upkeep`) run in `cargo test --workspace`,
@@ -370,8 +372,8 @@ case reaches the throttle in a few calls. Only the test binaries read the
 three (TS `create_testing_wiring`, Rust `testing_fuz_forge_server` into
 `RunAppOptions`); production keeps the spine defaults, pinned in-process by
 `server/action_rate_limit_bounds.test.ts`. The pair spawns on ports 14051 /
-14151 via `login_security_global_setup.ts`, sharing the Rust project's
-database; its files are excluded from the standard projects' glob, like the
+14151 via `login_security_global_setup.ts`, its Rust backend over a database
+of its own; its files are excluded from the standard projects' glob, like the
 dual-spawn gates.
 
 `fact_serving.cross.test.ts` holds forge-local cases for what the shared
@@ -465,14 +467,13 @@ differential (§ Shared upstream cross suites). It runs in a later `groupOrder`
 than the single-backend projects (it reuses their ports), and its files are
 excluded from their glob.
 
-**Both legs run on Postgres.** The schema snapshot compares index definitions
-as the engine renders them, and the in-memory engine behind the TS backend's
-`memory://` default drops an index's sort direction, `NULLS` placement,
-operator classes and `NULLS NOT DISTINCT` — on mixed engines correct DDL would
-read as drift. So the TS leg gets its own database, `fuz_forge_test_ts_parity`,
-on the server the Rust leg's URL names: created when missing, its `public`
-schema dropped and recreated before each run (behind a guard refusing any
-other database name), with a loud setup failure when Postgres is unreachable.
+**Both legs run on PostgreSQL, and only there.** The schema snapshot compares
+index definitions as the engine renders them, and pglet drops an index's sort
+direction, `NULLS` placement, operator classes and `NULLS NOT DISTINCT` — on
+mixed engines correct DDL would read as drift. So each leg gets a PostgreSQL
+database of its own on the server `FUZ_TEST_POSTGRES_URL` names
+(`fuz_testing_fuz_forge_parity_node`, `fuz_testing_fuz_forge_parity_rust`),
+fresh each run; with the variable unset the setup fails naming it.
 
 ### Schema parity (`schema_parity.cross.test.ts`)
 
@@ -532,18 +533,19 @@ beforeEach(() => { runtime = create_mock_runtime(); });
 
 **`describe_db`** runs every suite on fuz_app's default test database, the
 in-memory **pglet-wasm** engine, and again on **PostgreSQL** when
-`TEST_DATABASE_URL` is set — `create_describe_db` from
+`FUZ_TEST_POSTGRES_URL` is set — `create_describe_db` from
 `@fuzdev/fuz_app/testing/describe_db.ts`, bound to `db_factories`
 (`create_default_db_factory` + `create_pg_factory`) and `TRUNCATE_TABLES` (the
 general pattern is in the [fuz-stack skill](https://docs.fuz.dev/skills/fuz-stack)).
 The production backends run on Postgres, so the `pg` leg is the one on the
 production engine; CI sets the var.
 
-Each suite's `create()` runs a clean-slate init (`DROP SCHEMA public CASCADE`
-→ `CREATE SCHEMA public` → migrate), so a suite's `beforeAll` starts against
-an EMPTY DB; each test's `beforeEach` then `TRUNCATE`s all tables. The `db`
-project runs serially (`isolate: false`, `fileParallelism: false`), so one
-shared DB per engine isolates cleanly without per-worker databases.
+Each suite's `create()` starts an empty database — pglet-wasm drops and
+recreates its `public` schema, pg creates a database of its own
+(`fuz_testing_fuz_forge_*`, dropped on `close()`) — then migrates, so a
+suite's `beforeAll` starts against an EMPTY DB; each test's `beforeEach` then
+`TRUNCATE`s all tables. The `db` project runs serially (`isolate: false`,
+`fileParallelism: false`).
 
 Build a `create_test_app` app in the test or a `beforeEach`, after the
 truncate: it bootstraps a fresh keeper and checks fuz_app's database
@@ -558,13 +560,13 @@ children first, and the fact substrate — one list in
 `auth_integration_truncate_tables`. The file store is cell-primary, so there
 is no file table to truncate.
 
-The DB tests need no setup. To add the `pg` leg, point `TEST_DATABASE_URL`
-at a database used only for tests — every `create()` drops its `public`
-schema:
+The DB tests need no setup. To add the `pg` leg, point
+`FUZ_TEST_POSTGRES_URL` at a PostgreSQL server and a role with `CREATEDB` —
+the same variable the Rust DB tests read. A run killed before its `close()`
+leaves `fuz_testing_*` databases; drop them by that prefix:
 
 ```bash
-createdb fuz_forge_test
-TEST_DATABASE_URL=postgres://localhost/fuz_forge_test npx vitest run --project db
+FUZ_TEST_POSTGRES_URL=postgres://localhost/postgres npx vitest run --project db
 ```
 
 ## Filesystem Testing

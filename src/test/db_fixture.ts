@@ -3,9 +3,9 @@
  *
  * `describe_db` runs every suite on fuz_app's default test database, the
  * in-memory pglet-wasm engine, and again on PostgreSQL when
- * `TEST_DATABASE_URL` names a database (the `pg` leg skips otherwise). The
- * production backends run on Postgres, so the `pg` leg is the one that tests
- * the production engine; CI sets the var.
+ * `FUZ_TEST_POSTGRES_URL` names a server and a role with `CREATEDB` (the `pg`
+ * leg skips otherwise). The production backends run on Postgres, so the `pg`
+ * leg is the one that tests the production engine; CI sets the var.
  *
  * @module
  */
@@ -14,6 +14,7 @@ import {
 	create_default_db_factory,
 	create_pg_factory,
 	auth_integration_truncate_tables,
+	FUZ_TEST_POSTGRES_URL_ENV,
 	log_db_factory_status,
 	type DbFactory
 } from '@fuzdev/fuz_app/testing/db.ts';
@@ -42,17 +43,22 @@ export const TRUNCATE_TABLES = [
 	...auth_integration_truncate_tables
 ];
 
-// Each factory resets the `public` schema per `create()`, so each suite's
+// Each factory starts an empty database per `create()` (pglet-wasm resets its
+// `public` schema, pg creates a database of its own), so each suite's
 // `beforeAll` starts against an empty database — the per-test `TRUNCATE` runs
 // only after `beforeAll`
 
 /**
  * Database factories iterated by driver-agnostic suites (e.g. rate limiting):
- * the default pglet-wasm engine, then Postgres when `TEST_DATABASE_URL` is set.
+ * the default pglet-wasm engine, then Postgres when `FUZ_TEST_POSTGRES_URL` is
+ * set, each `create()` on a `fuz_testing_fuz_forge_*` database it drops on
+ * `close()`.
  */
 export const db_factories: Array<DbFactory> = [
 	create_default_db_factory(init_fuz_forge_schema),
-	create_pg_factory(init_fuz_forge_schema, process.env.TEST_DATABASE_URL)
+	create_pg_factory(init_fuz_forge_schema, process.env[FUZ_TEST_POSTGRES_URL_ENV], {
+		suite: 'fuz_forge'
+	})
 ];
 
 log_db_factory_status(db_factories);
@@ -60,10 +66,9 @@ log_db_factory_status(db_factories);
 /**
  * Helper for database tests, run once per factory in `db_factories`.
  *
- * Each engine holds one database shared by every suite, with automatic
- * `beforeEach` `TRUNCATE` of all tables. The `db` vitest project runs serially
- * (`isolate: false`, `fileParallelism: false`), so a single shared database +
- * per-test truncation gives clean isolation without per-worker databases.
+ * Each suite gets a fresh database per engine, with automatic `beforeEach`
+ * `TRUNCATE` of all tables. The `db` vitest project runs serially
+ * (`isolate: false`, `fileParallelism: false`).
  *
  * Build a `create_test_app` app in the test or a `beforeEach`, after the
  * truncate: the app bootstraps its keeper there and checks fuz_app's database

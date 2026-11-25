@@ -11,23 +11,16 @@
  * share the spawns safely: the differential's per-case `_testing_reset`
  * touches data only, never the schema or the registry the other two read.
  *
- * **Both legs run on Postgres.** The schema snapshot compares index
- * definitions as the engine renders them (`pg_indexes.indexdef`), and the
- * in-memory engine behind the TS backend's `memory://` default renders an
- * index without its per-key sort direction, `NULLS` placement, operator
- * classes or `NULLS NOT DISTINCT`. On one engine, a diff can only be DDL
- * drift. So this project alone gives the TS leg a `postgres://` URL:
- * `TS_PARITY_DATABASE` on the server the Rust leg's URL names, which keeps
- * the two legs on one server version.
- *
- * The Rust test binary wipes its own database at startup. The TS one does
- * not, and bootstrap refuses a database that already holds an account, so the
- * TS leg's database is created when missing — on the server its URL names,
- * not the one the libpq environment does — and its `public` schema dropped
- * and recreated here on every run. A server that cannot be reached, a role
- * that cannot connect, or a database that cannot be created or emptied fails
- * the project with what to check — the gates never skip. The Rust leg's
- * database is created when missing too, and its binary built before the spawn
+ * **Both legs run on PostgreSQL, and only there.** The schema snapshot
+ * compares index definitions as the engine renders them
+ * (`pg_indexes.indexdef`), and pglet renders an index without its per-key
+ * sort direction, `NULLS` placement, operator classes or
+ * `NULLS NOT DISTINCT`. On one engine, a diff can only be DDL drift. So each
+ * leg gets a PostgreSQL database of its own, fresh each run, on the server
+ * `FUZ_TEST_POSTGRES_URL` names (fuz_app's `open_test_database`, with no
+ * pglet server to fall back to), which keeps the two legs on one server
+ * version. With the variable unset the setup fails naming it — the gates
+ * never skip. The Rust test binary is built before the spawn
  * (`prepare_cargo_binary`), as the single-backend setup does.
  *
  * The single-backend `global_setup.ts` derives one backend from the
@@ -39,41 +32,32 @@
 import type { TestProject } from 'vitest/node';
 import { prepare_cargo_binary } from '@fuzdev/fuz_app/testing/cross_backend/cargo_binary.ts';
 import { create_dual_spawn_global_setup } from '@fuzdev/fuz_app/testing/cross_backend/create_dual_spawn_global_setup.ts';
-import {
-	empty_owned_database,
-	ensure_database_for_url,
-	with_database_name
-} from '@fuzdev/fuz_app/testing/cross_backend/postgres_database.ts';
+import { FUZ_TEST_POSTGRES_URL_ENV } from '@fuzdev/fuz_app/testing/db.ts';
 
 import {
 	FORGE_CARGO_BINARY,
-	RUST_DATABASE_URL,
 	node_backend_config,
 	rust_backend_config
 } from './fuz_forge_backend_config.ts';
 
-/**
- * The Postgres database the TS leg migrates — beside the Rust leg's
- * `fuz_forge_test_rust`, and used by nothing else: every run empties it.
- */
-const TS_PARITY_DATABASE = 'fuz_forge_test_ts_parity';
-
-const setup = async (project: TestProject): Promise<() => Promise<void>> => {
-	// the TS leg's database on the Rust leg's server, so neither can be
-	// pointed at the other's database
-	const ts_database_url = with_database_name(RUST_DATABASE_URL, TS_PARITY_DATABASE);
-	ensure_database_for_url(RUST_DATABASE_URL);
-	// on the server the URL names — the wipe below connects through the URL
-	ensure_database_for_url(ts_database_url);
-	await empty_owned_database(ts_database_url, {
-		owned_name: TS_PARITY_DATABASE,
-		label: 'parity setup'
-	});
+const setup = (project: TestProject): Promise<() => Promise<void>> => {
+	// fail before the cargo build: both sides run only on PostgreSQL
+	if (!process.env[FUZ_TEST_POSTGRES_URL_ENV]) {
+		throw new Error(
+			`cross_backend_parity runs only on PostgreSQL: set ${FUZ_TEST_POSTGRES_URL_ENV} ` +
+				'to a server and a role with CREATEDB (e.g. postgres://localhost/postgres)'
+		);
+	}
 	prepare_cargo_binary(FORGE_CARGO_BINARY);
 	const dual_spawn = create_dual_spawn_global_setup({
 		configs: {
-			a: () => node_backend_config({ database_url: ts_database_url }),
+			a: (database_url) => node_backend_config({ database_url }),
 			b: rust_backend_config
+		},
+		// PostgreSQL-only: no pglet server to fall back to
+		databases: {
+			a: { name: 'parity_node', pglet_server: null },
+			b: { name: 'parity_rust', pglet_server: null }
 		}
 	});
 	return dual_spawn(project);

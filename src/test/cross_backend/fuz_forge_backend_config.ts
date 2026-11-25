@@ -33,12 +33,11 @@
  * route states); without it the Rust spine would emit its default
  * `fuz_session` and diverge from the TS forge.
  *
- * **Rust Postgres** — the Rust binary needs real Postgres (`tokio-postgres`
- * can't reach an in-process database). The `cross_backend_rust` project points at
- * `fuz_forge_test_rust`, which the global setups create when it's missing
- * (`ensure_databases`, `ensure_database_for_url`). The test binary self-wipes
- * the schema on every boot (`FUZ_TESTING_RESET_DB_ON_STARTUP=true`), so no
- * manual `DROP TABLE` between sessions.
+ * **Rust database** — the global setups provision each Rust backend's
+ * database (fuz_app's `open_test_database`): a `pglet_server` of its own,
+ * built in this repo's Cargo workspace (`FORGE_PGLET_SERVER`), or a
+ * PostgreSQL database of its own on the server `FUZ_TEST_POSTGRES_URL` names.
+ * Either way it starts empty, and the Rust config factories take its URL.
  *
  * **Loopback `HOST`** — both backends bind the builders' default
  * `127.0.0.1`, which the git `post-receive` / `pre-receive` hooks' callback
@@ -54,6 +53,7 @@ import {
 	resolve_cargo_binary_path,
 	type CargoBinaryOptions
 } from '@fuzdev/fuz_app/testing/cross_backend/cargo_binary.ts';
+import type { PgletServerBinaryOptions } from '@fuzdev/fuz_app/testing/cross_backend/test_database.ts';
 import { build_test_backend_paths } from '@fuzdev/fuz_app/testing/cross_backend/build_test_backend_paths.ts';
 import {
 	action_rate_limit_env,
@@ -81,25 +81,12 @@ const FUZ_FORGE_TESTING_BACKDOORS = TESTING_BACKDOOR_METHODS.filter(
 );
 
 /**
- * Per-project Rust backend database URL prefix — real Postgres (an
- * in-process database isn't reachable from `tokio-postgres`). The full URL appends the backend
- * `name` (`fuz_forge_test_rust`). See the module doc for operator setup.
- */
-const RUST_DATABASE_URL_PREFIX = 'postgres://localhost/fuz_forge_test_';
-
-/**
- * The database every Rust spawn uses. Exported so the parity gates' setup can
- * put the TS leg's own database on the same server.
- */
-export const RUST_DATABASE_URL = `${RUST_DATABASE_URL_PREFIX}rust`;
-
-/**
  * Optional overrides accepted by the TS-backend factories. `database_url`
- * lets the cross-impl bench's fair-DB option point a TS backend at real
- * Postgres (apples-to-apples vs the Rust backend's Postgres) instead of the
- * default in-memory `'memory://'`. The single-backend correctness suites never pass it
- * (the in-memory database is the zero-infra default); the parity gates do,
- * from `dual_spawn_global_setup.ts`.
+ * points a TS backend at a provisioned database instead of the default
+ * in-memory `'memory://'`: the parity gates' PostgreSQL database
+ * (`dual_spawn_global_setup.ts`), and the cross-impl bench's under
+ * `FUZ_TEST_POSTGRES_URL`. The single-backend correctness suites never pass
+ * it (the in-memory database is the zero-infra default).
  */
 export interface TsBackendConfigOptions {
 	database_url?: string;
@@ -109,7 +96,7 @@ export interface TsBackendConfigOptions {
  * Shared TS-backend shape — both TS runtimes (Node / Bun) serve the same
  * fuz_forge app over the same wire, so they share cookie name, capabilities
  * (bar `ws_refusal_body`), port-less env (per-backend store paths, the tiny
- * file-store cap), and the optional fair-DB `database_url`. The per-runtime
+ * file-store cap), and the optional `database_url`. The per-runtime
  * factories below supply only what genuinely differs: `name`, `port`,
  * `ws_refusal_body` (Node sends an empty WS refusal body), and the
  * `start_command` (which interpreter + entry).
@@ -190,7 +177,7 @@ const make_ts_forge_backend_config = (opts: {
 		},
 		start_command,
 		// `make_default_ts_backend_config` defaults this to `'memory://'`
-		// (in-memory); the bench's fair-DB option overrides it with a Postgres URL.
+		// (in-memory); the parity gates and the bench pass a provisioned database.
 		database_url,
 		paths,
 		extra_env: {
@@ -289,8 +276,18 @@ export const FORGE_CARGO_BINARY: CargoBinaryOptions = {
 };
 
 /**
+ * Where the Rust backends' `pglet_server` is built — the test binary's own
+ * Cargo workspace and profile, whose lockfile holds the pglet the spine's
+ * `fuz_testing` runs (`prepare_pglet_server_binary`).
+ */
+export const FORGE_PGLET_SERVER: PgletServerBinaryOptions = {
+	workspace_dir: FORGE_CARGO_BINARY.workspace_dir
+};
+
+/**
  * Rust backend (`testing_fuzfd`, Axum on the spine crates) — spawns the built
- * binary (`FORGE_CARGO_BINARY`) over HTTP against `fuz_forge_test_rust`. The
+ * binary (`FORGE_CARGO_BINARY`) over HTTP against `database_url`, the
+ * database its global setup provisions. The
  * global setups build it first (`prepare_cargo_binary`), so a stale `target/`
  * binary never serves silently.
  *
@@ -310,15 +307,18 @@ export const FORGE_CARGO_BINARY: CargoBinaryOptions = {
  * `paths.daemon_token_path` `spawn_backend` reads for the `_testing_reset`
  * keeper credential.
  */
-export const rust_backend_config = (): BackendConfig => make_rust_forge_backend_config({});
+export const rust_backend_config = (database_url: string): BackendConfig =>
+	make_rust_forge_backend_config({ database_url });
 
 /**
  * Shared Rust-backend shape. `name` / `port` / `extra_env` are the only things
  * the login-security variant changes; everything else (capabilities, the
- * built binary, the DB, the per-backend tmp roots) is identical, so the
- * two spawns can only differ where the variant says so.
+ * built binary, the per-backend tmp roots) is identical, so the two spawns
+ * can only differ where the variant says so. Each runs over the database its
+ * setup provisioned for it.
  */
 const make_rust_forge_backend_config = (opts: {
+	database_url: string;
 	name?: string;
 	port?: number;
 	extra_env?: Record<string, string>;
@@ -367,11 +367,7 @@ const make_rust_forge_backend_config = (opts: {
 			testing_backdoors: FUZ_FORGE_TESTING_BACKDOORS
 		},
 		start_command: [resolve_cargo_binary_path(FORGE_CARGO_BINARY)],
-		// One DB for every Rust spawn — the projects are groupOrder-serialized and
-		// the test binary wipes the schema at boot
-		// (`FUZ_TESTING_RESET_DB_ON_STARTUP`), so a second database would be
-		// operator setup with nothing to isolate.
-		database_url: RUST_DATABASE_URL,
+		database_url: opts.database_url,
 		// `RUST_LOG` targets are crate names (package name, hyphens→underscores),
 		// not bin names — these track the unchanged crate names.
 		rust_log: 'info,fuz_forge_server=info,testing_fuz_forge_server=info',
@@ -456,8 +452,9 @@ export const node_login_security_backend_config = (): BackendConfig =>
  * already the Rust default (`crates/fuz_forge_server/src/env.rs`), so the
  * suite's `X-Forwarded-For` cases don't silently depend on that default.
  */
-export const rust_login_security_backend_config = (): BackendConfig =>
+export const rust_login_security_backend_config = (database_url: string): BackendConfig =>
 	make_rust_forge_backend_config({
+		database_url,
 		name: 'login_security_rust',
 		port: 14151,
 		extra_env: {
