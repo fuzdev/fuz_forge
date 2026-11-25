@@ -206,4 +206,4 @@ jobs:
       # step skips with a warning (gro.config.ts) — the `rust` job covers the
       # binaries.
       - name: gro check
-        run: npx @fuzdev/gro check --workspace --build
+        run: npx @fuzdev/gro check --workspace --build --lint
