@@ -14,6 +14,11 @@ import {
 	mock_program_exit,
 	type MockProgramFactory
 } from '@fuzdev/fuz_app/runtime/mock.ts';
+import {
+	create_recording_setup_flow_logger,
+	setup_flow_log_messages,
+	type RecordingSetupFlowLogger
+} from '@fuzdev/fuz_app/testing/setup_logger_helpers.ts';
 import type { Spawn, SpawnProgramOptions } from '@fuzdev/gro/spawn.ts';
 import { is_task_error } from '@fuzdev/gro/task_error.ts';
 
@@ -25,11 +30,6 @@ import {
 	type DevSetupDeps
 } from '#lib/setup/dev_setup.ts';
 import { create_mock_runtime, type MockFuzForgeRuntime } from '../runtime_mock.ts';
-import {
-	create_recording_setup_flow_logger,
-	messages_of,
-	type RecordingSetupFlowLogger
-} from './setup_flow_logger_recorder.ts';
 
 const HOME = '/scratch/project/.fuz_forge';
 const TOKEN_PATH = `${HOME}/secret_bootstrap_token`;
@@ -188,7 +188,7 @@ describe('run_dev_setup', () => {
 		});
 		deps.runtime.mock_fs.set('.env.development.example', EXAMPLE);
 		await run_dev_setup(deps, { fuz_forge_home: HOME });
-		assert.include(messages_of(deps.log, 'print'), 'Done. Next: gro dev');
+		assert.include(setup_flow_log_messages(deps.log, 'print'), 'Done. Next: gro dev');
 	});
 
 	test('an in-memory database needs no createdb', async () => {
@@ -196,7 +196,7 @@ describe('run_dev_setup', () => {
 		deps.runtime.mock_fs.set('.env.development', 'DATABASE_URL=memory://\n' + KEY);
 		await run_dev_setup(deps, { fuz_forge_home: HOME });
 		assert.deepEqual(calls_of(deps), { createdb: [], dropdb: [] });
-		assert.include(messages_of(deps.log, 'print'), 'Done. Next: gro dev');
+		assert.include(setup_flow_log_messages(deps.log, 'print'), 'Done. Next: gro dev');
 	});
 
 	test('refuses with neither the env file nor its example, changing nothing', async () => {
@@ -222,8 +222,8 @@ describe('run_dev_setup', () => {
 		deps.runtime.mock_fs.set('.env.development.example', EXAMPLE);
 		const message = await task_error_message(() => run_dev_setup(deps, { fuz_forge_home: HOME }));
 		assert.include(message, "createdb isn't installed");
-		assert.match(messages_of(deps.log, 'skip').at(-1) ?? '', /^createdb not found/);
-		assert.notInclude(messages_of(deps.log, 'print'), 'Done. Next: gro dev');
+		assert.match(setup_flow_log_messages(deps.log, 'skip').at(-1) ?? '', /^createdb not found/);
+		assert.notInclude(setup_flow_log_messages(deps.log, 'print'), 'Done. Next: gro dev');
 		assert.deepEqual(deps.postgres.createdb.envs, [{}], 'asked for createdb once');
 		assert.isTrue(deps.runtime.mock_fs.has('.env.development'));
 		assert.isTrue(deps.runtime.mock_fs.has(TOKEN_PATH));
@@ -255,7 +255,7 @@ describe('run_dev_setup', () => {
 			deps.runtime.mock_fs.set('.env.development', `DATABASE_URL=${url}\n` + KEY);
 			const message = await task_error_message(() => run_dev_setup(deps, { fuz_forge_home: HOME }));
 			assert.include(message, 'names no Postgres database');
-			assert.notInclude(messages_of(deps.log, 'print'), 'Done. Next: gro dev');
+			assert.notInclude(setup_flow_log_messages(deps.log, 'print'), 'Done. Next: gro dev');
 			assert.deepEqual(calls_of(deps), { createdb: [], dropdb: [] });
 		});
 	}

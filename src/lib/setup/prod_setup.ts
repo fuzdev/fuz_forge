@@ -10,11 +10,10 @@
  * @module
  */
 
-import { read_env_var } from '@fuzdev/fuz_app/dev/setup.ts';
+import { read_env_var, type SetupFlowLogger } from '@fuzdev/fuz_app/dev/setup.ts';
 import type { FsReadDeps, FsWriteDeps } from '@fuzdev/fuz_app/runtime/deps.ts';
 
 import { ensure_env_file, PROD_ENV_PATH } from './env_file.ts';
-import type { SetupFlowLogger } from './setup_flow_logger.ts';
 
 /** Required values that must be set manually. */
 const REQUIRED_MANUAL: ReadonlyArray<{ key: string; description: string }> = [

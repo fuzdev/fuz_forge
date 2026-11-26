@@ -9,15 +9,15 @@
 import { describe, test, assert } from 'vitest';
 import { create_db, type CreateDbResult } from '@fuzdev/fuz_app/db/create_db.ts';
 import type { Db } from '@fuzdev/fuz_app/db/db.ts';
+import {
+	create_recording_setup_flow_logger,
+	setup_flow_log_messages,
+	type RecordingSetupFlowLogger
+} from '@fuzdev/fuz_app/testing/setup_logger_helpers.ts';
 import { is_reported_error, is_task_error } from '@fuzdev/gro/task_error.ts';
 
 import { run_db_status, type DbStatusDeps } from '#lib/setup/db_status.ts';
 import { create_mock_runtime } from '../runtime_mock.ts';
-import {
-	create_recording_setup_flow_logger,
-	messages_of,
-	type RecordingSetupFlowLogger
-} from './setup_flow_logger_recorder.ts';
 
 const runtime_with_url = (database_url: string) => {
 	const runtime = create_mock_runtime();
@@ -56,8 +56,8 @@ describe('run_db_status', () => {
 			}
 		});
 		assert.isUndefined(failure);
-		assert.deepEqual(messages_of(log, 'print_error'), []);
-		const lines = messages_of(log, 'print');
+		assert.deepEqual(setup_flow_log_messages(log, 'print_error'), []);
+		const lines = setup_flow_log_messages(log, 'print');
 		assert.deepEqual(lines.slice(0, 3), [
 			'database status',
 			'  url: memory://',

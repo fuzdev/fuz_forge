@@ -6,11 +6,14 @@
  */
 
 import { describe, test, assert } from 'vitest';
+import {
+	create_recording_setup_flow_logger,
+	setup_flow_log_messages
+} from '@fuzdev/fuz_app/testing/setup_logger_helpers.ts';
 import { is_task_error } from '@fuzdev/gro/task_error.ts';
 
 import { run_prod_setup } from '#lib/setup/prod_setup.ts';
 import { create_mock_runtime } from '../runtime_mock.ts';
-import { create_recording_setup_flow_logger, messages_of } from './setup_flow_logger_recorder.ts';
 
 const EXAMPLE =
 	'DEPLOY_HOST=\nDEPLOY_USER=fuz_forge\nDEPLOY_DOMAIN=\nDEPLOY_CERTBOT_EMAIL=\nSECRET_FUZ_COOKIE_KEYS=\n';
@@ -58,13 +61,13 @@ describe('run_prod_setup', () => {
 		runtime.mock_fs.set('.env.production', FILLED);
 		const log = await run(runtime);
 		assert.strictEqual(runtime.mock_fs.get('.env.production'), FILLED);
-		assert.deepEqual(messages_of(log, 'ok'), [
+		assert.deepEqual(setup_flow_log_messages(log, 'ok'), [
 			'DEPLOY_HOST = 203.0.113.7',
 			'DEPLOY_USER = fuz_forge',
 			'DEPLOY_DOMAIN = forge.example.test',
 			'DEPLOY_CERTBOT_EMAIL = ops@example.test'
 		]);
-		assert.deepEqual(messages_of(log, 'print').slice(-6), [
+		assert.deepEqual(setup_flow_log_messages(log, 'print').slice(-6), [
 			'Ready to deploy — each script is a dry run until you pass --wetrun,',
 			'and a wetrun runs only the plan its dry run previewed:',
 			'  npm run apply                # preview the host convergence',
@@ -72,7 +75,7 @@ describe('run_prod_setup', () => {
 			'  npm run deploy               # preview the release',
 			'  npm run deploy -- --wetrun   # deploy refuses to run against a drifted host'
 		]);
-		assert.notInclude(messages_of(log, 'print').join('\n'), '[todo]');
+		assert.notInclude(setup_flow_log_messages(log, 'print').join('\n'), '[todo]');
 	});
 
 	test('refuses with neither .env.production nor its example', async () => {

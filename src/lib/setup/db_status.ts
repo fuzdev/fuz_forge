@@ -11,13 +11,12 @@
 
 import type { CreateDbResult } from '@fuzdev/fuz_app/db/create_db.ts';
 import { display_db_url, format_db_status, query_db_status } from '@fuzdev/fuz_app/db/status.ts';
-import { read_env_var } from '@fuzdev/fuz_app/dev/setup.ts';
+import { read_env_var, type SetupFlowLogger } from '@fuzdev/fuz_app/dev/setup.ts';
 import type { FsReadDeps } from '@fuzdev/fuz_app/runtime/deps.ts';
 import { ReportedError, TaskError } from '@fuzdev/gro/task_error.ts';
 
 import { fuz_forge_migration_namespaces } from '../server/db/fuz_forge_schema.ts';
 import { DEV_ENV_PATH } from './env_file.ts';
-import type { SetupFlowLogger } from './setup_flow_logger.ts';
 
 /** Capabilities for `run_db_status`. */
 export interface DbStatusDeps {

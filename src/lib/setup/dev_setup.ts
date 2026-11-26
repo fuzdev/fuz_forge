@@ -15,7 +15,8 @@ import {
 	reset_bootstrap_token,
 	reset_database,
 	setup_bootstrap_token,
-	type PostgresProgramDeps
+	type PostgresProgramDeps,
+	type SetupFlowLogger
 } from '@fuzdev/fuz_app/dev/setup.ts';
 import type {
 	EnvDeps,
@@ -27,7 +28,6 @@ import type { Spawn } from '@fuzdev/gro/spawn.ts';
 import { TaskError } from '@fuzdev/gro/task_error.ts';
 
 import { DEV_ENV_PATH, ensure_env_file } from './env_file.ts';
-import type { SetupFlowLogger } from './setup_flow_logger.ts';
 
 /** The `RuntimeDeps` slice fuz_app's setup helpers take for these flows. */
 export type DevSetupRuntimeDeps = FsReadDeps & FsWriteDeps & FsRemoveDeps & EnvDeps;

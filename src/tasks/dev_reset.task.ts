@@ -1,3 +1,4 @@
+import { default_setup_flow_logger } from '@fuzdev/fuz_app/dev/setup.ts';
 import { create_node_runtime } from '@fuzdev/fuz_app/runtime/node.ts';
 import * as s from '@fuzdev/fuz_schema/schema.ts';
 import { cwd } from '@fuzdev/gro/cwd.ts';
@@ -9,7 +10,6 @@ import {
 	to_dev_fuz_forge_home,
 	to_postgres_programs
 } from '#lib/setup/dev_setup.ts';
-import { console_setup_flow_logger } from '#lib/setup/setup_flow_logger.ts';
 
 export const Args = s.object({});
 export type Args = s.Infer<typeof Args>;
@@ -23,7 +23,7 @@ export const task: Task<Args> = {
 			{
 				runtime: create_node_runtime([]),
 				postgres: to_postgres_programs(spawn),
-				log: console_setup_flow_logger
+				log: default_setup_flow_logger
 			},
 			{ fuz_forge_home: to_dev_fuz_forge_home(cwd()) }
 		);
