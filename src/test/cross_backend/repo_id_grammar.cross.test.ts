@@ -58,7 +58,7 @@ const setup_test = default_cross_process_setup(handle);
 /**
  * Strings the one grammar rejects. Every entry must come back `-32602`
  * from both backends. Kept in lockstep with the unit vectors in
- * `src/test/fuz_forge/repo/types.test.ts` and the Rust
+ * `src/test/fuz_forge/repo/repo_id.test.ts` and the Rust
  * `fuz_forge_wire::is_valid_repo_id` tests.
  */
 const REJECTED_IDS = [

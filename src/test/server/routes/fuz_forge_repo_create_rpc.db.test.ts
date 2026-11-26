@@ -40,7 +40,8 @@
  * @module
  */
 
-import { mkdir, readdir, readFile, rm, stat } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { mkdir, readdir, readFile, rm } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -66,15 +67,6 @@ import { git } from '../../cross_backend/git_helpers.ts';
 import { describe_db } from '../../db_fixture.ts';
 import { create_upstream_git_server, type UpstreamGitServer } from '../../git_upstream_server.ts';
 import { create_fuz_forge_test_app } from './fuz_forge_test_helpers.ts';
-
-const path_exists = async (p: string): Promise<boolean> => {
-	try {
-		await stat(p);
-		return true;
-	} catch {
-		return false;
-	}
-};
 
 describe_db('fuz_forge_repo_create', (get_db) => {
 	let test_app: TestApp;
@@ -160,9 +152,9 @@ describe_db('fuz_forge_repo_create', (get_db) => {
 
 		// Bare repo + hooks on disk, keyed on the cell-id UUID.
 		const bare = join(store_root, `${id}.git`);
-		assert.isTrue(await path_exists(join(bare, 'HEAD')));
-		assert.isTrue(await path_exists(join(bare, 'hooks', 'pre-receive')));
-		assert.isTrue(await path_exists(join(bare, 'hooks', 'post-receive')));
+		assert.isTrue(existsSync(join(bare, 'HEAD')));
+		assert.isTrue(existsSync(join(bare, 'hooks', 'pre-receive')));
+		assert.isTrue(existsSync(join(bare, 'hooks', 'post-receive')));
 		// The plaintext the hooks embed is what the cell's digest is of.
 		for (const name of ['pre-receive', 'post-receive']) {
 			const script = await readFile(join(bare, 'hooks', name), 'utf8');

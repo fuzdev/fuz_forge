@@ -10,6 +10,7 @@
  * @module
  */
 
+import { existsSync } from 'node:fs';
 import { mkdir, readFile, readdir, rm, stat as fs_stat } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 import { tmpdir } from 'node:os';
@@ -40,15 +41,6 @@ import {
 	repo_path,
 	repo_store_root
 } from '#lib/fuz_forge/repo/storage.ts';
-
-const file_exists = async (path: string): Promise<boolean> => {
-	try {
-		await fs_stat(path);
-		return true;
-	} catch {
-		return false;
-	}
-};
 
 describe('repo_store_root', () => {
 	test('returns the env value verbatim when no tilde present', () => {
@@ -251,9 +243,9 @@ describe('init / clone / install_hooks (filesystem)', () => {
 		assert.strictEqual(result.path, `${scoped_store}/${id}.git`);
 
 		// HEAD + refs/ + objects/ are the load-bearing pieces of bare layout.
-		assert.isTrue(await file_exists(`${result.path}/HEAD`));
-		assert.isTrue(await file_exists(`${result.path}/refs`));
-		assert.isTrue(await file_exists(`${result.path}/objects`));
+		assert.isTrue(existsSync(`${result.path}/HEAD`));
+		assert.isTrue(existsSync(`${result.path}/refs`));
+		assert.isTrue(existsSync(`${result.path}/objects`));
 
 		// `core.bare` should be true for a bare repo.
 		const config_check = await git(result.path, ['config', 'core.bare']);
@@ -271,7 +263,7 @@ describe('init / clone / install_hooks (filesystem)', () => {
 
 		// `git-daemon-export-ok` marker — the per-repo opt-in gate that
 		// git http-backend enforces when `GIT_HTTP_EXPORT_ALL` is unset.
-		assert.isTrue(await file_exists(`${result.path}/git-daemon-export-ok`));
+		assert.isTrue(existsSync(`${result.path}/git-daemon-export-ok`));
 	});
 
 	test('init_bare_repo leaves the repo dir with no group/world bits', async () => {
@@ -445,7 +437,7 @@ describe('init / clone / install_hooks (filesystem)', () => {
 		const hooks_dir = `${scoped_store}/${id}.git/hooks`;
 		for (const name of HOOK_NAMES) {
 			const path = `${hooks_dir}/${name}`;
-			assert.isTrue(await file_exists(path), `expected hook ${name} to exist`);
+			assert.isTrue(existsSync(path), `expected hook ${name} to exist`);
 
 			const stat = await fs_stat(path);
 			// 0700 — owner rwx, no group / world bits. The hook script embeds

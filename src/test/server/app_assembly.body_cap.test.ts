@@ -22,14 +22,14 @@ import { generic_body_cap_middleware } from '#lib/server/app_assembly.ts';
 /** The cap the capped groups carry (`GENERIC_BODY_CAP_BYTES`). */
 const CAP_BYTES = 1024 * 1024;
 
-interface TestApp {
+interface CappedApp {
 	app: Hono;
 	/** How many requests reached a handler. */
 	handled: () => number;
 }
 
 /** A bare app behind the cap whose every route answers 200. */
-const create_test_app = (): TestApp => {
+const create_capped_app = (): CappedApp => {
 	let handled = 0;
 	const app = new Hono();
 	const spec = generic_body_cap_middleware();
@@ -107,7 +107,7 @@ describe('generic_body_cap_middleware', () => {
 		for (const path of CAPPED_PATHS) {
 			for (const content_length of UNREADABLE_CONTENT_LENGTHS) {
 				test(`${path} refuses Content-Length ${JSON.stringify(content_length)} with 400`, async () => {
-					const { app, handled } = create_test_app();
+					const { app, handled } = create_capped_app();
 					const res = await post(app, path, content_length);
 					assert.strictEqual(res.status, 400);
 					assert.deepEqual(await res.json(), { error: ERROR_INVALID_CONTENT_LENGTH });
@@ -117,7 +117,7 @@ describe('generic_body_cap_middleware', () => {
 			}
 
 			test(`${path} refuses a Content-Length over the cap with 413`, async () => {
-				const { app, handled } = create_test_app();
+				const { app, handled } = create_capped_app();
 				const res = await post(app, path, String(CAP_BYTES + 1));
 				assert.strictEqual(res.status, 413);
 				assert.deepEqual(await res.json(), { error: ERROR_PAYLOAD_TOO_LARGE });
@@ -126,7 +126,7 @@ describe('generic_body_cap_middleware', () => {
 			});
 
 			test(`${path} passes a Content-Length at the cap`, async () => {
-				const { app, handled } = create_test_app();
+				const { app, handled } = create_capped_app();
 				const res = await post(app, path, String(CAP_BYTES));
 				assert.strictEqual(res.status, 200);
 				assert.strictEqual(handled(), 1);
@@ -137,7 +137,7 @@ describe('generic_body_cap_middleware', () => {
 	describe('uncapped groups', () => {
 		for (const path of UNCAPPED_PATHS) {
 			test(`${path} is not read by the cap`, async () => {
-				const { app, handled } = create_test_app();
+				const { app, handled } = create_capped_app();
 				// over the cap, and unreadable: neither is this middleware's to judge
 				// on a route that enforces its own limit
 				assert.strictEqual((await post(app, path, String(CAP_BYTES + 1))).status, 200);
@@ -150,7 +150,7 @@ describe('generic_body_cap_middleware', () => {
 	describe('streamed and bodiless requests', () => {
 		for (const path of CAPPED_PATHS) {
 			test(`${path} refuses a streamed body over the cap before any handler runs`, async () => {
-				const { app, handled } = create_test_app();
+				const { app, handled } = create_capped_app();
 				const res = await post_streamed(app, path, CAP_BYTES + 1);
 				assert.strictEqual(res.status, 413);
 				assert.deepEqual(await res.json(), { error: ERROR_PAYLOAD_TOO_LARGE });
@@ -159,14 +159,14 @@ describe('generic_body_cap_middleware', () => {
 			});
 
 			test(`${path} passes a streamed body at the cap`, async () => {
-				const { app, handled } = create_test_app();
+				const { app, handled } = create_capped_app();
 				const res = await post_streamed(app, path, CAP_BYTES);
 				assert.strictEqual(res.status, 200);
 				assert.strictEqual(handled(), 1);
 			});
 
 			test(`${path} refuses a bodiless request declaring a Content-Length over the cap`, async () => {
-				const { app, handled } = create_test_app();
+				const { app, handled } = create_capped_app();
 				const res = await app.request(path, {
 					method: 'GET',
 					headers: { 'content-length': String(CAP_BYTES + 1) }
@@ -178,7 +178,7 @@ describe('generic_body_cap_middleware', () => {
 
 		for (const path of UNCAPPED_PATHS) {
 			test(`${path} does not count a streamed body`, async () => {
-				const { app, handled } = create_test_app();
+				const { app, handled } = create_capped_app();
 				const res = await post_streamed(app, path, CAP_BYTES + 1);
 				assert.strictEqual(res.status, 200);
 				assert.strictEqual(handled(), 1);

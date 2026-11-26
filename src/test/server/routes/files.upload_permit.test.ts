@@ -13,6 +13,7 @@ import type { RequestContext } from '@fuzdev/fuz_app/auth/request_context.ts';
 import type { RouteContext } from '@fuzdev/fuz_app/http/route_spec.ts';
 import { create_throwing_stub } from '@fuzdev/fuz_app/testing/stubs.ts';
 import { AsyncSemaphore } from '@fuzdev/fuz_util/async.ts';
+import { assert_rejects } from '@fuzdev/fuz_util/testing.ts';
 
 import { create_file_route_specs } from '#lib/server/routes/files.ts';
 import { test_file_route_deps } from './fuz_forge_test_helpers.ts';
@@ -48,14 +49,9 @@ describe('POST /:filename upload permit', () => {
 		};
 		const route = { auth, params: { filename: 'a.txt' } } as unknown as RouteContext;
 
-		let error: unknown;
-		try {
+		await assert_rejects(async () => {
 			await upload.handler(route);
-		} catch (err) {
-			error = err;
-		}
-		assert(error instanceof Error);
-		assert.match(error.message, /no acting actor/);
+		}, /no acting actor/);
 		assert.strictEqual(upload_semaphore.acquired, 0);
 	});
 });

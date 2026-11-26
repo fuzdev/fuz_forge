@@ -406,7 +406,7 @@ over the wire, or why there is none.
 | file | what it pins | why | the other side |
 | --- | --- | --- | --- |
 | `fixtures/parity/parity_fixtures.meta.test.ts` | that this side still reads every fixture, and each `source_*` path resolves on disk | the fixture directory itself | `crates/fuz_forge_server/tests/parity_fixture_census.rs` |
-| `fuz_forge/repo/types.test.ts` | the `RepoId` / `RepoSlug` grammars, over the union of both sides' former suites | `repo_id.json`, `repo_slug.json` | `handlers/repo_id.rs`, `forge_git/auth.rs`, and the `fuzf` client's `crates/fuz_forge/src/repo_id.rs`, all over `fuz_forge_wire` |
+| `fuz_forge/repo/repo_id.test.ts` | the `RepoId` / `RepoSlug` grammars, over the union of both sides' former suites | `repo_id.json`, `repo_slug.json` | `handlers/repo_id.rs`, `forge_git/auth.rs`, and the `fuzf` client's `crates/fuz_forge/src/repo_id.rs`, all over `fuz_forge_wire` |
 | `fuz_forge/repo/seed_from.test.ts` | the `seed_from` grammar, its canonicalization, and the host-range policy | `seed_from_url.json`, `seed_from_host_policy.json` | `handlers/seed_from.rs`. The *breadth* lives here — every range bound, both `localhost` forms, the IPv4-mapped and folded-integer spellings |
 | `fuz_forge/repo/storage.test.ts` | the `seed_from` clone's `-c` overrides and argv, plus a real clone that refuses a redirect without dialing its target and refuses a non-http transport | `seed_clone.json` | `repo_storage.rs` tests, which run the same two real clones; both sides mutation-checked |
 | `fuz_forge/repo/repo_list_since.test.ts` | the `repo_list.since` ISO 8601 grammar and its two out-of-regex bounds | `repo_list_since.json` | `handlers/repo_list_since.rs` |
@@ -594,10 +594,10 @@ lasts the suite.
 
 ## Svelte Rune Testing
 
-A test file that writes runes itself (`$state`, `$effect.root()`) needs the
-`.svelte.test.ts` extension so vite compiles them; a test that only *imports*
-a rune module stays `.test.ts`, since vite compiles the imported `.svelte.ts`
-either way (`ui/capabilities.test.ts` drives `Capabilities` that way).
+A test file's name matches its module, `.svelte.` included: the tests of
+`ui/capabilities.svelte.ts` are `ui/capabilities.svelte.test.ts`. The
+extension also lets vite compile runes the test writes itself (`$state`,
+`$effect.root()`).
 `vite.config.ts` uses `resolve: {conditions: ['browser']}` in test mode.
 `$effect.root()` is needed only when a test mutates state several times and
 checks derived values after each:
