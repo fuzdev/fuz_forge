@@ -15,6 +15,8 @@
     "build": "gro build",
     "check": "gro check",
     "test": "gro test",
+    "test:cross": "FUZ_TEST_CROSS_BACKEND=1 vitest run --project cross_backend_ts_node --project cross_backend_rust --project cross_backend_login_security_ts_node --project cross_backend_login_security_rust",
+    "test:cross:parity": "FUZ_TEST_CROSS_BACKEND=1 vitest run --project cross_backend_parity",
     "preview": "vite preview",
     "dev:setup": "gro task src/tasks/dev_setup.task.ts",
     "dev:reset": "gro task src/tasks/dev_reset.task.ts",

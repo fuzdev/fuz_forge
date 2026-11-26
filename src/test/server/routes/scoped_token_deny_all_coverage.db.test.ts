@@ -22,15 +22,15 @@
 
 import { test, assert, beforeEach } from 'vitest';
 import { ROLE_ADMIN } from '@fuzdev/fuz_app/auth/role_schema.ts';
-import type { TestApp, TestAccount } from '@fuzdev/fuz_app/testing/test_app.ts';
+import type { TestApp, TestAccount, TestAppAccount } from '@fuzdev/fuz_app/testing/test_app.ts';
 
 import { describe_db } from '../../db_fixture.ts';
 import { create_fuz_forge_admin_test_app } from './fuz_forge_test_helpers.ts';
-import { attach_deny_all_policy, get_api_token_id_for_account } from './scoped_token_helpers.ts';
+import { attach_deny_all_policy } from './scoped_token_helpers.ts';
 
 describe_db('scoped-token deny-all coverage', (get_db) => {
 	let test_app: TestApp;
-	let admin: TestAccount;
+	let admin: TestAppAccount;
 
 	beforeEach(async () => {
 		test_app = await create_fuz_forge_admin_test_app(get_db);
@@ -45,7 +45,7 @@ describe_db('scoped-token deny-all coverage', (get_db) => {
 	});
 
 	test('file store routes denied under deny-all policy', async () => {
-		const token_id = await get_api_token_id_for_account(get_db(), admin.account.id);
+		const token_id = admin.api_token_id;
 		await attach_deny_all_policy(get_db(), token_id);
 
 		const filename = 'probe.bin';

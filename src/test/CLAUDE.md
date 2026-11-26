@@ -18,6 +18,7 @@ src/test/
 ├── runtime_mock.ts                     # RuntimeDeps mock
 ├── capture_console.ts                  # collects a flow's console output
 ├── db_fixture.ts                       # describe_db + db_factories (pglet-wasm, + Postgres opt-in)
+├── unit_db_guard.ts                    # unit project setup: a misnamed DB test fails naming the `.db.test.ts` fix
 ├── git_upstream_server.ts              # loopback dumb-HTTP git origin for `seed_from` clones
 ├── action_spec_input_invariants.test.ts
 ├── nginx_locations.test.ts
@@ -63,7 +64,12 @@ database; the DB suites and their PostgreSQL leg are in § Running.
 npm test              # gro test → vitest
 gro check             # full check
 
-# the cross-backend projects are gated, so a bare `gro test` stays in-process:
+# the cross-backend projects, gated so a bare `gro test` stays in-process:
+npm run test:cross    # ts_node, rust, and the login-security pair, in one run
+FUZ_TEST_POSTGRES_URL=postgres://localhost/postgres \
+  npm run test:cross:parity  # the parity project, PostgreSQL only: fails naming the variable without it
+
+# or one project at a time:
 export FUZ_TEST_CROSS_BACKEND=1
 # each `_rust` project's setup gives the backend a `pglet_server` of its own
 # (built in this Cargo workspace), or a PostgreSQL database of its own under

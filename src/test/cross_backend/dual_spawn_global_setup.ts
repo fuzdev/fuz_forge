@@ -21,7 +21,7 @@
  * pglet server to fall back to), which keeps the two legs on one server
  * version. With the variable unset the setup fails naming it — the gates
  * never skip. The Rust test binary is built before the spawn
- * (`prepare_cargo_binary`), as the single-backend setup does.
+ * (`prepare_cargo_binary`; the dual-spawn setup takes no `cargo_binaries`).
  *
  * The single-backend `global_setup.ts` derives one backend from the
  * project name; these gates need both alive at once.

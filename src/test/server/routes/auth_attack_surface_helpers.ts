@@ -118,6 +118,8 @@ export const create_fuz_forge_app_surface_spec = (): AppSurfaceSpec =>
 		allowed_origins: fuz_forge_surface_allowed_origins,
 		origin_carve_outs: [...FUZ_FORGE_ORIGIN_CARVE_OUTS],
 		event_specs: fuz_forge_event_specs,
+		// as `create_app` passes it: the audit stream on the context and its event specs
+		audit_log_sse: true,
 		// Both test binaries this spec is probed against mount the daemon-token
 		// layer — the TS server through `create_testing_wiring`'s
 		// `daemon_token_state`, `testing_fuzfd` through

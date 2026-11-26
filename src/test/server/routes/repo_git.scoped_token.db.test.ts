@@ -41,7 +41,7 @@ import {
 	test_audit_sse_deps,
 	test_facts_dir
 } from './fuz_forge_test_helpers.ts';
-import { attach_policy, get_api_token_id_for_account } from './scoped_token_helpers.ts';
+import { attach_policy } from './scoped_token_helpers.ts';
 
 const SLUG = 'fuzdev/fuz_app';
 
@@ -165,7 +165,7 @@ describe_db('repo_git scoped-token capability gating', (get_db) => {
 			const test_app = await build_test_app(get_db);
 			const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
 			const repo_id = await seed_repo_cell(get_db(), SLUG);
-			const token_id = await get_api_token_id_for_account(get_db(), admin.account.id);
+			const token_id = admin.api_token_id;
 			const policy = policy_from_template({ kind: 'forge_push', repo_ids: [repo_id] });
 			assert.ok(policy);
 			await attach_policy(get_db(), token_id, policy, 'forge_push');
@@ -180,7 +180,7 @@ describe_db('repo_git scoped-token capability gating', (get_db) => {
 			const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
 			const fuz_app_id = await seed_repo_cell(get_db(), 'fuzdev/fuz_app');
 			await seed_repo_cell(get_db(), 'fuzdev/fuz_ui');
-			const token_id = await get_api_token_id_for_account(get_db(), admin.account.id);
+			const token_id = admin.api_token_id;
 			// Allow push to fuz_app only.
 			const policy = policy_from_template({ kind: 'forge_push', repo_ids: [fuz_app_id] });
 			assert.ok(policy);
@@ -195,7 +195,7 @@ describe_db('repo_git scoped-token capability gating', (get_db) => {
 			const test_app = await build_test_app(get_db);
 			const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
 			const repo_id = await seed_repo_cell(get_db(), SLUG);
-			const token_id = await get_api_token_id_for_account(get_db(), admin.account.id);
+			const token_id = admin.api_token_id;
 			const policy = policy_from_template({ kind: 'forge_push', repo_ids: [repo_id] });
 			assert.ok(policy);
 			await attach_policy(get_db(), token_id, policy, 'forge_push');
@@ -213,7 +213,7 @@ describe_db('repo_git scoped-token capability gating', (get_db) => {
 			const test_app = await build_test_app(get_db);
 			const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
 			const repo_id = await seed_repo_cell(get_db(), SLUG);
-			const token_id = await get_api_token_id_for_account(get_db(), admin.account.id);
+			const token_id = admin.api_token_id;
 			const policy = policy_from_template({ kind: 'forge_pull', repo_ids: [repo_id] });
 			assert.ok(policy);
 			await attach_policy(get_db(), token_id, policy, 'forge_pull');
@@ -227,7 +227,7 @@ describe_db('repo_git scoped-token capability gating', (get_db) => {
 			const test_app = await build_test_app(get_db);
 			const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
 			const repo_id = await seed_repo_cell(get_db(), SLUG);
-			const token_id = await get_api_token_id_for_account(get_db(), admin.account.id);
+			const token_id = admin.api_token_id;
 			const policy = policy_from_template({ kind: 'forge_pull', repo_ids: [repo_id] });
 			assert.ok(policy);
 			await attach_policy(get_db(), token_id, policy, 'forge_pull');
@@ -245,7 +245,7 @@ describe_db('repo_git scoped-token capability gating', (get_db) => {
 			const test_app = await build_test_app(get_db);
 			const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
 			const repo_id = await seed_repo_cell(get_db(), SLUG);
-			const token_id = await get_api_token_id_for_account(get_db(), admin.account.id);
+			const token_id = admin.api_token_id;
 			const policy = policy_from_template({ kind: 'forge_pull', repo_ids: [repo_id] });
 			assert.ok(policy);
 			await attach_policy(get_db(), token_id, policy, 'forge_pull');
@@ -270,7 +270,7 @@ describe_db('repo_git scoped-token capability gating', (get_db) => {
 			const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
 			await seed_repo_cell(get_db(), 'fuzdev/fuz_app');
 			await seed_repo_cell(get_db(), 'fuzdev/fuz_ui');
-			const token_id = await get_api_token_id_for_account(get_db(), admin.account.id);
+			const token_id = admin.api_token_id;
 			await attach_policy(
 				get_db(),
 				token_id,
@@ -295,7 +295,7 @@ describe_db('repo_git scoped-token capability gating', (get_db) => {
 			const test_app = await build_test_app(get_db);
 			const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
 			await seed_repo_cell(get_db(), SLUG);
-			const token_id = await get_api_token_id_for_account(get_db(), admin.account.id);
+			const token_id = admin.api_token_id;
 			await attach_policy(get_db(), token_id, { version: 1 }, 'deny_all');
 
 			const auth_header = basic_header(admin.account.username, admin.api_token);

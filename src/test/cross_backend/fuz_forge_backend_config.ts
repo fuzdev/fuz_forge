@@ -35,7 +35,7 @@
  *
  * **Rust database** — the global setups provision each Rust backend's
  * database (fuz_app's `open_test_database`): a `pglet_server` of its own,
- * built in this repo's Cargo workspace (`FORGE_PGLET_SERVER`), or a
+ * built in this repo's Cargo workspace (the `cargo_binaries` entry), or a
  * PostgreSQL database of its own on the server `FUZ_TEST_POSTGRES_URL` names.
  * Either way it starts empty, and the Rust config factories take its URL.
  *
@@ -266,7 +266,8 @@ export const FILE_STORE_MAX_BYTES_TEST = 2 * 1024 * 1024;
 /**
  * The Rust test binary — `testing_fuzfd` in the `testing_fuz_forge_server`
  * crate, in this repo's Cargo workspace, `dev` profile. The global setups
- * build it before the spawn (`prepare_cargo_binary`); the configs spawn the
+ * build it before the spawn (their `cargo_binaries` entry, which builds the
+ * `pglet_server` from the same workspace and profile); the configs spawn the
  * path it builds to.
  */
 export const FORGE_CARGO_BINARY: CargoBinaryOptions = {
@@ -276,8 +277,9 @@ export const FORGE_CARGO_BINARY: CargoBinaryOptions = {
 };
 
 /**
- * Where the Rust backends' `pglet_server` is built — the test binary's own
- * Cargo workspace and profile, whose lockfile holds the pglet the spine's
+ * Where a Rust backend's `pglet_server` is built for a database opened outside
+ * the global setups (the cross-impl benchmark's) — the test binary's own Cargo
+ * workspace and profile, whose lockfile holds the pglet the spine's
  * `fuz_testing` runs (`prepare_pglet_server_binary`).
  */
 export const FORGE_PGLET_SERVER: PgletServerBinaryOptions = {
@@ -288,7 +290,7 @@ export const FORGE_PGLET_SERVER: PgletServerBinaryOptions = {
  * Rust backend (`testing_fuzfd`, Axum on the spine crates) — spawns the built
  * binary (`FORGE_CARGO_BINARY`) over HTTP against `database_url`, the
  * database its global setup provisions. The
- * global setups build it first (`prepare_cargo_binary`), so a stale `target/`
+ * global setups build it first (`cargo_binaries`), so a stale `target/`
  * binary never serves silently.
  *
  * **Shared env contract — no per-backend remap.** The Rust spine now reads

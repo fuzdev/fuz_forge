@@ -18,7 +18,10 @@ import {
 } from '@fuzdev/gro/git.ts';
 import { spawn } from '@fuzdev/gro/spawn.ts';
 import { vite_plugin_pkg_json } from '@fuzdev/fuz_ui/vite_plugin_pkg_json.ts';
-import { make_cross_backend_project } from '@fuzdev/fuz_app/testing/cross_backend/make_cross_backend_project.ts';
+import {
+	cross_backend_enabled,
+	make_cross_backend_project
+} from '@fuzdev/fuz_app/testing/cross_backend/make_cross_backend_project.ts';
 
 // Cap vitest worker threads to half the cores: the unit project's files are
 // small, and the cross-backend projects spawn real backends beside the workers.
@@ -73,7 +76,7 @@ const LOGIN_SECURITY_TESTS = [
 	'src/test/cross_backend/action_throttle_order.cross.test.ts'
 ];
 const NON_STANDARD_CROSS_TESTS = [...DUAL_SPAWN_TESTS, ...LOGIN_SECURITY_TESTS];
-const cross_backend_projects = process.env.FUZ_TEST_CROSS_BACKEND
+const cross_backend_projects = cross_backend_enabled()
 	? [
 			make_cross_backend_project({
 				name: 'cross_backend_ts_node',
@@ -138,7 +141,7 @@ export default defineConfig(({ mode }) => ({
 					name: 'unit',
 					include: ['src/test/**/*.test.ts'],
 					exclude: ['src/test/**/*.db.test.ts', 'src/test/**/*.cross.test.ts'],
-					setupFiles: ['./src/test/logged_error_gate.ts'],
+					setupFiles: ['./src/test/logged_error_gate.ts', './src/test/unit_db_guard.ts'],
 					maxWorkers: max_workers,
 					sequence: { groupOrder: 1 }
 				}

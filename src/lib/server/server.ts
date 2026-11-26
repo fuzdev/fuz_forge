@@ -102,7 +102,7 @@ export interface ServerDeps {
 	/**
 	 * Test-only assembly seams. **Production never sets this** — its presence
 	 * switches `create_app` into the cross-process test posture: a fast stub
-	 * password hasher, daemon-token rotation (so `_testing_reset` has a keeper
+	 * password hasher, a daemon-token file (so `_testing_reset` has a keeper
 	 * credential channel), every rate limiter disabled unless a gate turns it
 	 * on — `FUZ_LOGIN_RATE_LIMIT_ENABLED` the auth limiters,
 	 * `FUZ_ACTION_RATE_LIMIT_ENABLED` (with an optional
@@ -132,7 +132,7 @@ export interface ServerTestingOptions {
 	 */
 	password: PasswordHashDeps;
 	/**
-	 * Where daemon-token rotation writes the rotated keeper token — the
+	 * Where the daemon-token file holds the keeper token — the
 	 * `_testing_reset` action gates on the daemon-token credential and the
 	 * harness reads this file to authenticate the keeper channel. The test
 	 * binary points it at `{backend_root}/run/daemon_token`.
@@ -176,7 +176,7 @@ export interface ServerApp {
 	surface: AppSurface;
 	/**
 	 * Graceful shutdown — ends the orphan-temp sweep and (when wired)
-	 * daemon-token rotation, then closes the app server: it stops the auth
+	 * removes the daemon-token file, then closes the app server: it stops the auth
 	 * cleanup schedule, closes every live WebSocket and audit stream, releases
 	 * what assembly acquired (the rate limiters it built, the listeners it
 	 * registered on the audit emitter, the members it added to the connection
@@ -184,8 +184,9 @@ export interface ServerApp {
 	 * first, and the cleanup pass, the requests and the audit writes are
 	 * waited for within the app server's drain bound. Resolves the app
 	 * server's `ShutdownDrainGivenUp` — what that drain gave up on, every count
-	 * `0` when it drained everything. Safe to call more than once: the sweep
-	 * and rotation stops tolerate a repeat, and the app server's close resolves
+	 * `0` when it drained everything; rejects, after closing the app server,
+	 * when the daemon-token file can't be removed. Safe to call more than once: the sweep
+	 * and the token file's removal tolerate a repeat, and the app server's close resolves
 	 * the same report again. The server entry (`server/server_main.ts`) calls
 	 * it on SIGINT / SIGTERM, as the cross-process test binary does on
 	 * shutdown — after the listener stops accepting connections and before
@@ -272,7 +273,7 @@ export const create_app = async (deps: ServerDeps): Promise<ServerApp> => {
 		action_account_rate_limiter,
 		await_pending_effects,
 		stop: stop_testing
-	} = await create_testing_wiring(testing, runtime, backend.deps, server_log);
+	} = await create_testing_wiring(testing, runtime, backend.deps);
 
 	const {
 		app,
@@ -399,8 +400,24 @@ export const create_app = async (deps: ServerDeps): Promise<ServerApp> => {
 	const close = async (): Promise<ShutdownDrainGivenUp> => {
 		// ends the sweep schedule and waits for a pass in progress
 		await stop_sweep();
-		await stop_testing();
-		return close_app_server();
+		// a failed test-wiring stop (the daemon-token file not removed) still
+		// closes the app server, then rejects with what failed
+		let stop_failure: { error: unknown } | null = null;
+		try {
+			await stop_testing();
+		} catch (error) {
+			stop_failure = { error };
+		}
+		if (!stop_failure) return close_app_server();
+		try {
+			await close_app_server();
+		} catch (close_error) {
+			throw new AggregateError(
+				[stop_failure.error, close_error],
+				'server close: the test wiring stop and the app server close both failed'
+			);
+		}
+		throw stop_failure.error;
 	};
 
 	return { app, env, db: backend.deps.db, surface: surface_spec.surface, close };

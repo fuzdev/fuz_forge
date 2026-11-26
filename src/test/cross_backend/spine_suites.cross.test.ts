@@ -54,6 +54,20 @@ const overrides: SuiteOverrides = {
 	standard: { round_trip_skip_routes, param_values: fuz_forge_param_values }
 };
 
+// the gated skips both backends owe, each by what the forge lacks — a skip
+// nobody listed here fails the run (`check_declared_skips`)
+const NO_GATED_CREATE =
+	"the forge's create authorizer reserves its own kinds, not the suite's gated-create test policy (cell_gated_create)";
+const NO_ROOMS = 'the forge mounts no room verbs (rooms)';
+const NO_ROLE_GATED_WS =
+	'the forge mounts no second, role-gated WS endpoint beside its admin-gated /api/ws (ws_role_gated)';
+const CONFERRAL_IS_ADMIN =
+	"the forge's registry holds only the builtins, so the conferral role is admin: global-only (no scoped case) and the audit stream's own gate (no other role to revoke)";
+
+/** `paths`, each declared skipped for `reason`. */
+const declare_skips = (reason: string, paths: Array<string>): Record<string, string> =>
+	Object.fromEntries(paths.map((path) => [path, reason]));
+
 describe_spine_cross_suites(handle, {
 	surface_source: create_fuz_forge_app_surface_spec(),
 	session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME,
@@ -67,5 +81,63 @@ describe_spine_cross_suites(handle, {
 	// cell grants (keeper reach is not admin reach), admin for the conferral
 	suite_roles: { cell_grant: ROLE_KEEPER, conferral: ROLE_ADMIN },
 	exclude,
-	overrides
+	overrides,
+	expected_skips: {
+		...declare_skips(NO_GATED_CREATE, [
+			'cell_gated_create authorizer parity (directory model) > a non-admin is denied a `space` root (admin-only), admin succeeds',
+			'cell_gated_create authorizer parity (directory model) > a contribution under a public space: unauthorized → 403, participant → allowed',
+			'cell_gated_create authorizer parity (directory model) > moderation is set per `moderation_required` (post → pending+private, react → approved)',
+			'cell_gated_create authorizer parity (directory model) > a contribution under a hidden (private) space is 404-masked (not 403)',
+			'cell_gated_create authorizer parity (directory model) > a deep contribution (comment under a post) resolves policy from the governing root, not the parent',
+			'cell_gated_create authorizer parity (directory model) > a contribution under a soft-deleted root is 404 cell_not_found (the missing-parent shape)',
+			'cell_gated_create authorizer parity (directory model) > cell root policy parity > a root takes a policy at create and through cell_policy_set, audited old and new',
+			'cell_gated_create authorizer parity (directory model) > cell root policy parity > a policy is root-only and must pass the authorizer',
+			"cell_gated_create authorizer parity (directory model) > cell root policy parity > an editor-grant holder can't change a root's policy, through the verb or through data",
+			"cell_grant_steward revoke parity > the scope's steward revokes, audited steward: true",
+			"cell_grant_steward revoke parity > another scope's steward gets the 404 mask",
+			'cell_grant_steward revoke parity > a scopeless role grant never reaches the hook',
+			'cell_moderate verb parity (root-authority-gated) > a root manager (admin) approves a pending post → approved + public',
+			'cell_moderate verb parity (root-authority-gated) > the author (non-manager) cannot moderate their own pending post → 403',
+			'cell_moderate verb parity (root-authority-gated) > a non-viewer is 404-masked from moderating a pending post',
+			'cell_moderate verb parity (root-authority-gated) > a root manager rejects a pending post → rejected, stays private',
+			'cell_moderate verb parity (root-authority-gated) > moderating a cell with no governing root → 400 cell_not_a_contribution, after the view check',
+			'cell_moderate verb parity (root-authority-gated) > a root owner shown a private approved contribution cannot publish it → 400 cell_not_pending',
+			'cell_moderate verb parity (root-authority-gated) > approval needs a pending post, rejection a pending or approved one → else 400 cell_not_pending',
+			'moderation gates reads (parity) > a pending post its author flips public stays hidden past the author and admins',
+			'moderation gates reads (parity) > pending → rejected → public stays hidden past the author',
+			'moderation gates reads (parity) > approved → rejected stays hidden, and a grant made while approved stops admitting',
+			'moderation gates reads (parity) > approval leaves visibility to rejection: an approved-then-rejected post is still public, and hidden',
+			'moderation gates reads (parity) > an editor grant made while approved admits no write once rejected; the author keeps the owner arm',
+			'moderation gates reads (parity) > a pending post in a public collection is omitted from anon cell_item_list',
+			'moderation gates reads (parity) > every relation list hides a pending end, and a rejected one from its grant holder',
+			"moderation gates reads (parity) > a pending post's fact is 404 to anon, even flipped public; live once approved",
+			'the steward arm: a root owner moderates (parity) > a non-admin root owner reads the pending queue and the post, and moderates it',
+			'the steward arm: a root owner moderates (parity) > the steward arm stops at the moderator surfaces: clone and create-under are 404',
+			'the steward arm: a root owner moderates (parity) > the steward arm keys on the governing root, not the parent: a rejected comment under an approved post',
+			"the steward arm: a root owner moderates (parity) > the root owner fetches a pending post's fact; anon 404",
+			'cell_grant_create refuses an unapproved contribution (parity) > a grant on a pending post → 403 cell_grant_unapproved; non-manager 404; lands after approval',
+			'cell_clone runs the creation authorizer (parity) > a non-admin clone of a viewable `space` root → 403, admin clone succeeds'
+		]),
+		...declare_skips(CONFERRAL_IS_ADMIN, [
+			'role_grant_offer WS notifications (cross-process) > a scoped revoke delivers its scope_kind and scope_id to the revokee WS',
+			'role-gated participation conferral (success paths) > admin assigns a scoped admin grant that round-trips scope_kind',
+			'cross-process sse > a revoke of a global grant of another role leaves the stream open'
+		]),
+		...declare_skips(NO_ROOMS, [
+			'rooms over the socket (cross-process) > members join, relay, set state, and leave, in seq order',
+			'rooms over the socket (cross-process) > a watch sees the members without a seat',
+			'rooms over the socket (cross-process) > refusals answer their codes and reasons',
+			'rooms over the socket (cross-process) > a room past its cap is full, and the admin rule reads the grant',
+			'rooms over the socket (cross-process) > a connection watches at most its maximum of rooms',
+			'rooms over the socket (cross-process) > over HTTP the room verbs answer method_not_found',
+			'rooms over the socket (cross-process) > one seat per actor: the newest admitted join moves the other',
+			"rooms over the socket (cross-process) > a closed socket's seats leave as disconnected",
+			'rooms over the socket (cross-process) > an eviction ends seats and watches alike',
+			'rooms over the socket (cross-process) > the room limiter charges escaped bytes per connection; a watch and a leave still answer past it'
+		]),
+		...declare_skips(NO_ROLE_GATED_WS, [
+			'role-gated websocket (cross-process) > revoking a global grant of a gating role closes the gated socket with WS_CLOSE_PERMISSION_REVOKED',
+			'role-gated websocket (cross-process) > a scoped revoke of a gating role closes nothing'
+		])
+	}
 });

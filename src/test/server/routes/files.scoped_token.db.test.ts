@@ -27,7 +27,7 @@ import type { Db } from '@fuzdev/fuz_app/db/db.ts';
 import { DbCheckoutError } from '@fuzdev/fuz_app/db/db_checkout_error.ts';
 import type { QueryDeps } from '@fuzdev/fuz_app/db/query_deps.ts';
 import { Logger } from '@fuzdev/fuz_util/log.ts';
-import { token_scope_full } from '@fuzdev/fuz_app/auth/token_scope.ts';
+import { token_scope_full, token_scope_methods } from '@fuzdev/fuz_app/auth/token_scope.ts';
 
 import { FUZ_FORGE_SESSION_COOKIE_NAME } from '#lib/server/routes/account.ts';
 import { create_fuz_forge_app_route_specs } from '#lib/server/routes/fuz_forge_route_specs.ts';
@@ -40,13 +40,7 @@ import {
 	test_audit_sse_deps,
 	test_facts_dir
 } from './fuz_forge_test_helpers.ts';
-import {
-	attach_policy,
-	attach_raw_policy,
-	get_api_token_id_for_account,
-	narrow_token_scope,
-	set_token_scope
-} from './scoped_token_helpers.ts';
+import { attach_policy, attach_raw_policy } from './scoped_token_helpers.ts';
 
 let disk_root: string;
 
@@ -176,7 +170,7 @@ describe_db('files.ts scoped-token gating', (get_db) => {
 			assert.strictEqual(r_up_b.status, 200);
 
 			// Scope `admin` to read 'allowed.bin' only.
-			const token_id = await get_api_token_id_for_account(get_db(), admin.account.id);
+			const token_id = admin.api_token_id;
 			const policy = policy_from_template({ kind: 'files_read', filenames: ['allowed.bin'] });
 			assert.ok(policy);
 			await attach_policy(get_db(), token_id, policy, 'files_read');
@@ -194,7 +188,7 @@ describe_db('files.ts scoped-token gating', (get_db) => {
 		test('write denied for files_read token', async () => {
 			const test_app = await build_test_app(get_db);
 			const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
-			const token_id = await get_api_token_id_for_account(get_db(), admin.account.id);
+			const token_id = admin.api_token_id;
 			const policy = policy_from_template({ kind: 'files_read', filenames: '*' });
 			assert.ok(policy);
 			await attach_policy(get_db(), token_id, policy, 'files_read');
@@ -222,7 +216,7 @@ describe_db('files.ts scoped-token gating', (get_db) => {
 				new Uint8Array([1, 2, 3])
 			);
 
-			const token_id = await get_api_token_id_for_account(get_db(), admin.account.id);
+			const token_id = admin.api_token_id;
 			const policy = policy_from_template({ kind: 'files_read', filenames: '*' });
 			assert.ok(policy);
 			await attach_policy(get_db(), token_id, policy, 'files_read');
@@ -241,7 +235,7 @@ describe_db('files.ts scoped-token gating', (get_db) => {
 			await upload(test_app, test_app.create_bearer_headers(), 'hidden_a.bin', new Uint8Array([2]));
 			await upload(test_app, test_app.create_bearer_headers(), 'hidden_b.bin', new Uint8Array([3]));
 
-			const token_id = await get_api_token_id_for_account(get_db(), admin.account.id);
+			const token_id = admin.api_token_id;
 			const policy = policy_from_template({ kind: 'files_read', filenames: ['visible.bin'] });
 			assert.ok(policy);
 			await attach_policy(get_db(), token_id, policy, 'files_read');
@@ -262,7 +256,7 @@ describe_db('files.ts scoped-token gating', (get_db) => {
 			await upload(test_app, test_app.create_bearer_headers(), 'a.bin', new Uint8Array([1]));
 			await upload(test_app, test_app.create_bearer_headers(), 'b.bin', new Uint8Array([2]));
 
-			const token_id = await get_api_token_id_for_account(get_db(), admin.account.id);
+			const token_id = admin.api_token_id;
 			const policy = policy_from_template({ kind: 'files_read', filenames: '*' });
 			assert.ok(policy);
 			await attach_policy(get_db(), token_id, policy, 'files_read');
@@ -279,7 +273,7 @@ describe_db('files.ts scoped-token gating', (get_db) => {
 			const test_app = await build_test_app(get_db);
 			const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
 
-			const token_id = await get_api_token_id_for_account(get_db(), admin.account.id);
+			const token_id = admin.api_token_id;
 			const policy = policy_from_template({
 				kind: 'files_write',
 				filenames: ['can-write.bin']
@@ -316,7 +310,7 @@ describe_db('files.ts scoped-token gating', (get_db) => {
 				new Uint8Array([1, 2, 3])
 			);
 
-			const token_id = await get_api_token_id_for_account(get_db(), admin.account.id);
+			const token_id = admin.api_token_id;
 			const policy = policy_from_template({ kind: 'files_write', filenames: '*' });
 			assert.ok(policy);
 			await attach_policy(get_db(), token_id, policy, 'files_write');
@@ -333,7 +327,7 @@ describe_db('files.ts scoped-token gating', (get_db) => {
 
 			await upload(test_app, test_app.create_bearer_headers(), 'x.bin', new Uint8Array([1]));
 
-			const token_id = await get_api_token_id_for_account(get_db(), admin.account.id);
+			const token_id = admin.api_token_id;
 			await attach_policy(get_db(), token_id, { version: 1 }, 'deny_all');
 
 			const up = await upload(
@@ -375,7 +369,7 @@ describe_db('files.ts scoped-token gating', (get_db) => {
 
 			await upload(test_app, test_app.create_bearer_headers(), 'x.bin', new Uint8Array([1]));
 
-			const token_id = await get_api_token_id_for_account(get_db(), admin.account.id);
+			const token_id = admin.api_token_id;
 			// A v2 document granting everything — refused wholesale, not read.
 			await attach_raw_policy(
 				get_db(),
@@ -412,7 +406,7 @@ describe_db('files.ts scoped-token gating', (get_db) => {
 
 			await upload(test_app, test_app.create_bearer_headers(), 'x.bin', new Uint8Array([1]));
 
-			const token_id = await get_api_token_id_for_account(get_db(), admin.account.id);
+			const token_id = admin.api_token_id;
 			await attach_raw_policy(
 				get_db(),
 				token_id,
@@ -447,7 +441,10 @@ describe_db('files.ts scoped-token gating', (get_db) => {
 	describe('narrowed spine scope, no policy row', () => {
 		test('every files route refuses with the flat surface denial', async () => {
 			const test_app = await build_test_app(get_db);
-			const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
+			const admin = await test_app.create_account({
+				roles: [ROLE_ADMIN],
+				api_token_scope: token_scope_methods(['fuz_forge_repo_list'])
+			});
 
 			// Seed with the bootstrapped admin so the target exists — a 403 on a
 			// missing file would pass whether or not the gate ran.
@@ -458,9 +455,6 @@ describe_db('files.ts scoped-token gating', (get_db) => {
 				new Uint8Array([1, 2, 3])
 			);
 			assert.strictEqual(seeded.status, 200);
-
-			const token_id = await get_api_token_id_for_account(get_db(), admin.account.id);
-			await narrow_token_scope(get_db(), token_id, ['fuz_forge_repo_list']);
 
 			const headers = admin.create_bearer_headers();
 			const responses = {
@@ -487,25 +481,26 @@ describe_db('files.ts scoped-token gating', (get_db) => {
 			// entry; filtering to nothing would have looked like a refusal while
 			// leaving the other three routes open.
 			const test_app = await build_test_app(get_db);
-			const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
+			const admin = await test_app.create_account({
+				roles: [ROLE_ADMIN],
+				api_token_scope: token_scope_methods([])
+			});
 			await upload(test_app, test_app.create_bearer_headers(), 'listed.bin', new Uint8Array([1]));
-
-			const token_id = await get_api_token_id_for_account(get_db(), admin.account.id);
-			await narrow_token_scope(get_db(), token_id, []);
 
 			const res = await list(test_app, admin.create_bearer_headers());
 			assert.strictEqual(res.status, 403);
 			assert.notProperty(await res.json(), 'files');
 		});
 
-		test('a full scope written the same way still reaches every route', async () => {
-			// The positive control. Same rewrite path, same absent policy row —
+		test('a full scope minted the same way still reaches every route', async () => {
+			// The positive control. Same mint path, same absent policy row —
 			// only the scope's content differs, so the denials above cannot pass
-			// vacuously on a build that refused every rewritten token.
+			// vacuously on a build that refused every token minted with a scope.
 			const test_app = await build_test_app(get_db);
-			const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
-			const token_id = await get_api_token_id_for_account(get_db(), admin.account.id);
-			await set_token_scope(get_db(), token_id, token_scope_full());
+			const admin = await test_app.create_account({
+				roles: [ROLE_ADMIN],
+				api_token_scope: token_scope_full()
+			});
 
 			const headers = admin.create_bearer_headers();
 			const up = await upload(test_app, headers, 'full.bin', new Uint8Array([1, 2, 3]));
@@ -531,9 +526,10 @@ describe_db('files.ts scoped-token gating', (get_db) => {
 				cause: new Error('timeout exceeded when trying to connect')
 			});
 			const test_app = await build_test_app(get_db, () => throwing_db(checkout_failure));
-			const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
-			const token_id = await get_api_token_id_for_account(get_db(), admin.account.id);
-			await narrow_token_scope(get_db(), token_id, ['fuz_forge_repo_list']);
+			const admin = await test_app.create_account({
+				roles: [ROLE_ADMIN],
+				api_token_scope: token_scope_methods(['fuz_forge_repo_list'])
+			});
 
 			const headers = admin.create_bearer_headers();
 			const responses = {
@@ -560,9 +556,10 @@ describe_db('files.ts scoped-token gating', (get_db) => {
 			const test_app = await build_test_app(get_db, () =>
 				throwing_db(new Error('relation does not exist'))
 			);
-			const admin = await test_app.create_account({ roles: [ROLE_ADMIN] });
-			const token_id = await get_api_token_id_for_account(get_db(), admin.account.id);
-			await narrow_token_scope(get_db(), token_id, ['fuz_forge_repo_list']);
+			const admin = await test_app.create_account({
+				roles: [ROLE_ADMIN],
+				api_token_scope: token_scope_methods(['fuz_forge_repo_list'])
+			});
 
 			const res = await download(test_app, admin.create_bearer_headers(), 'attempt.bin');
 			assert.strictEqual(res.status, 403);

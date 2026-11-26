@@ -38,7 +38,6 @@
  */
 
 import { test, assert, describe } from 'vitest';
-import { Logger } from '@fuzdev/fuz_util/log.ts';
 import { assert_rejects } from '@fuzdev/fuz_util/testing.ts';
 import {
 	default_action_account_rate_limit,
@@ -89,15 +88,14 @@ describe('create_testing_wiring', () => {
 		const wiring = await create_testing_wiring(
 			undefined,
 			create_throwing_stub<RuntimeDeps>('runtime'),
-			create_throwing_stub<AppDeps>('deps'),
-			new Logger('test')
+			create_throwing_stub<AppDeps>('deps')
 		);
 		assert.strictEqual(wiring.rate_limiters, 'enforced');
 		assert.strictEqual(wiring.action_ip_rate_limiter, undefined);
 		assert.strictEqual(wiring.action_account_rate_limiter, undefined);
 	});
 
-	// test mode reads its env gates before it starts daemon-token rotation, so a
+	// test mode reads its env gates before it writes the daemon-token file, so a
 	// bad value refuses to start with nothing running
 	for (const [name, value] of [
 		[LOGIN_RATE_LIMIT_ENABLED_ENV, 'ture'],
@@ -116,13 +114,7 @@ describe('create_testing_wiring', () => {
 				daemon_token_path: '/nonexistent/daemon_token'
 			} as unknown as ServerTestingOptions;
 			await assert_rejects(
-				() =>
-					create_testing_wiring(
-						testing,
-						runtime,
-						create_throwing_stub<AppDeps>('deps'),
-						new Logger('test')
-					),
+				() => create_testing_wiring(testing, runtime, create_throwing_stub<AppDeps>('deps')),
 				new RegExp(name)
 			);
 		});

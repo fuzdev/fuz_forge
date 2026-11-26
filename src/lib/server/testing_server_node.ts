@@ -3,7 +3,7 @@
  *
  * Thin wiring of fuz_app's `create_node_testing_adapter` + `start_testing_server`
  * onto `build_fuz_forge_testing_app`; it serves the real fuz_forge app over HTTP
- * with the test seams (fast hasher, daemon-token rotation, `_testing_reset`).
+ * with the test seams (fast hasher, daemon-token file, `_testing_reset`).
  * The TS leg of every `cross_backend_*` vitest project spawns it, as does the
  * cross-impl bench (`src/benchmarks/cross_impl.bench.ts`), where it is the
  * reference backend timed beside Bun (`server/testing_server_bun.ts`) and Rust.

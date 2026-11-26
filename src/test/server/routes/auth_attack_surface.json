@@ -24423,5 +24423,3338 @@
 			"optional": true
 		}
 	],
-	"events": []
+	"events": [
+		{
+			"method": "login",
+			"description": "Audit log: login",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		},
+		{
+			"method": "logout",
+			"description": "Audit log: logout",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		},
+		{
+			"method": "bootstrap",
+			"description": "Audit log: bootstrap",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		},
+		{
+			"method": "signup",
+			"description": "Audit log: signup",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		},
+		{
+			"method": "password_change",
+			"description": "Audit log: password change",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		},
+		{
+			"method": "session_revoke",
+			"description": "Audit log: session revoke",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		},
+		{
+			"method": "session_revoke_all",
+			"description": "Audit log: session revoke all",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		},
+		{
+			"method": "token_create",
+			"description": "Audit log: token create",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		},
+		{
+			"method": "token_revoke",
+			"description": "Audit log: token revoke",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		},
+		{
+			"method": "token_revoke_all",
+			"description": "Audit log: token revoke all",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		},
+		{
+			"method": "role_grant_create",
+			"description": "Audit log: role grant create",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		},
+		{
+			"method": "role_grant_revoke",
+			"description": "Audit log: role grant revoke",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		},
+		{
+			"method": "role_grant_offer_create",
+			"description": "Audit log: role grant offer create",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		},
+		{
+			"method": "role_grant_offer_accept",
+			"description": "Audit log: role grant offer accept",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		},
+		{
+			"method": "role_grant_offer_decline",
+			"description": "Audit log: role grant offer decline",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		},
+		{
+			"method": "role_grant_offer_retract",
+			"description": "Audit log: role grant offer retract",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		},
+		{
+			"method": "role_grant_offer_expire",
+			"description": "Audit log: role grant offer expire",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		},
+		{
+			"method": "role_grant_offer_supersede",
+			"description": "Audit log: role grant offer supersede",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		},
+		{
+			"method": "invite_create",
+			"description": "Audit log: invite create",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		},
+		{
+			"method": "invite_delete",
+			"description": "Audit log: invite delete",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		},
+		{
+			"method": "account_delete",
+			"description": "Audit log: account delete",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		},
+		{
+			"method": "account_purge",
+			"description": "Audit log: account purge",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		},
+		{
+			"method": "account_undelete",
+			"description": "Audit log: account undelete",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		},
+		{
+			"method": "actor_delete",
+			"description": "Audit log: actor delete",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		},
+		{
+			"method": "actor_purge",
+			"description": "Audit log: actor purge",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		},
+		{
+			"method": "actor_undelete",
+			"description": "Audit log: actor undelete",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		},
+		{
+			"method": "app_settings_update",
+			"description": "Audit log: app settings update",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		},
+		{
+			"method": "db_admin_row_delete",
+			"description": "Audit log: db admin row delete",
+			"channel": "audit_log",
+			"params_schema": {
+				"type": "object",
+				"properties": {
+					"id": {
+						"type": "string",
+						"format": "uuid",
+						"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+					},
+					"seq": {
+						"type": "integer",
+						"minimum": -9007199254740991,
+						"maximum": 9007199254740991
+					},
+					"event_type": {
+						"type": "string",
+						"maxLength": 64,
+						"pattern": "^[A-Za-z][A-Za-z0-9_./-]*$"
+					},
+					"outcome": {
+						"type": "string",
+						"enum": [
+							"success",
+							"failure"
+						]
+					},
+					"actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_account_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"target_actor_id": {
+						"anyOf": [
+							{
+								"type": "string",
+								"format": "uuid",
+								"pattern": "^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$"
+							},
+							{
+								"type": "null"
+							}
+						]
+					},
+					"ip": {
+						"type": [
+							"string",
+							"null"
+						]
+					},
+					"created_at": {
+						"type": "string",
+						"format": "date-time",
+						"pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d{1,9})?Z$"
+					},
+					"metadata": {
+						"anyOf": [
+							{
+								"type": "object",
+								"propertyNames": {
+									"type": "string"
+								},
+								"additionalProperties": {}
+							},
+							{
+								"type": "null"
+							}
+						]
+					}
+				},
+				"required": [
+					"id",
+					"seq",
+					"event_type",
+					"outcome",
+					"actor_id",
+					"account_id",
+					"target_account_id",
+					"target_actor_id",
+					"ip",
+					"created_at",
+					"metadata"
+				],
+				"additionalProperties": false
+			}
+		}
+	]
 }

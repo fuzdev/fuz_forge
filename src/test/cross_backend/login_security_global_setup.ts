@@ -15,12 +15,10 @@
  * @module
  */
 
-import { prepare_cargo_binary } from '@fuzdev/fuz_app/testing/cross_backend/cargo_binary.ts';
 import { create_cross_backend_global_setup } from '@fuzdev/fuz_app/testing/cross_backend/create_cross_backend_global_setup.ts';
 
 import {
 	FORGE_CARGO_BINARY,
-	FORGE_PGLET_SERVER,
 	node_login_security_backend_config,
 	rust_login_security_backend_config
 } from './fuz_forge_backend_config.ts';
@@ -30,7 +28,6 @@ export default create_cross_backend_global_setup({
 		login_security_node: () => node_login_security_backend_config(),
 		login_security_rust: rust_login_security_backend_config
 	},
-	databases: { login_security_rust: FORGE_PGLET_SERVER },
-	before_spawn: { login_security_rust: () => prepare_cargo_binary(FORGE_CARGO_BINARY) },
+	cargo_binaries: { login_security_rust: FORGE_CARGO_BINARY },
 	derive_name: (project_name) => project_name.replace(/^cross_backend_/, '').replace('_ts_', '_')
 });

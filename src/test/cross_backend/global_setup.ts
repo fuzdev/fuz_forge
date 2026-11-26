@@ -15,7 +15,6 @@
  * @module
  */
 
-import { prepare_cargo_binary } from '@fuzdev/fuz_app/testing/cross_backend/cargo_binary.ts';
 import { create_cross_backend_global_setup } from '@fuzdev/fuz_app/testing/cross_backend/create_cross_backend_global_setup.ts';
 import {
 	with_backend_log_allowances,
@@ -24,7 +23,6 @@ import {
 
 import {
 	FORGE_CARGO_BINARY,
-	FORGE_PGLET_SERVER,
 	node_backend_config,
 	rust_backend_config
 } from './fuz_forge_backend_config.ts';
@@ -88,6 +86,5 @@ export default create_cross_backend_global_setup({
 		rust: (database_url) =>
 			with_backend_log_allowances(rust_backend_config(database_url), FORGE_SUITE_BACKEND_ERRORS)
 	},
-	databases: { rust: FORGE_PGLET_SERVER },
-	before_spawn: { rust: () => prepare_cargo_binary(FORGE_CARGO_BINARY) }
+	cargo_binaries: { rust: FORGE_CARGO_BINARY }
 });

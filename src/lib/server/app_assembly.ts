@@ -15,14 +15,13 @@
  *   semaphore + orphan-temp sweeper (Rust: `fact_store.rs` `FactStoreHandle` +
  *   `fuz_fact::spawn_orphan_temp_sweeper`, run from `runtime.rs`
  *   `extra_upkeep`).
- * - `create_testing_wiring` — the test-only daemon-token rotation +
+ * - `create_testing_wiring` — the test-only daemon-token file +
  *   injected actions + rate-limiter gates (Rust: the
  *   `testing_fuz_forge_server` crate boundary).
  *
  * @module
  */
 
-import { dirname } from 'node:path';
 import { Logger } from '@fuzdev/fuz_util/log.ts';
 import { AsyncSemaphore } from '@fuzdev/fuz_util/async.ts';
 import { parse } from '@fuzdev/fuz_schema/schema.ts';
@@ -38,7 +37,7 @@ import {
 	type RateLimiterOptions
 } from '@fuzdev/fuz_app/rate_limiter.ts';
 import type { DaemonTokenState } from '@fuzdev/fuz_app/auth/daemon_token.ts';
-import type { DaemonTokenRotation } from '@fuzdev/fuz_app/testing/daemon_token_rotation.ts';
+import type { DaemonTokenFile } from '@fuzdev/fuz_app/testing/daemon_token_file.ts';
 import type { AppDeps } from '@fuzdev/fuz_app/auth/deps.ts';
 import type { RpcAction } from '@fuzdev/fuz_app/actions/action_types.ts';
 import { ConnectionRegistry } from '@fuzdev/fuz_app/actions/connection_registry.ts';
@@ -400,7 +399,7 @@ export interface TestingWiring {
 	action_account_rate_limiter: RateLimiter | null | undefined;
 	/** Whether `create_app_server` awaits pending effects per response (test-only). */
 	await_pending_effects: boolean;
-	/** Stops daemon-token rotation; no-op in production. Composed into the app's `close()`. */
+	/** Removes the daemon-token file; no-op in production. Composed into the app's `close()`. */
 	stop: () => Promise<void>;
 }
 
@@ -533,10 +532,10 @@ export const resolve_testing_action_rate_limiters = (
 
 /**
  * Wire the cross-process test seams. Production passes no `testing`, so this
- * returns the inert bundle (no daemon-token rotation, no injected actions,
+ * returns the inert bundle (no daemon-token file, no injected actions,
  * `rate_limiters: 'enforced'` with no limiter of its own, no
  * `await_pending_effects`) and reads none of the test-mode env gates. In test
- * mode it starts daemon-token rotation (the `_testing_reset` keeper credential
+ * mode it writes the daemon-token file (the `_testing_reset` keeper credential
  * channel), builds the injected `_testing_*` actions, and resolves the two
  * limiter gates — the auth limiters off unless `LOGIN_RATE_LIMIT_ENABLED_ENV`
  * says otherwise, the action limiters off unless
@@ -550,8 +549,7 @@ export const resolve_testing_action_rate_limiters = (
 export const create_testing_wiring = async (
 	testing: ServerTestingOptions | undefined,
 	runtime: RuntimeDeps,
-	deps: AppDeps,
-	log: Logger
+	deps: AppDeps
 ): Promise<TestingWiring> => {
 	if (!testing) {
 		return {
@@ -576,32 +574,22 @@ export const create_testing_wiring = async (
 		action_rate_limiters.action_account_rate_limiter?.dispose();
 	};
 
-	// Daemon-token rotation — the `_testing_reset` action gates on the
-	// daemon-token credential, and the cross-process harness reads the rotated
-	// token to authenticate the keeper channel. The producer moved into
-	// fuz_app's `testing/` behind the dev-env guard, so import it lazily here —
-	// only the `testing` branch ever reaches it, keeping the production path
-	// free of test-only modules.
-	let daemon_token_rotation: DaemonTokenRotation;
+	// The daemon-token file — the `_testing_reset` action gates on the
+	// daemon-token credential, and the cross-process harness reads the
+	// token to authenticate the keeper channel. Its producer is in fuz_app's
+	// `testing/`, behind the dev-env guard, so it is imported lazily here:
+	// only the `testing` branch reaches it, keeping test-only modules off the
+	// production path.
+	let daemon_token_file: DaemonTokenFile;
 	try {
-		const { start_daemon_token_rotation } =
-			await import('@fuzdev/fuz_app/testing/daemon_token_rotation.ts');
-		await runtime.mkdir(dirname(testing.daemon_token_path), { recursive: true });
-		daemon_token_rotation = await start_daemon_token_rotation(
+		const { create_daemon_token_file } =
+			await import('@fuzdev/fuz_app/testing/daemon_token_file.ts');
+		// one static token for the whole run, as the Rust testing binary's: the
+		// cross-process harness reads it once at spawn and caches it
+		daemon_token_file = await create_daemon_token_file(
 			runtime,
 			{ db: deps.db },
-			{
-				token_path: testing.daemon_token_path,
-				// Effectively never rotate during a test run. The cross-process
-				// harness reads the daemon token ONCE at spawn and caches it, so a
-				// rotation mid-run would invalidate that cached token (401
-				// `invalid_daemon_token`); the 30s default could be crossed by a
-				// slow or loaded run. Pin a long interval so the token stays static
-				// for the whole run, matching the Rust testing binary's static
-				// daemon token. (≤ setInterval's ~24.8-day max.)
-				rotation_interval_ms: 24 * 60 * 60 * 1000
-			},
-			log
+			testing.daemon_token_path
 		);
 	} catch (error) {
 		dispose_action_rate_limiters();
@@ -611,12 +599,12 @@ export const create_testing_wiring = async (
 	// Injected `_testing_*` actions, closing over the backend deps + daemon-token
 	// state.
 	const extra_rpc_actions = testing.extra_rpc_actions_factory(deps, {
-		daemon_token_state: daemon_token_rotation.state,
+		daemon_token_state: daemon_token_file.state,
 		session_cookie_name: FUZ_FORGE_SESSION_COOKIE_NAME
 	});
 
 	return {
-		daemon_token_state: daemon_token_rotation.state,
+		daemon_token_state: daemon_token_file.state,
 		extra_rpc_actions,
 		final_rpc_actions_factory: testing.final_rpc_actions_factory,
 		rate_limiters,
@@ -624,7 +612,7 @@ export const create_testing_wiring = async (
 		await_pending_effects: true,
 		stop: async () => {
 			dispose_action_rate_limiters();
-			await daemon_token_rotation.stop();
+			await daemon_token_file.stop();
 		}
 	};
 };

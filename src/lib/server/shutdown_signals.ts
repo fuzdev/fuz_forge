@@ -23,7 +23,7 @@ import {
  * backstop past the app server's drain bound
  * (`DEFAULT_SHUTDOWN_DRAIN_TIMEOUT_MS`, which the forge leaves at its
  * default), not a bound of its own. The drain bound starts only once the
- * orphan-temp sweep and the daemon-token rotation have stopped, so a backstop
+ * orphan-temp sweep has stopped and the daemon-token file is removed, so a backstop
  * equal to it would fire first, cutting off the drain's give-up log and the
  * exit it decides. Within the bound the app server reports what it gave up on
  * and the handler exits `1`, as the Rust server's one drain bound covers its

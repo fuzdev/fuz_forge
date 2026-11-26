@@ -6,7 +6,7 @@
  * (`@fuzdev/fuz_app/testing/cross_backend/testing_server_{core,node,bun}.ts`).
  * This module keeps only what's fuz_forge-specific: building the production
  * `create_app` with the test seams wired — `stub_password_deps`, daemon-token
- * rotation, the test rate-limiter gates, and the `_testing_*` seams from
+ * file, the test rate-limiter gates, and the `_testing_*` seams from
  * `testing_rpc_actions.ts` — the bundle on both mounts, and through the
  * last-position `final_rpc_actions_factory` `_testing_action_manifest`, which
  * has to enumerate the mount it lives on.
@@ -41,7 +41,7 @@ export interface ResolvedFuzForgeTestingConfig {
 	host: string;
 	port: number;
 	/**
-	 * Where daemon-token rotation writes the deterministic token:
+	 * Where the daemon-token file holds the run's token:
 	 * `{FUZ_FORGE_DAEMON_TOKEN_DIR}/run/daemon_token`, exactly where
 	 * `build_test_backend_paths` tells the harness to read it. The Rust test
 	 * binary reads the same env var.
@@ -138,7 +138,7 @@ export const build_fuz_forge_testing_app = async (
 			extra_rpc_actions_factory: (deps, { daemon_token_state, session_cookie_name }) => {
 				if (!daemon_token_state) {
 					throw new Error(
-						'testing server requires daemon-token rotation (it provides keeper credentials for _testing_reset)'
+						'testing server requires the daemon-token file (it provides keeper credentials for _testing_reset)'
 					);
 				}
 				// one list for both mounts (HTTP RPC + WS), and the one the cross
