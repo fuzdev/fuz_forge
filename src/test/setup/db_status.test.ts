@@ -13,7 +13,11 @@ import { is_reported_error, is_task_error } from '@fuzdev/gro/task_error.ts';
 
 import { run_db_status, type DbStatusDeps } from '#lib/setup/db_status.ts';
 import { create_mock_runtime } from '../runtime_mock.ts';
-import { capture_console } from '../capture_console.ts';
+import {
+	create_recording_setup_flow_logger,
+	messages_of,
+	type RecordingSetupFlowLogger
+} from './setup_flow_logger_recorder.ts';
 
 const runtime_with_url = (database_url: string) => {
 	const runtime = create_mock_runtime();
@@ -21,25 +25,24 @@ const runtime_with_url = (database_url: string) => {
 	return runtime;
 };
 
+/** Run the status over `deps` and a recording logger, returning its output and what it threw. */
 const run = async (
-	deps: DbStatusDeps
-): Promise<{ logs: Array<string>; errors: Array<string>; failure: unknown }> => {
-	const { logs, errors, restore } = capture_console();
+	deps: Omit<DbStatusDeps, 'log'>
+): Promise<{ log: RecordingSetupFlowLogger; failure: unknown }> => {
+	const log = create_recording_setup_flow_logger();
 	let failure: unknown;
 	try {
-		await run_db_status(deps);
+		await run_db_status({ ...deps, log });
 	} catch (error) {
 		failure = error;
-	} finally {
-		restore();
 	}
-	return { logs, errors, failure };
+	return { log, failure };
 };
 
 describe('run_db_status', () => {
 	test('reports a reachable database on stdout, closing it', async () => {
 		let closed = false;
-		const { logs, errors, failure } = await run({
+		const { log, failure } = await run({
 			runtime: runtime_with_url('memory://'),
 			connect: async (url) => {
 				const result = await create_db(url);
@@ -53,10 +56,15 @@ describe('run_db_status', () => {
 			}
 		});
 		assert.isUndefined(failure);
-		assert.deepEqual(errors, []);
-		assert.strictEqual(logs[0], 'database status');
-		assert.match(logs[1] ?? '', /^ {2}url: /);
-		assert.match(logs[2] ?? '', /^ {2}driver: /);
+		assert.deepEqual(messages_of(log, 'print_error'), []);
+		const lines = messages_of(log, 'print');
+		assert.deepEqual(lines.slice(0, 3), [
+			'database status',
+			'  url: memory://',
+			'  driver: pglet-memory'
+		]);
+		assert.lengthOf(lines, 4, 'the header, then the report as one block');
+		assert.notMatch(lines[3] ?? '', /\n$/, 'the report without its trailing newline');
 		assert.ok(closed);
 	});
 
@@ -67,7 +75,7 @@ describe('run_db_status', () => {
 				throw new Error('connect ECONNREFUSED 127.0.0.1:1');
 			}
 		} as unknown as Db;
-		const { logs, errors, failure } = await run({
+		const { log, failure } = await run({
 			runtime: runtime_with_url('postgres://user:secret@127.0.0.1:1/scratch_unreachable'),
 			connect: async (): Promise<CreateDbResult> =>
 				({
@@ -80,9 +88,9 @@ describe('run_db_status', () => {
 				}) as unknown as CreateDbResult
 		});
 		assert.ok(is_reported_error(failure));
-		assert.deepEqual(logs, []);
-		assert.include(errors.join('\n'), 'ECONNREFUSED');
-		assert.notInclude(errors.join('\n'), 'secret');
+		assert.deepEqual(log.entries, [
+			['print_error', '  connection: FAILED (connect ECONNREFUSED 127.0.0.1:1)']
+		]);
 		assert.ok(closed);
 	});
 

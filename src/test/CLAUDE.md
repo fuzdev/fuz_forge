@@ -16,7 +16,7 @@ its readers are (§ Route / RPC Integration Tests).
 src/test/
 ├── CLAUDE.md                           # this file
 ├── runtime_mock.ts                     # RuntimeDeps mock
-├── capture_console.ts                  # collects a flow's console output
+├── capture_console.ts                  # collects the release flow's console output
 ├── db_fixture.ts                       # describe_db + db_factories (pglet-wasm, + Postgres opt-in)
 ├── unit_db_guard.ts                    # unit project setup: a misnamed DB test fails naming the `.db.test.ts` fix
 ├── git_upstream_server.ts              # loopback dumb-HTTP git origin for `seed_from` clones
@@ -26,7 +26,7 @@ src/test/
 ├── fixtures/parity/                    # shared TS↔Rust case tables + the TS loader (§ Parity fixtures)
 ├── cross_backend/                      # *.cross.test.ts — a spawned backend over HTTP
 ├── runtime/                            # path/tilde expansion, byte-chunk concatenation
-├── setup/                              # the dev/prod setup flows and the dev-DB status, over the mock runtime
+├── setup/                              # the dev/prod setup flows and the dev-DB status, over the mock runtime and a recording logger
 ├── server/routes/                      # route/RPC integration, attack surface, files, repo_git, scoped tokens
 ├── server/git/                         # git parse + read (stderr classification chain)
 ├── server/env/                         # the `ServerEnv` contract (canonical vs. retired names)

@@ -27,6 +27,7 @@ import type { Spawn } from '@fuzdev/gro/spawn.ts';
 import { TaskError } from '@fuzdev/gro/task_error.ts';
 
 import { DEV_ENV_PATH, ensure_env_file } from './env_file.ts';
+import type { SetupFlowLogger } from './setup_flow_logger.ts';
 
 /** The `RuntimeDeps` slice fuz_app's setup helpers take for these flows. */
 export type DevSetupRuntimeDeps = FsReadDeps & FsWriteDeps & FsRemoveDeps & EnvDeps;
@@ -37,6 +38,8 @@ export interface DevSetupDeps {
 	runtime: DevSetupRuntimeDeps;
 	/** `createdb` and `dropdb`, which create and reset the database `DATABASE_URL` names. */
 	postgres: PostgresProgramDeps;
+	/** Takes the flow's output, fuz_app's helpers' status lines included. */
+	log: SetupFlowLogger;
 }
 
 /**
@@ -78,7 +81,7 @@ export interface DevSetupOptions {
  * `createdb`; any other URL that doesn't end with a Postgres database
  * existing fails the setup.
  *
- * @param deps - fuz_app's setup helpers' capabilities and the Postgres programs
+ * @param deps - fuz_app's setup helpers' capabilities, the Postgres programs, and the output sink
  * @param options - the dev forge home
  * @throws `TaskError` - when `.env.development` and its example are both missing
  * @throws `TaskError` - when `.env.development` has no `DATABASE_URL`, before the token
@@ -91,29 +94,29 @@ export const run_dev_setup = async (
 	deps: DevSetupDeps,
 	options: DevSetupOptions
 ): Promise<void> => {
-	const { runtime, postgres } = deps;
+	const { runtime, postgres, log } = deps;
 	const { fuz_forge_home } = options;
 
-	console.log('fuz_forge dev setup');
-	console.log(`Home: ${fuz_forge_home}`);
-	console.log();
+	log.print('fuz_forge dev setup');
+	log.print(`Home: ${fuz_forge_home}`);
+	log.print('');
 
-	console.log('Environment file:');
-	await ensure_env_file(runtime, DEV_ENV_PATH);
+	log.print('Environment file:');
+	await ensure_env_file(runtime, DEV_ENV_PATH, log);
 	const database_url = await read_env_var(runtime, DEV_ENV_PATH, 'DATABASE_URL');
 	if (!database_url) {
 		throw new TaskError(
 			`${DEV_ENV_PATH} has no DATABASE_URL. Set one, as its example does, and re-run \`npm run dev:setup\`.`
 		);
 	}
-	console.log();
+	log.print('');
 
-	console.log('Bootstrap token:');
-	await setup_bootstrap_token(runtime, 'fuz_forge', { state_dir: fuz_forge_home });
-	console.log();
+	log.print('Bootstrap token:');
+	await setup_bootstrap_token(runtime, 'fuz_forge', { state_dir: fuz_forge_home, log });
+	log.print('');
 
-	console.log('Database:');
-	const created = await create_database(postgres, database_url);
+	log.print('Database:');
+	const created = await create_database(postgres, database_url, { log });
 	// `create_database` has just logged why; fuz_forge opens no PGlite
 	// `file://` database, so only `memory://` needs no Postgres one
 	if (
@@ -135,14 +138,14 @@ export const run_dev_setup = async (
 			`The database the DATABASE_URL in ${DEV_ENV_PATH} names was not created. Fix that and re-run \`npm run dev:setup\`.`
 		);
 	}
-	console.log();
+	log.print('');
 
-	console.log('Done. Next: gro dev');
-	console.log();
-	console.log('After starting the server, bootstrap your keeper account:');
-	console.log('  1. Open the web UI');
-	console.log(`  2. Enter the bootstrap token: cat ${fuz_forge_home}/secret_bootstrap_token`);
-	console.log('  3. Choose a username and password');
+	log.print('Done. Next: gro dev');
+	log.print('');
+	log.print('After starting the server, bootstrap your keeper account:');
+	log.print('  1. Open the web UI');
+	log.print(`  2. Enter the bootstrap token: cat ${fuz_forge_home}/secret_bootstrap_token`);
+	log.print('  3. Choose a username and password');
 };
 
 /**
@@ -153,7 +156,7 @@ export const run_dev_setup = async (
  * Only a Postgres database is reset, on the server `DATABASE_URL` names; an
  * in-memory URL has nothing to reset, and any other URL refuses.
  *
- * @param deps - fuz_app's setup helpers' capabilities and the Postgres programs
+ * @param deps - fuz_app's setup helpers' capabilities, the Postgres programs, and the output sink
  * @param options - the dev forge home
  * @throws `TaskError` - when `.env.development` has no `DATABASE_URL`, before changing anything
  * @throws `TaskError` - when its database isn't dropped and recreated, before the token
@@ -164,12 +167,12 @@ export const run_dev_reset = async (
 	deps: DevSetupDeps,
 	options: DevSetupOptions
 ): Promise<void> => {
-	const { runtime, postgres } = deps;
+	const { runtime, postgres, log } = deps;
 	const { fuz_forge_home } = options;
 
-	console.log('fuz_forge dev reset');
-	console.log(`Home: ${fuz_forge_home}`);
-	console.log();
+	log.print('fuz_forge dev reset');
+	log.print(`Home: ${fuz_forge_home}`);
+	log.print('');
 
 	const database_url = await read_env_var(runtime, DEV_ENV_PATH, 'DATABASE_URL');
 	if (!database_url) {
@@ -178,8 +181,8 @@ export const run_dev_reset = async (
 		);
 	}
 
-	console.log('Database:');
-	const reset = await reset_database({ ...runtime, ...postgres }, database_url);
+	log.print('Database:');
+	const reset = await reset_database({ ...runtime, ...postgres }, database_url, { log });
 	// a database that wasn't dropped and recreated, which `reset_database` has
 	// just logged why; fuz_forge names no PGlite directory, so a `file://` URL
 	// is skipped and refused here too
@@ -193,15 +196,15 @@ export const run_dev_reset = async (
 					: `The DATABASE_URL in ${DEV_ENV_PATH} names no database.`
 		);
 	}
-	console.log();
+	log.print('');
 
-	console.log('Bootstrap token:');
-	await reset_bootstrap_token(runtime, 'fuz_forge', { state_dir: fuz_forge_home });
-	console.log();
+	log.print('Bootstrap token:');
+	await reset_bootstrap_token(runtime, 'fuz_forge', { state_dir: fuz_forge_home, log });
+	log.print('');
 
-	console.log('Environment file:');
-	await ensure_env_file(runtime, DEV_ENV_PATH);
-	console.log();
+	log.print('Environment file:');
+	await ensure_env_file(runtime, DEV_ENV_PATH, log);
+	log.print('');
 
-	console.log('Done. Start the server and bootstrap a new account.');
+	log.print('Done. Start the server and bootstrap a new account.');
 };

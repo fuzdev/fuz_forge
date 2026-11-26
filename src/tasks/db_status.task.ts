@@ -4,6 +4,7 @@ import * as s from '@fuzdev/fuz_schema/schema.ts';
 import type { Task } from '@fuzdev/gro/task.ts';
 
 import { run_db_status } from '#lib/setup/db_status.ts';
+import { console_setup_flow_logger } from '#lib/setup/setup_flow_logger.ts';
 
 export const Args = s.object({});
 export type Args = s.Infer<typeof Args>;
@@ -15,7 +16,8 @@ export const task: Task<Args> = {
 	run: async () => {
 		await run_db_status({
 			runtime: create_node_runtime([]),
-			connect: (database_url) => create_db(database_url)
+			connect: (database_url) => create_db(database_url),
+			log: console_setup_flow_logger
 		});
 	}
 };

@@ -17,6 +17,7 @@ import { ReportedError, TaskError } from '@fuzdev/gro/task_error.ts';
 
 import { fuz_forge_migration_namespaces } from '../server/db/fuz_forge_schema.ts';
 import { DEV_ENV_PATH } from './env_file.ts';
+import type { SetupFlowLogger } from './setup_flow_logger.ts';
 
 /** Capabilities for `run_db_status`. */
 export interface DbStatusDeps {
@@ -24,12 +25,14 @@ export interface DbStatusDeps {
 	runtime: Pick<FsReadDeps, 'read_text_file'>;
 	/** Opens the database a URL names, fuz_app's `create_db` outside tests. */
 	connect: (database_url: string) => Promise<CreateDbResult>;
+	/** Takes the report: stdout when connected, stderr when not. */
+	log: Pick<SetupFlowLogger, 'print' | 'print_error'>;
 }
 
 /**
  * Report the status of the database `.env.development`'s `DATABASE_URL` names. Read-only.
  *
- * @param deps - the env-file read and the connection
+ * @param deps - the env-file read, the connection, and the output sink
  * @throws `TaskError` - when `.env.development` has no `DATABASE_URL`
  * @throws `ReportedError` - when the database can't be reached, after reporting why on stderr
  */
@@ -46,15 +49,15 @@ export const run_db_status = async (deps: DbStatusDeps): Promise<void> => {
 	try {
 		const status = await query_db_status(db, fuz_forge_migration_namespaces);
 		connected = status.connected;
-		// the report ends in a newline, which `console.log` would double
+		// the report ends in a newline, which a printed line would double
 		const report = format_db_status(status).trimEnd();
 		if (connected) {
-			console.log('database status');
-			console.log(`  url: ${display_db_url(database_url)}`);
-			console.log(`  driver: ${db_type}`);
-			console.log(report);
+			deps.log.print('database status');
+			deps.log.print(`  url: ${display_db_url(database_url)}`);
+			deps.log.print(`  driver: ${db_type}`);
+			deps.log.print(report);
 		} else {
-			console.error(report);
+			deps.log.print_error(report);
 		}
 	} finally {
 		await close();

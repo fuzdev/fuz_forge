@@ -9,6 +9,7 @@ import {
 	to_dev_fuz_forge_home,
 	to_postgres_programs
 } from '#lib/setup/dev_setup.ts';
+import { console_setup_flow_logger } from '#lib/setup/setup_flow_logger.ts';
 
 export const Args = s.object({});
 export type Args = s.Infer<typeof Args>;
@@ -19,7 +20,11 @@ export const task: Task<Args> = {
 	Args,
 	run: async () => {
 		await run_dev_reset(
-			{ runtime: create_node_runtime([]), postgres: to_postgres_programs(spawn) },
+			{
+				runtime: create_node_runtime([]),
+				postgres: to_postgres_programs(spawn),
+				log: console_setup_flow_logger
+			},
 			{ fuz_forge_home: to_dev_fuz_forge_home(cwd()) }
 		);
 	}

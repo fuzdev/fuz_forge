@@ -25,7 +25,11 @@ import {
 	type DevSetupDeps
 } from '#lib/setup/dev_setup.ts';
 import { create_mock_runtime, type MockFuzForgeRuntime } from '../runtime_mock.ts';
-import { capture_console } from '../capture_console.ts';
+import {
+	create_recording_setup_flow_logger,
+	messages_of,
+	type RecordingSetupFlowLogger
+} from './setup_flow_logger_recorder.ts';
 
 const HOME = '/scratch/project/.fuz_forge';
 const TOKEN_PATH = `${HOME}/secret_bootstrap_token`;
@@ -37,12 +41,13 @@ const OLD_TOKEN = 'b'.repeat(64) + '\n';
 interface TestDeps extends DevSetupDeps {
 	runtime: MockFuzForgeRuntime;
 	postgres: { createdb: MockProgramFactory; dropdb: MockProgramFactory };
+	log: RecordingSetupFlowLogger;
 }
 
 /**
  * A mock runtime with `HOME` set, which fuz_app's token helpers require even
- * with `state_dir` given, and `createdb` / `dropdb` that succeed unless given
- * other fakes.
+ * with `state_dir` given, `createdb` / `dropdb` that succeed unless given
+ * other fakes, and a logger that records the flow's output.
  */
 const create_deps = (postgres: Partial<TestDeps['postgres']> = {}): TestDeps => {
 	const runtime = create_mock_runtime();
@@ -52,7 +57,8 @@ const create_deps = (postgres: Partial<TestDeps['postgres']> = {}): TestDeps => 
 		postgres: {
 			createdb: postgres.createdb ?? create_mock_program_factory(),
 			dropdb: postgres.dropdb ?? create_mock_program_factory()
-		}
+		},
+		log: create_recording_setup_flow_logger()
 	};
 };
 
@@ -62,35 +68,16 @@ const calls_of = (deps: TestDeps) => ({
 	dropdb: deps.postgres.dropdb.program?.calls ?? null
 });
 
-/** Run `fn` with its console output collected, rethrowing what it throws. */
-const quietly = async (fn: () => Promise<void>): Promise<{ logs: Array<string> }> => {
-	const { logs, restore } = capture_console();
-	try {
-		await fn();
-	} finally {
-		restore();
-	}
-	return { logs };
-};
-
-/** Run `fn` expecting a `TaskError`, returning its message and the console output before it. */
-const task_error_logs = async (
-	fn: () => Promise<void>
-): Promise<{ logs: Array<string>; errors: Array<string>; message: string }> => {
-	const { logs, errors, restore } = capture_console();
+/** Run `fn` expecting a `TaskError`, returning its message. */
+const task_error_message = async (fn: () => Promise<void>): Promise<string> => {
 	try {
 		await fn();
 	} catch (error) {
 		assert.ok(is_task_error(error), `expected a TaskError, got ${error}`);
-		return { logs, errors, message: error.message };
-	} finally {
-		restore();
+		return error.message;
 	}
 	assert.fail('expected a TaskError');
 };
-
-const task_error_message = async (fn: () => Promise<void>): Promise<string> =>
-	(await task_error_logs(fn)).message;
 
 describe('to_dev_fuz_forge_home', () => {
 	test("is the project's .fuz_forge", () => {
@@ -121,7 +108,7 @@ describe('run_dev_setup', () => {
 	test('creates the env file with a generated key, the token, and the database', async () => {
 		const deps = create_deps();
 		deps.runtime.mock_fs.set('.env.development.example', EXAMPLE);
-		const { logs } = await quietly(() => run_dev_setup(deps, { fuz_forge_home: HOME }));
+		await run_dev_setup(deps, { fuz_forge_home: HOME });
 
 		const env = deps.runtime.mock_fs.get('.env.development');
 		assert.ok(env);
@@ -132,9 +119,26 @@ describe('run_dev_setup', () => {
 			createdb: [to_createdb_args('fuz_forge_dev', DEV_URL)],
 			dropdb: []
 		});
-		assert.include(logs, `Home: ${HOME}`);
-		assert.include(logs, 'Done. Next: gro dev');
-		assert.include(logs, `  2. Enter the bootstrap token: cat ${TOKEN_PATH}`);
+		assert.deepEqual(deps.log.entries, [
+			['print', 'fuz_forge dev setup'],
+			['print', `Home: ${HOME}`],
+			['print', ''],
+			['print', 'Environment file:'],
+			['ok', 'Created .env.development with generated secrets'],
+			['print', ''],
+			['print', 'Bootstrap token:'],
+			['ok', `Created ${TOKEN_PATH} (one-shot, deleted after first use)`],
+			['print', ''],
+			['print', 'Database:'],
+			['ok', 'Created fuz_forge_dev database'],
+			['print', ''],
+			['print', 'Done. Next: gro dev'],
+			['print', ''],
+			['print', 'After starting the server, bootstrap your keeper account:'],
+			['print', '  1. Open the web UI'],
+			['print', `  2. Enter the bootstrap token: cat ${TOKEN_PATH}`],
+			['print', '  3. Choose a username and password']
+		]);
 	});
 
 	test('keeps an existing env file and token as they are, creating the database it names', async () => {
@@ -143,7 +147,7 @@ describe('run_dev_setup', () => {
 		const existing = 'DATABASE_URL=postgres://localhost/mine\n' + KEY;
 		deps.runtime.mock_fs.set('.env.development', existing);
 		deps.runtime.mock_fs.set(TOKEN_PATH, OLD_TOKEN);
-		await quietly(() => run_dev_setup(deps, { fuz_forge_home: HOME }));
+		await run_dev_setup(deps, { fuz_forge_home: HOME });
 		assert.strictEqual(deps.runtime.mock_fs.get('.env.development'), existing);
 		assert.strictEqual(deps.runtime.mock_fs.get(TOKEN_PATH), OLD_TOKEN);
 		assert.deepEqual(calls_of(deps).createdb, [
@@ -157,7 +161,7 @@ describe('run_dev_setup', () => {
 			'.env.development',
 			'DATABASE_URL=postgres://localhost/mine\nSECRET_FUZ_COOKIE_KEYS=\n'
 		);
-		await quietly(() => run_dev_setup(deps, { fuz_forge_home: HOME }));
+		await run_dev_setup(deps, { fuz_forge_home: HOME });
 		const env = deps.runtime.mock_fs.get('.env.development') ?? '';
 		assert.include(env, 'DATABASE_URL=postgres://localhost/mine\n');
 		assert.match(env, /^SECRET_FUZ_COOKIE_KEYS=[0-9a-f]{64}$/m);
@@ -167,7 +171,7 @@ describe('run_dev_setup', () => {
 		const deps = create_deps();
 		const existing = `DATABASE_URL=${DEV_URL}\n` + KEY;
 		deps.runtime.mock_fs.set('.env.development', existing);
-		await quietly(() => run_dev_setup(deps, { fuz_forge_home: HOME }));
+		await run_dev_setup(deps, { fuz_forge_home: HOME });
 		assert.strictEqual(deps.runtime.mock_fs.get('.env.development'), existing);
 	});
 
@@ -183,16 +187,16 @@ describe('run_dev_setup', () => {
 			)
 		});
 		deps.runtime.mock_fs.set('.env.development.example', EXAMPLE);
-		const { logs } = await quietly(() => run_dev_setup(deps, { fuz_forge_home: HOME }));
-		assert.include(logs, 'Done. Next: gro dev');
+		await run_dev_setup(deps, { fuz_forge_home: HOME });
+		assert.include(messages_of(deps.log, 'print'), 'Done. Next: gro dev');
 	});
 
 	test('an in-memory database needs no createdb', async () => {
 		const deps = create_deps();
 		deps.runtime.mock_fs.set('.env.development', 'DATABASE_URL=memory://\n' + KEY);
-		const { logs } = await quietly(() => run_dev_setup(deps, { fuz_forge_home: HOME }));
+		await run_dev_setup(deps, { fuz_forge_home: HOME });
 		assert.deepEqual(calls_of(deps), { createdb: [], dropdb: [] });
-		assert.include(logs, 'Done. Next: gro dev');
+		assert.include(messages_of(deps.log, 'print'), 'Done. Next: gro dev');
 	});
 
 	test('refuses with neither the env file nor its example, changing nothing', async () => {
@@ -216,12 +220,10 @@ describe('run_dev_setup', () => {
 	test('fails without createdb, after the env file and the token', async () => {
 		const deps = create_deps({ createdb: create_mock_program_factory(null) });
 		deps.runtime.mock_fs.set('.env.development.example', EXAMPLE);
-		const { logs, message } = await task_error_logs(() =>
-			run_dev_setup(deps, { fuz_forge_home: HOME })
-		);
+		const message = await task_error_message(() => run_dev_setup(deps, { fuz_forge_home: HOME }));
 		assert.include(message, "createdb isn't installed");
-		assert.include(logs.join('\n'), 'createdb not found');
-		assert.notInclude(logs, 'Done. Next: gro dev');
+		assert.match(messages_of(deps.log, 'skip').at(-1) ?? '', /^createdb not found/);
+		assert.notInclude(messages_of(deps.log, 'print'), 'Done. Next: gro dev');
 		assert.deepEqual(deps.postgres.createdb.envs, [{}], 'asked for createdb once');
 		assert.isTrue(deps.runtime.mock_fs.has('.env.development'));
 		assert.isTrue(deps.runtime.mock_fs.has(TOKEN_PATH));
@@ -236,23 +238,24 @@ describe('run_dev_setup', () => {
 			)
 		});
 		deps.runtime.mock_fs.set('.env.development.example', EXAMPLE);
-		const { logs, errors, message } = await task_error_logs(() =>
-			run_dev_setup(deps, { fuz_forge_home: HOME })
-		);
+		const message = await task_error_message(() => run_dev_setup(deps, { fuz_forge_home: HOME }));
 		assert.include(message, 'was not created');
-		assert.include(errors.join('\n'), 'Connection refused');
-		assert.notInclude(logs, 'Done. Next: gro dev');
+		assert.deepEqual(deps.log.entries.slice(-2), [
+			['print', 'Database:'],
+			[
+				'error',
+				'Failed to create database fuz_forge_dev: createdb: error: connection to server failed: Connection refused'
+			]
+		]);
 	});
 
 	for (const url of ['file:///scratch/pglite', 'mysql://localhost/x']) {
 		test(`refuses ${url.split(':')[0]}://, which names no Postgres database`, async () => {
 			const deps = create_deps();
 			deps.runtime.mock_fs.set('.env.development', `DATABASE_URL=${url}\n` + KEY);
-			const { logs, message } = await task_error_logs(() =>
-				run_dev_setup(deps, { fuz_forge_home: HOME })
-			);
+			const message = await task_error_message(() => run_dev_setup(deps, { fuz_forge_home: HOME }));
 			assert.include(message, 'names no Postgres database');
-			assert.notInclude(logs, 'Done. Next: gro dev');
+			assert.notInclude(messages_of(deps.log, 'print'), 'Done. Next: gro dev');
 			assert.deepEqual(calls_of(deps), { createdb: [], dropdb: [] });
 		});
 	}
@@ -266,7 +269,7 @@ describe('run_dev_reset', () => {
 		const existing = `DATABASE_URL=${SCRATCH_URL}\n` + KEY;
 		deps.runtime.mock_fs.set('.env.development', existing);
 		deps.runtime.mock_fs.set(TOKEN_PATH, OLD_TOKEN);
-		await quietly(() => run_dev_reset(deps, { fuz_forge_home: HOME }));
+		await run_dev_reset(deps, { fuz_forge_home: HOME });
 		assert.deepEqual(calls_of(deps), {
 			dropdb: [to_dropdb_args('scratch_dev', SCRATCH_URL)],
 			createdb: [to_createdb_args('scratch_dev', SCRATCH_URL)]
@@ -275,13 +278,30 @@ describe('run_dev_reset', () => {
 		assert.match(token ?? '', /^[0-9a-f]{64}\n$/);
 		assert.notStrictEqual(token, OLD_TOKEN);
 		assert.strictEqual(deps.runtime.mock_fs.get('.env.development'), existing, 'secrets kept');
+		assert.deepEqual(deps.log.entries, [
+			['print', 'fuz_forge dev reset'],
+			['print', `Home: ${HOME}`],
+			['print', ''],
+			['print', 'Database:'],
+			['ok', 'Dropped database: scratch_dev'],
+			['ok', 'Created database: scratch_dev'],
+			['print', ''],
+			['print', 'Bootstrap token:'],
+			['ok', `Removed existing ${TOKEN_PATH}`],
+			['ok', `Created ${TOKEN_PATH} (one-shot, deleted after first use)`],
+			['print', ''],
+			['print', 'Environment file:'],
+			['skip', '.env.development already configured'],
+			['print', ''],
+			['print', 'Done. Start the server and bootstrap a new account.']
+		]);
 	});
 
 	test("passes the URL's password in the environment, never argv", async () => {
 		const deps = create_deps();
 		const url = 'postgres://dev:hunter2@localhost/scratch_dev';
 		deps.runtime.mock_fs.set('.env.development', `DATABASE_URL=${url}\n` + KEY);
-		await quietly(() => run_dev_reset(deps, { fuz_forge_home: HOME }));
+		await run_dev_reset(deps, { fuz_forge_home: HOME });
 		assert.deepEqual(deps.postgres.dropdb.envs, [{ PGPASSWORD: 'hunter2' }]);
 		assert.deepEqual(deps.postgres.createdb.envs, [{ PGPASSWORD: 'hunter2' }]);
 		assert.notInclude(JSON.stringify(calls_of(deps)), 'hunter2');
@@ -346,7 +366,7 @@ describe('run_dev_reset', () => {
 		const deps = create_deps();
 		deps.runtime.mock_fs.set('.env.development', 'DATABASE_URL=memory://\n' + KEY);
 		deps.runtime.mock_fs.set(TOKEN_PATH, OLD_TOKEN);
-		await quietly(() => run_dev_reset(deps, { fuz_forge_home: HOME }));
+		await run_dev_reset(deps, { fuz_forge_home: HOME });
 		assert.deepEqual(calls_of(deps), { createdb: [], dropdb: [] });
 		assert.notStrictEqual(deps.runtime.mock_fs.get(TOKEN_PATH), OLD_TOKEN);
 	});

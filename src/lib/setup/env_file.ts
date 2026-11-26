@@ -4,7 +4,11 @@
  * @module
  */
 
-import { setup_env_file, type SetupEnvResult } from '@fuzdev/fuz_app/dev/setup.ts';
+import {
+	setup_env_file,
+	type SetupEnvResult,
+	type SetupLogger
+} from '@fuzdev/fuz_app/dev/setup.ts';
 import type { FsReadDeps, FsWriteDeps } from '@fuzdev/fuz_app/runtime/deps.ts';
 import { TaskError } from '@fuzdev/gro/task_error.ts';
 
@@ -28,13 +32,15 @@ export const to_env_example_path = (env_path: string): string => `${env_path}.ex
  *
  * @param runtime - fuz_app's file capabilities
  * @param env_path - the env file, whose example is read only when it's absent
+ * @param log - takes `setup_env_file`'s status line
  * @returns what `setup_env_file` did
  * @throws `TaskError` - when neither file exists
  * @mutates filesystem - writes `env_path` at mode `0o600`
  */
 export const ensure_env_file = async (
 	runtime: FsReadDeps & FsWriteDeps,
-	env_path: string
+	env_path: string,
+	log: SetupLogger
 ): Promise<SetupEnvResult> => {
 	const example_path = to_env_example_path(env_path);
 	if (!(await runtime.stat(env_path))?.is_file && !(await runtime.stat(example_path))?.is_file) {
@@ -42,5 +48,5 @@ export const ensure_env_file = async (
 			`Neither ${env_path} nor its template ${example_path} exists; restore the template from git.`
 		);
 	}
-	return setup_env_file(runtime, env_path, example_path);
+	return setup_env_file(runtime, env_path, example_path, { log });
 };
