@@ -46,7 +46,7 @@ Rust-side suites:
   pins that the post-receive callback, dropped by its hook mid-commit, still
   broadcasts (a Rust-only concern: hyper drops a request with its
   connection); `request_reads_census.rs`, the spine's shared request-reads
-  census (`fuz_testing::request_reads_census`) over this workspace's
+  census (`fuz_testing`'s `assert_*` checks) over this workspace's
   `clippy.toml`, with its positive controls; `fuzfd_args.rs`, `fuzfd`'s
   command parsing and exit codes.
 - `crates/fuz_forge/tests/` — the real `fuzf` binary, offline: home
