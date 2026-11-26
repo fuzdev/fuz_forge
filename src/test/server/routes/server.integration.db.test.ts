@@ -274,14 +274,10 @@ describe_forge_schema_db('round-trip on the forge schema', (get_db) => {
 		// Drives every route to its handler, so it needs the whole forge schema —
 		// see `fuz_forge_in_process_setup`.
 		setup_test: fuz_forge_in_process_setup(get_db),
-		skip_routes: [
-			// RPC routes handled by describe_rpc_round_trip_tests below
-			'GET /api/rpc',
-			'POST /api/rpc',
-			// File store routes take raw bytes, not JSON — round-trip can't generate a body
-			'POST /api/fuz_forge/files/:filename{.+}',
-			'DELETE /api/fuz_forge/files/:filename{.+}'
-		],
+		// the `raw_body` file upload is skipped by the validator itself; the
+		// delete has no acting-actor input path for the validator to supply, so
+		// it answers `actor_required` — driven by fuz_forge's own file route tests
+		skip_routes: ['DELETE /api/fuz_forge/files/:filename{.+}'],
 		param_values: fuz_forge_param_values
 	});
 });

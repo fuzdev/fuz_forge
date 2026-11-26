@@ -30,21 +30,19 @@ import { fuz_forge_rpc_endpoints } from './fuz_forge_rpc_mount.ts';
 
 const handle = inject_backend_handle();
 
-// Forge smart-HTTP + internal callback routes stream git protocol bytes /
+// The git advertisement and the internal callbacks answer git protocol bytes /
 // raw payloads (not JSON-with-an-output-schema), so the generic round-trip
-// validator can't drive them — skip by `'METHOD /path'` key.
+// validator can't drive them — skip by `'METHOD /path'` key. The `raw_body`
+// routes (the pack POSTs, the file upload) the validator skips itself.
 const GIT_SLUG = '/:slug_with_git{.+\\.git}';
 const round_trip_skip_routes = [
 	`GET ${GIT_SLUG}/info/refs`,
-	`POST ${GIT_SLUG}/git-upload-pack`,
-	`POST ${GIT_SLUG}/git-receive-pack`,
 	'GET /internal/repo-config/:id',
 	'POST /internal/repo-receive-callback',
-	// File store upload/delete: `actor: 'required'` + raw-bytes (`input:
-	// literal(null)`) admin routes — no acting-actor input path for the generic
-	// validator to supply, so authorization yields `actor_required` rather
-	// than a declared response. Driven by fuz_forge's own file route tests.
-	'POST /api/fuz_forge/files/:filename{.+}',
+	// The file delete: an `actor: 'required'` admin route with no acting-actor
+	// input path for the generic validator to supply, so authorization answers
+	// `actor_required` rather than a declared response. Driven by fuz_forge's
+	// own file route tests.
 	'DELETE /api/fuz_forge/files/:filename{.+}'
 ];
 

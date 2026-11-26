@@ -336,8 +336,8 @@ stated in that file, never as a backend branch:
   `keeper` (keeper reach is not admin reach, so every arm still turns on the
   grant) and `role_grant_offer_lifecycle` / `role_grant_participation` offer
   and confer `admin` (the scoped-assign case skips — a builtin is global-only).
-- **overrides**: the standard bundle's `round_trip_skip_routes` (git
-  smart-HTTP, `/internal/*`, the raw-byte file routes).
+- **overrides**: the standard bundle's `round_trip_skip_routes` (the info/refs
+  GET, `/internal/*`, the file delete; the `raw_body` routes skip themselves).
 - **`testing_backdoors`**: both backend configs declare every backdoor in
   `TESTING_BACKDOOR_METHODS` but `_testing_room_evict` — both test binaries
   mount all of those, and neither mounts rooms (the forge's own
