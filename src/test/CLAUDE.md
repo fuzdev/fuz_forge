@@ -458,8 +458,9 @@ the existing `GET /api/facts/:hash` entry in
 `server/routes/auth_attack_surface.test.ts` does.
 
 **The fact routes need a fact-bearing fixture.** The round-trip validator and
-the data-exposure suite must both override `setup_test` with the file's
-hoisted `fuz_forge_in_process_setup`. Against the auth-only default each
+the data-exposure suite must both run inside the file's `describe_forge_schema_db`
+and pass its `get_db` (with `fuz_forge_audit_factory`) to
+`default_in_process_suite_options`. Against the auth-only default each
 route's 404 becomes a missing-relation 500, which round-trip fails on and data
 exposure silently *skips* (`if (!res.ok) continue`).
 
