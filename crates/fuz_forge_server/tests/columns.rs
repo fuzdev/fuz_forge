@@ -12,7 +12,7 @@
 
 mod common;
 
-use common::fresh_db;
+use common::MIGRATED_DB;
 use fuz_auth::AUTH_COLUMN_PROJECTIONS;
 use fuz_cell::CELL_COLUMN_PROJECTIONS;
 use fuz_db::{ColumnProjections, DB_COLUMN_PROJECTIONS};
@@ -31,7 +31,7 @@ const FUZ_FORGE_COLUMN_PROJECTIONS: ColumnProjections = ColumnProjections {
 
 #[tokio::test]
 async fn columns_match_live_schema() {
-    let pool = fresh_db().await;
+    let pool = MIGRATED_DB.open().await;
     assert_column_projections(
         &pool,
         &[

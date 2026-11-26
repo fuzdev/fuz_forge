@@ -98,9 +98,13 @@ or add `--test <name>` for one. The databases (via `tests/common/`: bare for
 `repo_git_auth`, `repo_create_rpc`, `signed_tool_install`, and
 `repo_receive_callback_past_commit`, whose `build_router` call runs the
 migrations; migrated for `columns` and `upkeep`), the account / actor /
-admin-grant seeding, and the `columns` assertion come from `fuz_testing`, a
+admin-grant seeding, the API-token mint, the recording closer, and the
+`columns` assertion come from `fuz_testing`, a
 dev-dependency only — it never reaches `fuzfd`, and
 `cargo xtask check-release`, walking runtime dependencies, ignores it.
+The `rust` job's Postgres leg names its crates by hand
+(`-p fuz_forge_server`); `xtask`'s `tests/db_suite_lists.rs` holds that list
+to the crates with database tests.
 
 CI runs the rustdoc doc-link gate too; the command and its pass condition are
 in the root CLAUDE.md § Commands.

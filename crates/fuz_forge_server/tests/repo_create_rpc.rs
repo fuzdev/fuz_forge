@@ -29,21 +29,19 @@
 mod common;
 
 use std::collections::BTreeSet;
-use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use axum::body::Body;
-use axum::extract::ConnectInfo;
 use axum::http::{Request, header};
 use common::bare_db;
+use fuz_auth::TokenScopeDocument;
 use fuz_forge_server::FuzForgeEnv;
 use fuz_forge_server::router::build_router;
 use fuz_sys::fs::CleanupGuard;
 use fuz_sys::rand::random_hex_suffix;
-use fuz_testing::{grant_role, seed_account_actor};
+use fuz_testing::{grant_role, mint_api_token, seed_account_actor};
 use serde_json::{Value, json};
-use tower::ServiceExt as _;
 
 /// The host-policy refusal's wire message — `SEED_FROM_HOST_MESSAGE` in
 /// `handlers::seed_from`, and the TS twin's constant of the same name.
@@ -125,27 +123,15 @@ async fn boot(seed_from_allow_private_hosts: bool) -> Booted {
 
     let (account_id, actor_id) = seed_account_actor(&pool, "repo_admin").await;
     grant_role(&pool, actor_id, fuz_auth::ROLE_ADMIN).await;
-    let g = fuz_auth::api_token::generate_api_token();
-    let scope_json = fuz_auth::token_scope::TokenScopeDocument::full()
-        .to_json()
-        .expect("serialize token scope");
-    fuz_auth::api_token_queries::query_create_api_token(
-        &pool.get().await.expect("pool.get"),
-        &g.id,
-        &account_id,
-        "repo_create",
-        &g.token_hash,
-        &scope_json,
-        None,
-    )
-    .await
-    .expect("create api token");
+    let token = mint_api_token(&pool, account_id, &TokenScopeDocument::full())
+        .await
+        .token;
 
     Booted {
         _cleanup: cleanup,
         pool,
         router,
-        token: g.token,
+        token,
         actor_id,
         repo_root,
     }
@@ -164,30 +150,18 @@ impl Booted {
     /// admin. Returns the parsed envelope.
     async fn rpc(&self, method: &str, params: Value) -> Value {
         let body = json!({"jsonrpc": "2.0", "id": 1, "method": method, "params": params});
-        let mut request = Request::builder()
+        let request = Request::builder()
             .method("POST")
             .uri("/api/rpc")
             .header(header::CONTENT_TYPE, "application/json")
             .header(header::AUTHORIZATION, format!("Bearer {}", self.token))
             .body(Body::from(body.to_string()))
             .expect("the request builds");
-        // `serve_with_shutdown` inserts the peer; a `oneshot` has no connection.
-        request.extensions_mut().insert(ConnectInfo(
-            "127.0.0.1:40000"
-                .parse::<SocketAddr>()
-                .expect("the peer parses"),
-        ));
         let response = self
             .router
-            .clone()
-            .into_router_for_testing()
-            .oneshot(request)
-            .await
-            .expect("the router answers");
-        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
-            .await
-            .expect("the body reads");
-        serde_json::from_slice(&bytes).expect("a JSON-RPC envelope")
+            .send_for_testing(request, fuz_http::TEST_PEER)
+            .await;
+        serde_json::from_slice(response.body()).expect("a JSON-RPC envelope")
     }
 
     /// `fuz_forge_repo_create` with `params`.

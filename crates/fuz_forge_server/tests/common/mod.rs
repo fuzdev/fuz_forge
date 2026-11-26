@@ -25,8 +25,10 @@ const BARE_DB: TestingDbOptions<'static> = TestingDbOptions {
     engine: TestEngine::Any,
 };
 
-/// [`BARE_DB`] over the chain `build_router` runs.
-const MIGRATED_DB: TestingDbOptions<'static> = TestingDbOptions {
+/// [`BARE_DB`] over the chain `build_router` runs — a fresh bootstrap of what
+/// `fuzfd` migrates on boot (`MIGRATED_DB.open()`).
+#[allow(dead_code, reason = "each test binary uses only part of this module")]
+pub const MIGRATED_DB: TestingDbOptions<'static> = TestingDbOptions {
     migrations: &fuz_forge_migration_namespaces(),
     ..BARE_DB
 };
@@ -43,13 +45,6 @@ pub async fn bare_db() -> TestDb {
 #[allow(dead_code, reason = "each test binary uses only part of this module")]
 pub async fn bare_postgres_db() -> TestDb {
     assert_bare(fresh_test_db(BARE_DB.postgres_only()).await).await
-}
-
-/// A database under the chain `build_router` runs — a fresh bootstrap of what
-/// `fuzfd` migrates on boot.
-#[allow(dead_code, reason = "each test binary uses only part of this module")]
-pub async fn fresh_db() -> TestDb {
-    fresh_test_db(MIGRATED_DB).await
 }
 
 /// `db`, checked to hold no migration tracker: the bare form is what makes

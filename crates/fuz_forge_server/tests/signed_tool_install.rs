@@ -23,24 +23,21 @@
 //! - `fuz_home/test_home_override` — redirect `~/.fuz` in-process, since edition
 //!   2024 + the workspace `unsafe_code = "forbid"` rule out `std::env::set_var`.
 
-#![expect(
-    clippy::expect_used,
-    reason = "test helpers outside `#[test]` fns panic on a failed setup or check"
-)]
-
 mod common;
 
 use std::os::unix::fs::PermissionsExt;
 use std::sync::Arc;
 
 use common::bare_db;
+use fuz_auth::TokenScopeDocument;
+use fuz_auth::api_token::GeneratedApiToken;
 use fuz_forge_server::FuzForgeEnv;
 use fuz_forge_server::router::build_router;
 use fuz_release::{ToolInstallOptions, ToolInstallOutcome, install_tool, verify_installed_tool};
 use fuz_sign::{PublishOptions, SigningKey, publish_tool};
 use fuz_sys::fs::CleanupGuard;
 use fuz_sys::rand::random_hex_suffix;
-use fuz_testing::{grant_role, seed_account_actor};
+use fuz_testing::{grant_role, mint_api_token, seed_account_actor};
 
 /// Serializes the whole file. The trust anchor and home override are process
 /// globals; a tokio mutex (not std) so it can be held across `.await` without
@@ -48,35 +45,16 @@ use fuz_testing::{grant_role, seed_account_actor};
 static SERIAL: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 /// Seed an admin account: `account` + `actor` + a global `admin` `role_grant` +
-/// an `api_token` row for `g`. Returns the seeded account id. The identity
-/// rows and the grant are `fuz_testing`'s `seed` fixtures; the token row is
-/// written here because it stores the caller's pre-generated `g` under this
-/// suite's token name.
-async fn seed_admin_with_token(
-    pool: &fuz_db::Pool,
-    g: &fuz_auth::api_token::GeneratedApiToken,
-) -> uuid::Uuid {
+/// an API token, all `fuz_testing`'s `seed` and credential fixtures. Returns
+/// the token.
+///
+/// `TokenScope::Full` — this capstone drives the whole publish/install flow
+/// over bearer, so the token needs the reach an operator's admin token has.
+/// The scope axis is exercised in `fuz_auth`, not here.
+async fn seed_admin_with_token(pool: &fuz_db::Pool) -> GeneratedApiToken {
     let (account_id, actor_id) = seed_account_actor(pool, "capstone_admin").await;
     grant_role(pool, actor_id, fuz_auth::ROLE_ADMIN).await;
-    // `TokenScope::Full` — this capstone drives the whole publish/install flow
-    // over bearer, so the token needs the reach an operator's admin token has.
-    // The scope axis is exercised in `fuz_auth`, not here.
-    let scope_json = fuz_auth::token_scope::TokenScopeDocument::full()
-        .to_json()
-        .expect("serialize token scope");
-    let client = pool.get().await.expect("pool.get");
-    fuz_auth::api_token_queries::query_create_api_token(
-        &client,
-        &g.id,
-        &account_id,
-        "capstone",
-        &g.token_hash,
-        &scope_json,
-        None,
-    )
-    .await
-    .expect("create api token");
-    account_id
+    mint_api_token(pool, account_id, &TokenScopeDocument::full()).await
 }
 
 /// The headline composition: sign + publish a tool through a booted
@@ -178,8 +156,7 @@ async fn publish_then_install_tool_over_forge_storage() {
     // Seed an admin account + a max-privilege (unscoped) API token so the file
     // store's POST (publish) `require_admin_role` and GET (install)
     // `require_auth` gates both pass.
-    let g = fuz_auth::api_token::generate_api_token();
-    seed_admin_with_token(&pool, &g).await;
+    let g = seed_admin_with_token(&pool).await;
 
     // Bind our own listener so we control the port; serve on a background task
     // with a graceful-shutdown token. `fuz_http::serve_with_shutdown` is the one

@@ -264,12 +264,8 @@ mod tests {
     //! The boot-only router composes through the stack (the spine's
     //! `boot_only`, pinned in `fuz_actions`): the forge's env feeds it.
 
-    use std::net::SocketAddr;
-
     use axum::body::Body;
-    use axum::extract::ConnectInfo;
     use axum::http::{Request, StatusCode, header};
-    use tower::ServiceExt;
 
     use crate::env::FuzForgeEnv;
 
@@ -308,22 +304,10 @@ mod tests {
         if let Some(origin) = origin {
             builder = builder.header(header::ORIGIN, origin);
         }
-        let mut request = builder.body(Body::empty()).expect("the request builds");
-        // `serve_with_shutdown` inserts the peer; a `oneshot` has no connection
-        request.extensions_mut().insert(ConnectInfo(
-            "127.0.0.1:40000"
-                .parse::<SocketAddr>()
-                .expect("the peer parses"),
-        ));
-        let response = router
-            .into_router_for_testing()
-            .oneshot(request)
-            .await
-            .expect("the router answers");
+        let request = builder.body(Body::empty()).expect("the request builds");
+        let response = router.send_for_testing(request, fuz_http::TEST_PEER).await;
         let status = response.status();
-        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
-            .await
-            .expect("the body reads");
+        let body = response.into_body();
         (status, String::from_utf8_lossy(&body).into_owned())
     }
 
@@ -364,5 +348,188 @@ mod tests {
             send("/nope", None).await,
             (StatusCode::NOT_FOUND, "404 Not Found".to_owned())
         );
+    }
+}
+
+#[cfg(test)]
+mod gates {
+    //! The full router's gates, driven in-process over an inert spine core
+    //! (`fuz_testing::inert_app_backend`, whose pool never connects): every
+    //! case here is answered by a layer of the stack, or by a handler that
+    //! needs no database, before anything reads one. The table of groups is
+    //! `compose_full_router`'s; git is mounted at `/{org}/{repo}/...`.
+
+    use axum::body::Body;
+    use axum::http::{Request, StatusCode, header};
+    use fuz_http::{DEFAULT_BODY_LIMIT_BYTES, GatedRouter};
+
+    use super::FUZ_FORGE_BACKEND_SPEC;
+    use crate::app::FuzForgeApp;
+    use crate::env::FuzForgeEnv;
+
+    const ALLOWED_ORIGIN: &str = "http://localhost:5173";
+    const FOREIGN_ORIGIN: &str = "https://elsewhere.example";
+    const FORBIDDEN_ORIGIN: &str = r#"{"error":"forbidden_origin"}"#;
+    const PAYLOAD_TOO_LARGE: &str = r#"{"error":"payload_too_large"}"#;
+
+    /// The forge's full router over an inert core, composed as `build_router`
+    /// composes it, the limiters enforced.
+    fn full_router() -> GatedRouter {
+        let env = FuzForgeEnv::from_vars(&|k| {
+            (k == "FUZ_ALLOWED_ORIGINS").then(|| ALLOWED_ORIGIN.to_owned())
+        })
+        .expect("the env parses");
+        let backend = fuz_testing::inert_app_backend(&FUZ_FORGE_BACKEND_SPEC, ALLOWED_ORIGIN);
+        let ready = fuz_http::ready_router(fuz_http::ReadyRouteState {
+            pool: backend.pool.clone(),
+            expected: std::sync::Arc::new(
+                fuz_actions::server::parse_expected_schema(
+                    FUZ_FORGE_BACKEND_SPEC
+                        .expected_schema_json
+                        .expect("the spec embeds a fixture"),
+                )
+                .expect("the fixture parses"),
+            ),
+        });
+        super::compose_full_router(
+            FuzForgeApp::new(backend, &env),
+            &env,
+            ready,
+            None,
+            None,
+            fuz_auth::RateLimiterMode::Enforced,
+            None,
+        )
+        .expect("the router composes")
+    }
+
+    /// Send one request from the test peer (loopback), with `headers`,
+    /// optionally declaring a `Content-Length` with no body behind it (the cap
+    /// reads only the header), and return the status and body.
+    async fn send_with(
+        router: &GatedRouter,
+        method: &str,
+        uri: &str,
+        origin: Option<&str>,
+        content_length: Option<usize>,
+        headers: &[(&str, &str)],
+    ) -> (StatusCode, String) {
+        let mut builder = Request::builder().method(method).uri(uri);
+        for (name, value) in headers {
+            builder = builder.header(*name, *value);
+        }
+        if let Some(origin) = origin {
+            builder = builder.header(header::ORIGIN, origin);
+        }
+        if let Some(length) = content_length {
+            builder = builder
+                .header(header::CONTENT_TYPE, "application/json")
+                .header(header::CONTENT_LENGTH, length.to_string());
+        }
+        let request = builder.body(Body::empty()).expect("the request builds");
+        let response = router.send_for_testing(request, fuz_http::TEST_PEER).await;
+        (
+            response.status(),
+            String::from_utf8_lossy(response.body()).into_owned(),
+        )
+    }
+
+    /// [`send_with`] with no extra headers.
+    async fn send(
+        router: &GatedRouter,
+        method: &str,
+        uri: &str,
+        origin: Option<&str>,
+        content_length: Option<usize>,
+    ) -> (StatusCode, String) {
+        send_with(router, method, uri, origin, content_length, &[]).await
+    }
+
+    /// Every checked group refuses a foreign origin: the API, the file store,
+    /// git, the probes, and the fallback.
+    #[tokio::test]
+    async fn a_foreign_origin_is_refused_on_every_checked_surface() {
+        let router = full_router();
+        for (method, uri) in [
+            ("GET", "/health"),
+            ("GET", "/ready"),
+            ("GET", "/nope"),
+            ("POST", "/api/rpc"),
+            ("GET", "/api/ws"),
+            ("GET", "/api/account/status"),
+            ("POST", "/api/account/login"),
+            ("GET", "/api/server/status"),
+            ("GET", "/api/admin/audit/stream"),
+            ("GET", "/api/fuz_forge/files/x"),
+            ("GET", "/fuzdev/repo/info/refs?service=git-upload-pack"),
+            ("POST", "/fuzdev/repo/git-receive-pack"),
+        ] {
+            let (status, body) = send(&router, method, uri, Some(FOREIGN_ORIGIN), None).await;
+            assert_eq!(status, StatusCode::FORBIDDEN, "{method} {uri}: {body}");
+            assert_eq!(body, FORBIDDEN_ORIGIN, "{method} {uri}");
+        }
+    }
+
+    /// `/internal` is the one carve-out: its handlers refuse any `Origin`
+    /// themselves, with the bare 401 they answer every refusal with. The
+    /// request carries the repo-secret header from the loopback test peer, so
+    /// the `Origin` is the only fence it meets: without one, the same request
+    /// passes phase 1 and reaches the secret's lookup, which the inert pool
+    /// answers 503.
+    #[tokio::test]
+    async fn the_internal_group_answers_a_foreign_origin_itself() {
+        const REPO_CONFIG: &str = "/internal/repo-config/00000000-0000-4000-8000-000000000000";
+        const SECRET: (&str, &str) = ("x-fuzforge-repo-secret", "x");
+        let router = full_router();
+        let refused = send_with(
+            &router,
+            "GET",
+            REPO_CONFIG,
+            Some(FOREIGN_ORIGIN),
+            None,
+            &[SECRET],
+        )
+        .await;
+        assert_eq!(
+            refused,
+            (StatusCode::UNAUTHORIZED, "Unauthorized\n".to_owned())
+        );
+        // the control: no `Origin`, past the handler's phase 1 to the database
+        let (status, body) = send_with(&router, "GET", REPO_CONFIG, None, None, &[SECRET]).await;
+        assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE, "{body}");
+    }
+
+    /// With no credential, the authenticated API surfaces answer 401 from the
+    /// gate, ahead of any query.
+    #[tokio::test]
+    async fn an_allowed_origin_without_a_credential_is_unauthenticated() {
+        let router = full_router();
+        for uri in ["/api/server/status", "/api/admin/audit/stream"] {
+            for origin in [None, Some(ALLOWED_ORIGIN)] {
+                let (status, body) = send(&router, "GET", uri, origin, None).await;
+                assert_eq!(status, StatusCode::UNAUTHORIZED, "{uri} {origin:?}: {body}");
+            }
+        }
+        let (status, body) = send(&router, "GET", "/health", Some(ALLOWED_ORIGIN), None).await;
+        assert_eq!(status, StatusCode::OK, "{body}");
+    }
+
+    /// A capped group answers a declared over-cap body 413 ahead of the origin
+    /// check; the handler-owned groups (file store, git) check the origin
+    /// first and own their size limits.
+    #[tokio::test]
+    async fn the_body_cap_is_first_in_the_capped_groups_only() {
+        let router = full_router();
+        let over_cap = Some(DEFAULT_BODY_LIMIT_BYTES + 1);
+        for uri in ["/api/rpc", "/api/account/login", "/health", "/nope"] {
+            let (status, body) = send(&router, "POST", uri, Some(FOREIGN_ORIGIN), over_cap).await;
+            assert_eq!(status, StatusCode::PAYLOAD_TOO_LARGE, "{uri}: {body}");
+            assert_eq!(body, PAYLOAD_TOO_LARGE, "{uri}: the stack cap's body");
+        }
+        for uri in ["/api/fuz_forge/files/x", "/fuzdev/repo/git-receive-pack"] {
+            let (status, body) = send(&router, "POST", uri, Some(FOREIGN_ORIGIN), over_cap).await;
+            assert_eq!(status, StatusCode::FORBIDDEN, "{uri}: {body}");
+            assert_eq!(body, FORBIDDEN_ORIGIN, "{uri}");
+        }
     }
 }

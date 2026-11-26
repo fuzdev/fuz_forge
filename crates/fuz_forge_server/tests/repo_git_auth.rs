@@ -24,41 +24,24 @@ mod common;
 use std::sync::Arc;
 
 use common::bare_db;
+use fuz_auth::TokenScopeDocument;
+use fuz_auth::api_token::GeneratedApiToken;
 use fuz_forge_server::FuzForgeEnv;
 use fuz_forge_server::router::build_router;
 use fuz_sys::fs::CleanupGuard;
 use fuz_sys::rand::random_hex_suffix;
-use fuz_testing::{grant_role, seed_account_actor};
+use fuz_testing::{grant_role, mint_api_token, seed_account_actor};
 
 const SLUG: &str = "fuzdev/tombstone";
 
-/// Seed an admin account + actor + global `admin` grant + an `api_token` for
-/// `g`, and return the **actor** id (the row the tombstone lands on). The
-/// identity rows and the grant are `fuz_testing`'s `seed` fixtures; the token
-/// row is written here because it stores the caller's pre-generated `g` under
-/// this suite's token name.
-async fn seed_admin_actor(
-    pool: &fuz_db::Pool,
-    g: &fuz_auth::api_token::GeneratedApiToken,
-) -> uuid::Uuid {
+/// Seed an admin account + actor + global `admin` grant + a full-scope API
+/// token, and return the **actor** id (the row the tombstone lands on) and
+/// the token. All of it is `fuz_testing`'s `seed` and credential fixtures.
+async fn seed_admin_actor(pool: &fuz_db::Pool) -> (uuid::Uuid, GeneratedApiToken) {
     let (account_id, actor_id) = seed_account_actor(pool, "git_admin").await;
     grant_role(pool, actor_id, fuz_auth::ROLE_ADMIN).await;
-    let scope_json = fuz_auth::token_scope::TokenScopeDocument::full()
-        .to_json()
-        .expect("serialize token scope");
-    let client = pool.get().await.expect("pool.get");
-    fuz_auth::api_token_queries::query_create_api_token(
-        &client,
-        &g.id,
-        &account_id,
-        "git",
-        &g.token_hash,
-        &scope_json,
-        None,
-    )
-    .await
-    .expect("create api token");
-    actor_id
+    let token = mint_api_token(pool, account_id, &TokenScopeDocument::full()).await;
+    (actor_id, token)
 }
 
 /// A booted forge over the test database: one live admin with an api token,
@@ -125,8 +108,7 @@ async fn boot() -> Booted {
         panic!("a database builds the full router");
     };
 
-    let g = fuz_auth::api_token::generate_api_token();
-    let actor_id = seed_admin_actor(&pool, &g).await;
+    let (actor_id, g) = seed_admin_actor(&pool).await;
 
     // A repo cell at `repos/<slug>` plus the bare repo its id names on disk, so
     // an authorized request reaches `git http-backend` and gets a real

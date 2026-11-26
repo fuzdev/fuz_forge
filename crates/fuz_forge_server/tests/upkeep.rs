@@ -10,17 +10,12 @@
 //! `auth_cleanup` suite, `fuz_fact`'s sweeper tests); this pins that the
 //! server's own extra upkeep is the orphan-temp sweeper, beside the cleanup.
 
-#![expect(
-    clippy::expect_used,
-    reason = "test helpers outside `#[test]` fns panic on a failed setup or check"
-)]
-
 mod common;
 
 use std::sync::Arc;
 use std::time::{Duration, SystemTime};
 
-use common::fresh_db;
+use common::MIGRATED_DB;
 
 use fuz_auth::{
     AuditEmitter, AuditLogEvent, ConnectionCloseTarget, ConnectionCloser,
@@ -30,43 +25,15 @@ use fuz_forge_server::runtime::extra_upkeep;
 use fuz_http::Upkeep;
 use fuz_sys::fs::CleanupGuard;
 use fuz_sys::rand::random_hex_suffix;
-use fuz_testing::seed_account_actor;
+use fuz_testing::{RecordingConnectionCloser, seed_account_actor};
 use tokio_util::sync::CancellationToken;
 
 const TIMEOUT: Duration = Duration::from_secs(30);
 
-/// A `ConnectionCloser` recording every close it is asked for, by target.
-#[derive(Default)]
-struct RecordingCloser {
-    closed: std::sync::Mutex<Vec<ConnectionCloseTarget>>,
-}
-
-impl RecordingCloser {
-    fn record(&self, target: ConnectionCloseTarget) -> usize {
-        self.closed.lock().expect("lock").push(target);
-        0
-    }
-}
-
-impl ConnectionCloser for RecordingCloser {
-    fn close_connections(&self, target: &ConnectionCloseTarget) -> usize {
-        self.record(target.clone())
-    }
-}
-
-impl fuz_http::ShutdownCloser for RecordingCloser {
-    fn close_all_connections(&self) -> usize {
-        0
-    }
-    fn wait_closed(&self) -> fuz_http::ShutdownFuture<'_> {
-        Box::pin(std::future::ready(()))
-    }
-}
-
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn the_upkeep_tasks_sweep_at_startup_and_stop_on_shutdown() {
     // Fresh DB under the chain `build_router` runs.
-    let pool = fresh_db().await;
+    let pool = MIGRATED_DB.open().await;
 
     // What the auth cleanup audits: a role-grant offer already expired.
     let (_, grantor) = seed_account_actor(&pool, "upkeep_grantor").await;
@@ -126,8 +93,9 @@ async fn the_upkeep_tasks_sweep_at_startup_and_stop_on_shutdown() {
         let _ = tx.send(event);
         Box::pin(async {})
     }));
-    let recording = Arc::new(RecordingCloser::default());
-    let connection_closer: Arc<dyn ConnectionCloser> = Arc::<RecordingCloser>::clone(&recording);
+    let recording = Arc::new(RecordingConnectionCloser::default());
+    let connection_closer: Arc<dyn ConnectionCloser> =
+        Arc::<RecordingConnectionCloser>::clone(&recording);
     let shutdown = CancellationToken::new();
     let mut tasks = vec![
         fuz_auth::AuthCleanup {
@@ -164,7 +132,7 @@ async fn the_upkeep_tasks_sweep_at_startup_and_stop_on_shutdown() {
     // the cleanup sweeps sessions before it audits offers, so its session
     // close has run by the time the offer's audit arrives
     assert_eq!(
-        *recording.closed.lock().expect("lock"),
+        recording.closed(),
         [ConnectionCloseTarget::Session("upkeep-expired".to_owned())],
         "the auth cleanup closes the expired session it deleted, and only that"
     );
